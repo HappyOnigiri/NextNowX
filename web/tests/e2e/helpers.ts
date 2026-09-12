@@ -5,6 +5,36 @@ if (!e2ePort) throw new Error("Playwright did not capture the E2E server port");
 
 export const e2eBaseURL = `http://127.0.0.1:${e2ePort}`;
 
+// 表示言語はサーバーの共有設定なので、切り替えると同じサーバーを見ている他の
+// spec の画面まで変わる。言語を書き換える spec は専用のサーバーを使う。
+const languagePort = process.env["PRX_E2E_LANGUAGE_PORT"];
+if (!languagePort)
+  throw new Error("Playwright did not capture the language E2E server port");
+
+export const languageBaseURL = `http://127.0.0.1:${languagePort}`;
+
+export async function openDisplaySettings(
+  page: Page,
+  language: "en" | "ja" = "en",
+) {
+  const labels =
+    language === "en"
+      ? { button: "Settings", dialog: "Settings", tab: "Display" }
+      : { button: "設定", dialog: "設定", tab: "表示" };
+  await page.getByRole("button", { name: labels.button }).click();
+  await expect(page.getByRole("dialog", { name: labels.dialog })).toBeVisible();
+  await page.getByRole("tab", { name: labels.tab }).click();
+}
+
+// 設定はタブをまたいでフッタの保存 1 つで書き込む。表示の設定も押すまで
+// 適用されない。
+export async function saveSettings(page: Page, language: "en" | "ja" = "en") {
+  await page
+    .getByRole("dialog", { name: language === "en" ? "Settings" : "設定" })
+    .getByRole("button", { name: language === "en" ? "Save" : "保存" })
+    .click();
+}
+
 // ブラウザ側のエラーはテスト本体のアサーションに出ないので、spec ごとに集めて
 // 終了時にまとめて突き合わせる。意図した失敗を見込むテストは、返した配列から
 // その分を取り除く。
