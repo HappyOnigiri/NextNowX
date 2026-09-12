@@ -101,6 +101,9 @@ export default defineConfig({
   build: {
     outDir: resolve(__dirname, "../internal/webui/dist"),
     emptyOutDir: false,
+    // 成果物は 127.0.0.1 のローカル配信なので転送量を気にする必要がなく、
+    // 分割せず単一チャンクのままにしている。既定の 500 kB では警告が出るため引き上げる。
+    chunkSizeWarningLimit: 2000,
   },
   test: {
     environment: "jsdom",
