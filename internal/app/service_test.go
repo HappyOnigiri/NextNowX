@@ -138,6 +138,10 @@ func (r *featureRepository) GetFeature(context.Context, string) (domain.Feature,
 	return r.feature, nil
 }
 
+func (r *featureRepository) Snapshot(context.Context) (domain.Snapshot, error) {
+	return domain.Snapshot{Features: []domain.Feature{r.feature}}, nil
+}
+
 // 読み取り専用ガードは feature の所属先 project を読むので、stub は
 // 「存在しない」ではなく active なコンテナを返す。
 func (r *featureRepository) GetProject(_ context.Context, id string) (domain.Project, error) {
@@ -153,6 +157,10 @@ type taskRepository struct {
 
 func (r *taskRepository) GetTask(context.Context, string) (domain.Task, error) {
 	return r.task, nil
+}
+
+func (r *taskRepository) Snapshot(context.Context) (domain.Snapshot, error) {
+	return domain.Snapshot{Tasks: []domain.Task{r.task}}, nil
 }
 
 func (r *taskRepository) GetFeature(context.Context, string) (domain.Feature, error) {
@@ -171,6 +179,10 @@ func (missingFeatureRepository) GetFeature(_ context.Context, id string) (domain
 	return domain.Feature{}, domain.NewError(domain.DomainErrorCodeNotFound, "feature %q was not found", id)
 }
 
+func (missingFeatureRepository) Snapshot(context.Context) (domain.Snapshot, error) {
+	return domain.Snapshot{}, nil
+}
+
 type failingFeatureRepository struct {
 	missingFeatureRepository
 	idFailure error
@@ -181,6 +193,10 @@ func (r *failingFeatureRepository) GetFeature(ctx context.Context, id string) (d
 		return r.missingFeatureRepository.GetFeature(ctx, id)
 	}
 	return domain.Feature{}, r.idFailure
+}
+
+func (r *failingFeatureRepository) Snapshot(context.Context) (domain.Snapshot, error) {
+	return domain.Snapshot{}, r.idFailure
 }
 
 // データベースのロックのようなストレージ障害は、feature が見つからないと報告されず、

@@ -2,6 +2,7 @@ package store_test
 
 import (
 	"context"
+	"reflect"
 	"testing"
 
 	"github.com/HappyOnigiri/PRX/internal/app"
@@ -66,6 +67,81 @@ func TestGetNodeResolvesProjectsAndFeaturesByPublicID(t *testing.T) {
 	}
 	if _, err := service.GetNode(ctx, "P-9"); domain.ErrorCode(err) != domain.DomainErrorCodeNotFound {
 		t.Fatalf("missing project node code=%s err=%v", domain.ErrorCode(err), err)
+	}
+}
+
+func TestGetNodeReturnsDerivedSnapshotValues(t *testing.T) {
+	ctx := context.Background()
+	_, service := openTestService(t)
+	project, err := service.CreateProject(ctx, "Payments", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	feature, err := service.CreateFeature(ctx, "Checkout", "", project.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	designed, err := service.CreateTask(ctx, feature.ID, "Design API", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	completed, err := service.CreateTask(ctx, feature.ID, "Ship API", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	status := domain.TaskStatusCompleted
+	if _, err := service.UpdateTask(ctx, completed.ID, nil, nil, &status, nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.UpsertImplementationPlan(
+		ctx,
+		designed.ID,
+		domain.Document{Kind: domain.DocumentKindMarkdown, Content: "# Design"},
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	snapshot, err := service.Snapshot(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var wantTask domain.Task
+	for _, task := range snapshot.Tasks {
+		if task.ID == designed.ID {
+			wantTask = task
+			break
+		}
+	}
+	node, err := service.GetNode(ctx, designed.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	gotTask, ok := node.(domain.Task)
+	if !ok || !reflect.DeepEqual(gotTask, wantTask) {
+		t.Fatalf("task node=%#v, want %#v", node, wantTask)
+	}
+	if !gotTask.HasImplementationPlan || gotTask.DisplayState != domain.TaskDisplayStateDesigned {
+		t.Fatalf("task derived values=%+v", gotTask)
+	}
+
+	var wantFeature domain.Feature
+	for _, value := range snapshot.Features {
+		if value.ID == feature.ID {
+			wantFeature = value
+			break
+		}
+	}
+	node, err = service.GetNode(ctx, feature.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	gotFeature, ok := node.(domain.Feature)
+	if !ok || !reflect.DeepEqual(gotFeature, wantFeature) {
+		t.Fatalf("feature node=%#v, want %#v", node, wantFeature)
+	}
+	if gotFeature.DisplayStatus != domain.FeatureStatusActive ||
+		gotFeature.TaskCount != 2 || gotFeature.FinishedCount != 1 {
+		t.Fatalf("feature derived values=%+v", gotFeature)
 	}
 }
 

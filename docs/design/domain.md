@@ -31,6 +31,7 @@ feature は作成時も移動後も、必ずちょうど 1 つの project に属
 project が持つ状態は archive されているかどうかだけで、feature と task が共有する 2 層のステータス規則からは意図的に外してある。
 feature を含むすべての読み取りは `Feature.ReadOnly` を返し、feature 自身かその project のどちらかが archive されていれば true になる。
 クライアントはこの値をそのまま使う。
+単一リソースの読み取りも snapshot と同じ導出値を返す。
 read-only な feature は archived のカテゴリに提示され、active な feature 一覧・overview・task 検索から外れる。これは feature を個別に archive した場合と同じ扱いである。
 archive が禁じる書き込みは [archive.md](archive.md) に記録する。
 

@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -879,7 +880,7 @@ func TestBlackBoxResolvedCommandErrorsIncludeCompleteHelp(t *testing.T) {
 func TestBlackBoxShowReportsMissingTargetsWithCurrentVocabulary(t *testing.T) {
 	binary := buildCLI(t)
 	dbPath := filepath.Join(t.TempDir(), "show.db")
-	for _, identifier := range []string{"F-99", "checkout", "T-99"} {
+	for _, identifier := range []string{"F-99", "T-99", "P-99", "checkout"} {
 		result := executeCLI(t, binary, "", "--db", dbPath, "--json", "show", identifier)
 		if result.exit == 0 || result.stdout != "" {
 			t.Fatalf("%s: result=%+v", identifier, result)
@@ -911,6 +912,81 @@ func TestBlackBoxShowResolvesProjectsByPublicID(t *testing.T) {
 		if value.ID != project || value.Title != "Payments" {
 			t.Errorf("show %s=%+v", identifier, value)
 		}
+	}
+}
+
+func TestBlackBoxShowAndGraphUseDerivedSnapshotValues(t *testing.T) {
+	binary := buildCLI(t)
+	root := t.TempDir()
+	dbPath := filepath.Join(root, "derived.db")
+	project := decodeID(t, runCLIData(t, binary, dbPath, "project", "create", "Payments"))
+	feature := decodeID(t, runCLIData(t, binary, dbPath, "feature", "create", "Checkout", "--project", project))
+	designedTask := decodeID(t, runCLIData(t, binary, dbPath, "task", "create", feature, "Design API"))
+	completedTask := decodeID(t, runCLIData(t, binary, dbPath, "task", "create", feature, "Ship API"))
+	if _, stderr, exit := runCLI(
+		t, binary, dbPath, "task", "update", completedTask, "--status", "completed",
+	); exit != 0 || stderr != "" {
+		t.Fatalf("complete task: stderr=%q exit=%d", stderr, exit)
+	}
+	planPath := filepath.Join(root, "plan.md")
+	if err := os.WriteFile(planPath, []byte("# Design\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, stderr, exit := runCLI(
+		t, binary, dbPath, "plan", "set", designedTask, "--file", planPath,
+	); exit != 0 || stderr != "" {
+		t.Fatalf("set plan: stderr=%q exit=%d", stderr, exit)
+	}
+
+	directTask := runCLIData(t, binary, dbPath, "task", designedTask)
+	showTask := runCLIData(t, binary, dbPath, "show", designedTask)
+	assertJSONEqual(t, showTask, directTask, "show task")
+	var taskState struct {
+		HasPlan bool   `json:"has_implementation_plan"`
+		Display string `json:"display_state"`
+	}
+	if err := json.Unmarshal(directTask, &taskState); err != nil {
+		t.Fatal(err)
+	}
+	if !taskState.HasPlan || taskState.Display != "designed" {
+		t.Fatalf("task state=%+v", taskState)
+	}
+
+	directFeature := runCLIData(t, binary, dbPath, "feature", feature)
+	showFeature := runCLIData(t, binary, dbPath, "show", feature)
+	assertJSONEqual(t, showFeature, directFeature, "show feature")
+	var featureState struct {
+		DisplayStatus string `json:"display_status"`
+		TaskCount     int    `json:"task_count"`
+		FinishedCount int    `json:"finished_count"`
+	}
+	if err := json.Unmarshal(directFeature, &featureState); err != nil {
+		t.Fatal(err)
+	}
+	if featureState.DisplayStatus != "active" || featureState.TaskCount != 2 || featureState.FinishedCount != 1 {
+		t.Fatalf("feature state=%+v", featureState)
+	}
+
+	var graph struct {
+		Feature json.RawMessage `json:"feature"`
+	}
+	if err := json.Unmarshal(runCLIData(t, binary, dbPath, "graph", feature), &graph); err != nil {
+		t.Fatal(err)
+	}
+	assertJSONEqual(t, graph.Feature, directFeature, "graph feature")
+}
+
+func assertJSONEqual(t *testing.T, got, want json.RawMessage, label string) {
+	t.Helper()
+	var gotValue, wantValue any
+	if err := json.Unmarshal(got, &gotValue); err != nil {
+		t.Fatalf("%s is invalid JSON: %v", label, err)
+	}
+	if err := json.Unmarshal(want, &wantValue); err != nil {
+		t.Fatalf("expected JSON is invalid: %v", err)
+	}
+	if !reflect.DeepEqual(gotValue, wantValue) {
+		t.Fatalf("%s=%s, want %s", label, got, want)
 	}
 }
 
