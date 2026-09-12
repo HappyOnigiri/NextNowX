@@ -54,6 +54,27 @@ func (h *Handler) UpdateGitHubSyncConfig(
 	}), nil
 }
 
+// UpdateLanguageConfig は表示とプロンプトが共有する言語を変更する。WebUI の表示
+// 言語は localStorage ではなくこの設定に従うので、プロンプトと表示がずれない。
+func (h *Handler) UpdateLanguageConfig(
+	ctx context.Context,
+	req *connect.Request[prxv1.UpdateLanguageConfigRequest],
+) (*connect.Response[prxv1.UpdateLanguageConfigResponse], error) {
+	store, err := h.requireConfig()
+	if err != nil {
+		return nil, err
+	}
+	settings, err := store.Update(func(settings *config.Config) error {
+		return settings.SetLanguage(req.Msg.GetLanguage())
+	})
+	if err != nil {
+		return nil, configRPCError(err)
+	}
+	return connect.NewResponse(&prxv1.UpdateLanguageConfigResponse{
+		Config: protoGitHubConfig(settings.Public()),
+	}), nil
+}
+
 func (h *Handler) AddGitHubHost(
 	ctx context.Context,
 	req *connect.Request[prxv1.AddGitHubHostRequest],
@@ -315,6 +336,7 @@ func configAuthMethodType(value prxv1.GithubAuthMethodType) (config.AuthMethodTy
 func protoGitHubConfig(value config.PublicConfig) *prxv1.GitHubConfig {
 	result := &prxv1.GitHubConfig{
 		Version: int32(value.Version), AutoSyncIntervalSeconds: value.GitHub.AutoSyncIntervalSeconds,
+		Language: value.Language, EffectiveLanguage: value.EffectiveLanguage,
 	}
 	for _, host := range value.GitHub.Hosts {
 		result.Hosts = append(result.Hosts, protoGitHubHost(host))

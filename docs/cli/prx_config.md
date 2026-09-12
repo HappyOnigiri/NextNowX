@@ -32,6 +32,7 @@ prx config
 * [prx](prx.md)	 - Manage pull-request dependency roadmaps
 * [prx config auth](prx_config_auth.md)	 - List or manage host-scoped authentication methods
 * [prx config host](prx_config_host.md)	 - List or manage configured GitHub hosts
+* [prx config language](prx_config_language.md)	 - Show or manage the shared display and prompt language
 * [prx config path](prx_config_path.md)	 - Show the resolved configuration path
 * [prx config server](prx_config_server.md)	 - Show or manage the local server listen port
 * [prx config sync](prx_config_sync.md)	 - Show or manage automatic GitHub synchronization settings

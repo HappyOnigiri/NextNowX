@@ -349,7 +349,18 @@ func TestConfigCRUDAndPathPrecedence(t *testing.T) {
 	}
 }
 
+// englishTemplates は実効言語を英語に固定し、その既定テンプレートを返す。
+// 既定値は実効言語で決まるので、固定しないと期待値が実行環境のロケールで変わる。
+func englishTemplates(t *testing.T) prompt.Templates {
+	t.Helper()
+	for _, name := range []string{"LC_ALL", "LC_MESSAGES", "LANG"} {
+		t.Setenv(name, "en_US.UTF-8")
+	}
+	return prompt.DefaultTemplates(prompt.LanguageEnglish)
+}
+
 func TestPromptTemplatesLoadDefaultAndSurviveAWrite(t *testing.T) {
+	defaults := englishTemplates(t)
 	path := filepath.Join(t.TempDir(), "config.yaml")
 	// prompts がなかった頃のファイルも読み込め、CLI がプロンプトなしになる
 	// のではなく組み込みテンプレートが穴を埋める。
@@ -365,7 +376,7 @@ func TestPromptTemplatesLoadDefaultAndSurviveAWrite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if loaded.Prompts != prompt.DefaultTemplates() {
+	if loaded.Prompts != defaults {
 		t.Fatalf("prompts=%+v, want the built-in templates", loaded.Prompts)
 	}
 
@@ -400,6 +411,7 @@ func TestPromptTemplatesLoadDefaultAndSurviveAWrite(t *testing.T) {
 }
 
 func TestDefaultPromptTemplatesStayOutOfTheFile(t *testing.T) {
+	defaults := englishTemplates(t)
 	path := filepath.Join(t.TempDir(), "config.yaml")
 	store, err := NewStore(path)
 	if err != nil {
@@ -422,7 +434,7 @@ func TestDefaultPromptTemplatesStayOutOfTheFile(t *testing.T) {
 
 	// カスタマイズされたテンプレートだけが保存され、もう一方は組み込みの
 	// 文言に追従し続ける。
-	custom := prompt.DefaultTemplates()
+	custom := defaults
 	custom.Design = "Design {{task_id}}\n"
 	if _, err := store.Update(func(settings *Config) error { return settings.SetPrompts(custom) }); err != nil {
 		t.Fatal(err)
@@ -461,7 +473,7 @@ func TestInvalidPromptTemplateFailsTheConfiguration(t *testing.T) {
 		t.Fatalf("code=%q, want %q", ErrorCodeOf(err), ErrorCodeInvalid)
 	}
 	// 拒否された組は保持されないため、呼び出し元は妥当な値を持ったままになる。
-	if settings.Prompts != prompt.DefaultTemplates() {
+	if settings.Prompts != prompt.DefaultTemplates(settings.EffectiveLanguage()) {
 		t.Fatalf("prompts=%+v, want the previous templates", settings.Prompts)
 	}
 	if err := store.Save(settings); err != nil {
@@ -478,6 +490,7 @@ func TestInvalidPromptTemplateFailsTheConfiguration(t *testing.T) {
 }
 
 func TestDebugInputReportsWhetherPromptsWereEdited(t *testing.T) {
+	defaults := englishTemplates(t)
 	path := filepath.Join(t.TempDir(), "config.yaml")
 	store, err := NewStore(path)
 	if err != nil {
@@ -489,11 +502,11 @@ func TestDebugInputReportsWhetherPromptsWereEdited(t *testing.T) {
 	if input.Prompts.Design.Customized || input.Prompts.Implementation.Customized {
 		t.Fatalf("prompts=%+v, want neither reported as customized", input.Prompts)
 	}
-	if input.Prompts.Design.Bytes != len(prompt.DefaultTemplates().Design) {
+	if input.Prompts.Design.Bytes != len(defaults.Design) {
 		t.Fatalf("design bytes=%d", input.Prompts.Design.Bytes)
 	}
 
-	custom := prompt.DefaultTemplates()
+	custom := defaults
 	custom.Design = "Design {{task_id}}\n"
 	if _, err := store.Update(func(settings *Config) error { return settings.SetPrompts(custom) }); err != nil {
 		t.Fatal(err)
@@ -599,5 +612,102 @@ func TestServerPortIsAlwaysWrittenAndUsesTheSameVocabulary(t *testing.T) {
 	}
 	if !strings.Contains(string(encoded), `"server":{"port":"auto"}`) {
 		t.Fatalf("public config=%s", encoded)
+	}
+}
+
+func TestLanguageResolvesFromTheSettingAndTheEnvironment(t *testing.T) {
+	for _, name := range []string{"LC_ALL", "LC_MESSAGES", "LANG"} {
+		t.Setenv(name, "ja_JP.UTF-8")
+	}
+	settings := Default()
+	// キーがなければ auto であり、実効言語は環境のロケールから決まる。
+	if settings.Language != LanguageAutoValue || settings.EffectiveLanguage() != prompt.LanguageJapanese {
+		t.Fatalf("language=%q effective=%q", settings.Language, settings.EffectiveLanguage())
+	}
+	if settings.Prompts != prompt.DefaultTemplates(prompt.LanguageJapanese) {
+		t.Fatal("an auto configuration did not take the japanese built-in templates")
+	}
+	if err := settings.SetLanguage("en"); err != nil {
+		t.Fatal(err)
+	}
+	if settings.EffectiveLanguage() != prompt.LanguageEnglish ||
+		settings.Prompts != prompt.DefaultTemplates(prompt.LanguageEnglish) {
+		t.Fatal("setting the language did not move the built-in templates with it")
+	}
+	err := settings.SetLanguage("fr")
+	if err == nil || ErrorCodeOf(err) != ErrorCodeInvalid {
+		t.Fatalf("error=%v, want an invalid configuration", err)
+	}
+	// 拒否された値は保持されないため、呼び出し元は妥当な言語を持ったままになる。
+	if settings.Language != "en" {
+		t.Fatalf("language=%q, want the previous value", settings.Language)
+	}
+}
+
+// 言語を切り替えても、カスタマイズしていない環境の設定ファイルには prompts が
+// 現れない。前の言語の文面がカスタマイズとして固定されると、以後の文面更新に
+// 追従できなくなる。
+func TestSwitchingLanguageKeepsUneditedTemplatesOutOfTheFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	store, err := NewStore(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.Update(func(settings *Config) error { return settings.SetLanguage("ja") }); err != nil {
+		t.Fatal(err)
+	}
+	body, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(body), "prompts:") {
+		t.Fatalf("config file contains prompts:\n%s", body)
+	}
+	if !strings.Contains(string(body), "language: ja") {
+		t.Fatalf("config file does not record the language:\n%s", body)
+	}
+	loaded, err := store.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.Prompts != prompt.DefaultTemplates(prompt.LanguageJapanese) {
+		t.Fatal("the stored configuration did not follow the japanese built-in templates")
+	}
+	if store.DebugInput().Prompts.Design.Customized {
+		t.Fatal("switching the language reported the built-in design template as customized")
+	}
+	// 書いた文面は言語を切り替えても残る。上書きはユーザーの文字列であって、
+	// 言語で選び直すものではない。
+	if _, err := store.Update(func(settings *Config) error {
+		custom := settings.Prompts
+		custom.Design = "Design {{task_id}}\n"
+		return settings.SetPrompts(custom)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.Update(func(settings *Config) error { return settings.SetLanguage("en") }); err != nil {
+		t.Fatal(err)
+	}
+	loaded, err = store.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.Prompts.Design != "Design {{task_id}}\n" {
+		t.Fatalf("design=%q, want the customized template", loaded.Prompts.Design)
+	}
+	if loaded.Prompts.Implementation != prompt.DefaultTemplates(prompt.LanguageEnglish).Implementation {
+		t.Fatal("an unedited template did not follow the new language")
+	}
+}
+
+// auto のままの設定でも、公開ビューは解決済みの言語を伝える。WebUI はこれで
+// サーバーが描くプロンプトと同じ言語を表示する。
+func TestPublicConfigReportsTheRawAndEffectiveLanguage(t *testing.T) {
+	for _, name := range []string{"LC_ALL", "LC_MESSAGES", "LANG"} {
+		t.Setenv(name, "ja_JP.UTF-8")
+	}
+	public := Default().Public()
+	if public.Language != LanguageAutoValue || public.EffectiveLanguage != string(prompt.LanguageJapanese) {
+		t.Fatalf("language=%q effective=%q", public.Language, public.EffectiveLanguage)
 	}
 }

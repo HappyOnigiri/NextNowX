@@ -105,6 +105,9 @@ const (
 	// PRXServiceUpdateGitHubSyncConfigProcedure is the fully-qualified name of the PRXService's
 	// UpdateGitHubSyncConfig RPC.
 	PRXServiceUpdateGitHubSyncConfigProcedure = "/prx.v1.PRXService/UpdateGitHubSyncConfig"
+	// PRXServiceUpdateLanguageConfigProcedure is the fully-qualified name of the PRXService's
+	// UpdateLanguageConfig RPC.
+	PRXServiceUpdateLanguageConfigProcedure = "/prx.v1.PRXService/UpdateLanguageConfig"
 	// PRXServiceAddGitHubHostProcedure is the fully-qualified name of the PRXService's AddGitHubHost
 	// RPC.
 	PRXServiceAddGitHubHostProcedure = "/prx.v1.PRXService/AddGitHubHost"
@@ -199,6 +202,8 @@ type PRXServiceClient interface {
 	GetConfig(context.Context, *connect.Request[v1.GetConfigRequest]) (*connect.Response[v1.GetConfigResponse], error)
 	// UpdateGitHubSyncConfig は共有の自動更新間隔を変更する。
 	UpdateGitHubSyncConfig(context.Context, *connect.Request[v1.UpdateGitHubSyncConfigRequest]) (*connect.Response[v1.UpdateGitHubSyncConfigResponse], error)
+	// UpdateLanguageConfig は表示とプロンプトが共有する言語を変更する。
+	UpdateLanguageConfig(context.Context, *connect.Request[v1.UpdateLanguageConfigRequest]) (*connect.Response[v1.UpdateLanguageConfigResponse], error)
 	// AddGitHubHost は host の境界を追加する。
 	AddGitHubHost(context.Context, *connect.Request[v1.AddGitHubHostRequest]) (*connect.Response[v1.AddGitHubHostResponse], error)
 	// UpdateGitHubHost は host の境界を更新する。
@@ -398,6 +403,12 @@ func NewPRXServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(pRXServiceMethods.ByName("UpdateGitHubSyncConfig")),
 			connect.WithClientOptions(opts...),
 		),
+		updateLanguageConfig: connect.NewClient[v1.UpdateLanguageConfigRequest, v1.UpdateLanguageConfigResponse](
+			httpClient,
+			baseURL+PRXServiceUpdateLanguageConfigProcedure,
+			connect.WithSchema(pRXServiceMethods.ByName("UpdateLanguageConfig")),
+			connect.WithClientOptions(opts...),
+		),
 		addGitHubHost: connect.NewClient[v1.AddGitHubHostRequest, v1.AddGitHubHostResponse](
 			httpClient,
 			baseURL+PRXServiceAddGitHubHostProcedure,
@@ -502,6 +513,7 @@ type pRXServiceClient struct {
 	getDebugReport           *connect.Client[v1.GetDebugReportRequest, v1.GetDebugReportResponse]
 	getConfig                *connect.Client[v1.GetConfigRequest, v1.GetConfigResponse]
 	updateGitHubSyncConfig   *connect.Client[v1.UpdateGitHubSyncConfigRequest, v1.UpdateGitHubSyncConfigResponse]
+	updateLanguageConfig     *connect.Client[v1.UpdateLanguageConfigRequest, v1.UpdateLanguageConfigResponse]
 	addGitHubHost            *connect.Client[v1.AddGitHubHostRequest, v1.AddGitHubHostResponse]
 	updateGitHubHost         *connect.Client[v1.UpdateGitHubHostRequest, v1.UpdateGitHubHostResponse]
 	deleteGitHubHost         *connect.Client[v1.DeleteGitHubHostRequest, v1.DeleteGitHubHostResponse]
@@ -651,6 +663,11 @@ func (c *pRXServiceClient) UpdateGitHubSyncConfig(ctx context.Context, req *conn
 	return c.updateGitHubSyncConfig.CallUnary(ctx, req)
 }
 
+// UpdateLanguageConfig calls prx.v1.PRXService.UpdateLanguageConfig.
+func (c *pRXServiceClient) UpdateLanguageConfig(ctx context.Context, req *connect.Request[v1.UpdateLanguageConfigRequest]) (*connect.Response[v1.UpdateLanguageConfigResponse], error) {
+	return c.updateLanguageConfig.CallUnary(ctx, req)
+}
+
 // AddGitHubHost calls prx.v1.PRXService.AddGitHubHost.
 func (c *pRXServiceClient) AddGitHubHost(ctx context.Context, req *connect.Request[v1.AddGitHubHostRequest]) (*connect.Response[v1.AddGitHubHostResponse], error) {
 	return c.addGitHubHost.CallUnary(ctx, req)
@@ -767,6 +784,8 @@ type PRXServiceHandler interface {
 	GetConfig(context.Context, *connect.Request[v1.GetConfigRequest]) (*connect.Response[v1.GetConfigResponse], error)
 	// UpdateGitHubSyncConfig は共有の自動更新間隔を変更する。
 	UpdateGitHubSyncConfig(context.Context, *connect.Request[v1.UpdateGitHubSyncConfigRequest]) (*connect.Response[v1.UpdateGitHubSyncConfigResponse], error)
+	// UpdateLanguageConfig は表示とプロンプトが共有する言語を変更する。
+	UpdateLanguageConfig(context.Context, *connect.Request[v1.UpdateLanguageConfigRequest]) (*connect.Response[v1.UpdateLanguageConfigResponse], error)
 	// AddGitHubHost は host の境界を追加する。
 	AddGitHubHost(context.Context, *connect.Request[v1.AddGitHubHostRequest]) (*connect.Response[v1.AddGitHubHostResponse], error)
 	// UpdateGitHubHost は host の境界を更新する。
@@ -962,6 +981,12 @@ func NewPRXServiceHandler(svc PRXServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(pRXServiceMethods.ByName("UpdateGitHubSyncConfig")),
 		connect.WithHandlerOptions(opts...),
 	)
+	pRXServiceUpdateLanguageConfigHandler := connect.NewUnaryHandler(
+		PRXServiceUpdateLanguageConfigProcedure,
+		svc.UpdateLanguageConfig,
+		connect.WithSchema(pRXServiceMethods.ByName("UpdateLanguageConfig")),
+		connect.WithHandlerOptions(opts...),
+	)
 	pRXServiceAddGitHubHostHandler := connect.NewUnaryHandler(
 		PRXServiceAddGitHubHostProcedure,
 		svc.AddGitHubHost,
@@ -1090,6 +1115,8 @@ func NewPRXServiceHandler(svc PRXServiceHandler, opts ...connect.HandlerOption) 
 			pRXServiceGetConfigHandler.ServeHTTP(w, r)
 		case PRXServiceUpdateGitHubSyncConfigProcedure:
 			pRXServiceUpdateGitHubSyncConfigHandler.ServeHTTP(w, r)
+		case PRXServiceUpdateLanguageConfigProcedure:
+			pRXServiceUpdateLanguageConfigHandler.ServeHTTP(w, r)
 		case PRXServiceAddGitHubHostProcedure:
 			pRXServiceAddGitHubHostHandler.ServeHTTP(w, r)
 		case PRXServiceUpdateGitHubHostProcedure:
@@ -1229,6 +1256,10 @@ func (UnimplementedPRXServiceHandler) GetConfig(context.Context, *connect.Reques
 
 func (UnimplementedPRXServiceHandler) UpdateGitHubSyncConfig(context.Context, *connect.Request[v1.UpdateGitHubSyncConfigRequest]) (*connect.Response[v1.UpdateGitHubSyncConfigResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("prx.v1.PRXService.UpdateGitHubSyncConfig is not implemented"))
+}
+
+func (UnimplementedPRXServiceHandler) UpdateLanguageConfig(context.Context, *connect.Request[v1.UpdateLanguageConfigRequest]) (*connect.Response[v1.UpdateLanguageConfigResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("prx.v1.PRXService.UpdateLanguageConfig is not implemented"))
 }
 
 func (UnimplementedPRXServiceHandler) AddGitHubHost(context.Context, *connect.Request[v1.AddGitHubHostRequest]) (*connect.Response[v1.AddGitHubHostResponse], error) {

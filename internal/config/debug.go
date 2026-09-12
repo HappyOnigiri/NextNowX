@@ -36,7 +36,7 @@ func (s *Store) DebugInput() domain.DebugConfigInput {
 	// テンプレート本体は長くユーザーが書き換えるため公開ビューには含めない。
 	// コピーしたプロンプトが変に見えるとき、読み手は文言が編集されたか
 	// どうかだけ分かればよく、ここの情報がそれに答える。
-	defaults := prompt.DefaultTemplates()
+	defaults := prompt.DefaultTemplates(value.EffectiveLanguage())
 	result.Prompts = domain.DebugConfigPrompts{
 		Design:         debugPrompt(value.Prompts.Design, defaults.Design),
 		Implementation: debugPrompt(value.Prompts.Implementation, defaults.Implementation),
