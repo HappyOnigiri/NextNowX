@@ -14,7 +14,7 @@ import {
   writeDemoNoticeDismissed,
 } from "./demo";
 import type { Feature, Project } from "./gen/prx/v1/prx_pb";
-import { useAutoSync, useSnapshot } from "./hooks";
+import { useAutoSync, useDisplayLanguage, useSnapshot } from "./hooks";
 import {
   readRailCollapsed,
   readRailWidth,
@@ -31,6 +31,7 @@ const railId = "prx-rail";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const autoSync = useAutoSync(true);
+  useDisplayLanguage();
   return (
     <AutoSyncStatusContext.Provider value={autoSync}>
       <AppShellLayout>{children}</AppShellLayout>

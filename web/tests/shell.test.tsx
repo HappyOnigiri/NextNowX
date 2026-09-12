@@ -84,6 +84,13 @@ vi.mock("../src/api", () => ({
   },
 }));
 vi.mock("../src/hooks", () => ({
+  useDisplayLanguage: () => undefined,
+  // 言語はサーバーの設定なので、保存すると実効言語が返ってくる。
+  useLanguageMutation: () => ({
+    mutateAsync: (language: string) =>
+      Promise.resolve({ config: { effectiveLanguage: language } }),
+    isError: false,
+  }),
   useSnapshot: () => ({ data: snapshot, isError: false }),
   useAutoSync: (enabled: boolean) => shellMocks.autoSync(enabled),
   useDomainMutation: () => shellMocks.mutation,

@@ -52,6 +52,7 @@ const apiMocks = vi.hoisted(() => {
     reorderGitHubAuthMethods: vi.fn(),
     validateConfig: vi.fn(),
     updateGitHubSyncConfig: vi.fn(),
+    updateLanguageConfig: vi.fn(),
     getPromptTemplates: vi.fn(),
     updatePromptTemplates: vi.fn(),
     getTaskPrompt: vi.fn(),
@@ -116,6 +117,7 @@ describe("RPC API wrappers", () => {
     await configMutations.reorderAuth(["token"]);
     await configMutations.validate();
     await configMutations.updateSync(600n);
+    await configMutations.updateLanguage("ja");
     expect(apiMocks.client.addGitHubHost).toHaveBeenCalled();
     expect(apiMocks.client.updateGitHubHost).toHaveBeenCalled();
     expect(apiMocks.client.deleteGitHubHost).toHaveBeenCalled();
@@ -126,6 +128,9 @@ describe("RPC API wrappers", () => {
     expect(apiMocks.client.validateConfig).toHaveBeenCalled();
     expect(apiMocks.client.updateGitHubSyncConfig).toHaveBeenCalledWith(
       expect.objectContaining({ intervalSeconds: 600n }),
+    );
+    expect(apiMocks.client.updateLanguageConfig).toHaveBeenCalledWith(
+      expect.objectContaining({ language: "ja" }),
     );
   });
 

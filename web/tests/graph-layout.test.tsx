@@ -21,6 +21,13 @@ globalThis.ResizeObserver = ResizeObserverStub;
 const snapshot = makeSnapshot();
 
 vi.mock("../src/hooks", () => ({
+  useDisplayLanguage: () => undefined,
+  // 言語はサーバーの設定なので、保存すると実効言語が返ってくる。
+  useLanguageMutation: () => ({
+    mutateAsync: (language: string) =>
+      Promise.resolve({ config: { effectiveLanguage: language } }),
+    isError: false,
+  }),
   useSnapshot: () => ({
     data: snapshot,
     isPending: false,

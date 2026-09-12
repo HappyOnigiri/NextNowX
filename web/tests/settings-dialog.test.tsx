@@ -4,6 +4,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -21,11 +22,13 @@ const settingsMocks = vi.hoisted(() => {
     deleteAuth: vi.fn(),
     reorderAuth: vi.fn(),
     updateSync: vi.fn(),
+    updateLanguage: vi.fn(),
   };
   const mutation = () => ({
     mutate: vi.fn(),
     mutateAsync: vi.fn().mockResolvedValue({}),
     isPending: false,
+    isError: false,
     error: null as Error | null,
   });
   return {
@@ -33,6 +36,8 @@ const settingsMocks = vi.hoisted(() => {
     config: {
       data: {
         autoSyncIntervalSeconds: 3600n,
+        language: "auto",
+        effectiveLanguage: "en",
         hosts: [
           {
             host: "github.com",
@@ -114,6 +119,7 @@ const settingsMocks = vi.hoisted(() => {
       deleteAuth: mutation(),
       reorderAuth: mutation(),
       updateSync: mutation(),
+      updateLanguage: mutation(),
     },
   };
 });
@@ -128,6 +134,7 @@ vi.mock("../src/hooks", () => ({
   useQueryDiagnostics: () => [{ name: "snapshot", state: "success, idle" }],
   usePromptTemplates: () => settingsMocks.promptTemplates,
   usePromptTemplatesMutation: () => settingsMocks.mutations.updatePrompts,
+  useLanguageMutation: () => settingsMocks.mutations.updateLanguage,
   useConfigMutation: (mutation: unknown) => {
     const entries: [
       unknown,
@@ -187,6 +194,7 @@ describe("SettingsDialog", () => {
       value.mutateAsync.mockReset();
       value.mutateAsync.mockResolvedValue({});
       value.isPending = false;
+      value.isError = false;
       value.error = null;
     }
   });
@@ -536,6 +544,40 @@ describe("SettingsDialog", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Display" }));
     expect(
       screen.getByRole("combobox", { name: "Display language" }),
+    ).toBeInTheDocument();
+  });
+
+  // 言語は表示とプロンプトが共有する設定なので、Local Storage ではなく
+  // サーバーへ書き込み、表示はサーバーが返した実効言語に従う。
+  it("saves the language to the server and follows its effective language", async () => {
+    settingsMocks.mutations.updateLanguage.mutateAsync.mockResolvedValue({
+      config: { language: "auto", effectiveLanguage: "ja" },
+    });
+    render(<SettingsDialog onClose={vi.fn()} />);
+    fireEvent.click(screen.getByRole("tab", { name: "Display" }));
+
+    const select = screen.getByRole("combobox", { name: "Display language" });
+    expect(select).toHaveValue("auto");
+    expect(
+      screen.getByRole("option", { name: "Automatic" }),
+    ).toBeInTheDocument();
+
+    fireEvent.change(select, { target: { value: "ja" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => {
+      expect(document.documentElement.lang).toBe("ja");
+    });
+    expect(
+      settingsMocks.mutations.updateLanguage.mutateAsync,
+    ).toHaveBeenCalledWith("ja");
+  });
+
+  it("shows why saving the language failed", () => {
+    settingsMocks.mutations.updateLanguage.isError = true;
+    render(<SettingsDialog onClose={vi.fn()} />);
+    fireEvent.click(screen.getByRole("tab", { name: "Display" }));
+    expect(
+      screen.getByText("The language could not be saved."),
     ).toBeInTheDocument();
   });
 
