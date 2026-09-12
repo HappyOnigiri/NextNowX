@@ -263,6 +263,8 @@ enum DomainErrorCode {
   DOMAIN_ERROR_CODE_DUPLICATE_IMPLEMENTATION_PLAN = 28;
   // DOMAIN_ERROR_CODE_ARCHIVED_READ_ONLY はアーカイブ済みの project か feature への書き込みを表す。
   DOMAIN_ERROR_CODE_ARCHIVED_READ_ONLY = 29;
+  // DOMAIN_ERROR_CODE_INVALID_PROMPT_TEMPLATE は project か feature の上書きテンプレートが不正であることを表す。
+  DOMAIN_ERROR_CODE_INVALID_PROMPT_TEMPLATE = 30;
 }
 
 // GitHubAuthMethodType は GitHub のトークンの取得方法を表す。
@@ -361,6 +363,8 @@ message Project {
   string created_at = 6;
   // updated_at は RFC 3339 形式の最終更新時刻。
   string updated_at = 7;
+  // prompt_overrides は project が種類ごとに保存している上書き。空文字列は継承を表す。
+  PromptTemplateOverrides prompt_overrides = 8;
 }
 
 // Feature は task と依存グラフを持つロードマップの単位。
@@ -405,6 +409,30 @@ message Feature {
   // feature を含むレスポンスはすべて、保存された feature をそのまま返すものも含めてこれを導出するので、
   // 呼び出し側はどの読み取り由来かを気にしなくてよい。
   bool read_only = 17;
+  // prompt_overrides は feature が種類ごとに保存している上書き。空文字列は継承を表す。
+  PromptTemplateOverrides prompt_overrides = 18;
+}
+
+// PromptTemplateOverrides は project または feature が保存した種類別の上書き。
+// 応答では空文字列を含む安定したオブジェクトとして返す。
+message PromptTemplateOverrides {
+  // design は実装計画がない task に使う上書き。空文字列は継承。
+  string design = 1;
+  // implementation は実装計画がある task に使う上書き。空文字列は継承。
+  string implementation = 2;
+  // batch は複数 task の一括実装に使う上書き。空文字列は継承。
+  string batch = 3;
+}
+
+// PromptTemplateOverridesUpdate は上書きを種類ごとに部分更新する。
+// 未設定は変更なし、空文字列は継承への復帰、非空文字列は検証後に保存する。
+message PromptTemplateOverridesUpdate {
+  // design は設計テンプレートの変更。未設定は変更なし。
+  optional string design = 1;
+  // implementation は実装テンプレートの変更。未設定は変更なし。
+  optional string implementation = 2;
+  // batch は一括テンプレートの変更。未設定は変更なし。
+  optional string batch = 3;
 }
 
 // Task は feature に属する作業の単位。
@@ -590,6 +618,8 @@ message UpdateProjectRequest {
   // archived は未設定なら変更なし、値があればそのとおりに設定する。
   // アーカイブ済みの project が受け付ける更新はこれを外すことだけ。
   optional bool archived = 5;
+  // prompt_overrides は種類ごとの上書きを部分更新する。
+  optional PromptTemplateOverridesUpdate prompt_overrides = 8;
 }
 
 // UpdateProjectResponse は更新後の project を返す。
@@ -649,6 +679,8 @@ message UpdateFeatureRequest {
   // project_id は未設定なら変更なし、公開 ID があれば feature を付け替える。
   // feature はどの project にも属さない状態になれないので、空文字列は拒否する。
   optional string project_id = 7;
+  // prompt_overrides は種類ごとの上書きを部分更新する。
+  optional PromptTemplateOverridesUpdate prompt_overrides = 8;
 }
 
 // UpdateFeatureResponse は更新後の feature を返す。

@@ -4,6 +4,7 @@
 package prompt
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"slices"
@@ -17,8 +18,8 @@ import (
 // 本文が無制限でも誰の得にもならない。
 const MaximumTemplateBytes = 8192
 
-// Kind はタスクに必要なテンプレートを示す。タスクから導出される値であり、
-// 保存されることはない。
+// Kind はテンプレートの種類を示す。task 用の種類は task から導出し、batch は
+// 呼び出し元が選ぶ。いずれも保存されることはない。
 type Kind string
 
 const (
@@ -26,11 +27,12 @@ const (
 	KindDesign Kind = "design"
 	// KindImplementation はエージェントに登録済みの計画の実行を依頼する。
 	KindImplementation Kind = "implementation"
+	// KindBatch は複数の task をまとめて実装するようエージェントに依頼する。
+	KindBatch Kind = "batch"
 )
 
-// Templates は Kind ごとのテンプレートに加え、batch テンプレートを保持する。batch は
-// 個々のタスクから導出されるのではなく、複数タスクをまとめて要求する呼び出し元が
-// 選ぶものなので Kind ではない。
+// Templates は task 用テンプレートと、複数 task をまとめる batch テンプレートを保持する。
+// batch は個々の task から導出されず、複数 task をまとめて要求する呼び出し元が選ぶ。
 type Templates struct {
 	Design         string `yaml:"design"         json:"design"`
 	Implementation string `yaml:"implementation" json:"implementation"`
@@ -207,7 +209,78 @@ func (t Templates) Template(kind Kind) string {
 	if kind == KindImplementation {
 		return t.Implementation
 	}
+	if kind == KindBatch {
+		return t.Batch
+	}
 	return t.Design
+}
+
+// Resolve は global、project、feature の順にテンプレートを種類ごとに合成する。
+// 下位スコープの空文字列は上位スコープから継承する。global は必ず Normalize
+// を通すが、DB から読んだ上書きはここで個別に検証する。
+func Resolve(
+	global Templates,
+	project, feature domain.PromptTemplateOverrides,
+) (Templates, error) {
+	base, err := global.Normalize()
+	if err != nil {
+		return Templates{}, err
+	}
+	result := base
+	for _, candidate := range []struct {
+		name      string
+		overrides domain.PromptTemplateOverrides
+	}{
+		{name: "project", overrides: project},
+		{name: "feature", overrides: feature},
+	} {
+		if err := applyOverride(&result, candidate.name, candidate.overrides); err != nil {
+			return Templates{}, err
+		}
+	}
+	return result, nil
+}
+
+// ValidateOverride は project / feature に保存する上書き 1 件を検証する。
+// 空文字列は継承を意味するため受理し、それ以外は global と同じ語彙・上限を
+// 必須 placeholder とともに適用する。
+func ValidateOverride(kind Kind, value string) error {
+	if value == "" {
+		return nil
+	}
+	supported, required := supportedPlaceholders, requiredPlaceholder
+	if kind == KindBatch {
+		supported, required = batchSupportedPlaceholders, batchRequiredPlaceholder
+	}
+	if kind != KindDesign && kind != KindImplementation && kind != KindBatch {
+		return newError("prompt_overrides", "unsupported template kind %q", kind)
+	}
+	return validateTemplate("prompt_overrides."+string(kind), value, supported, required)
+}
+
+func applyOverride(result *Templates, scope string, overrides domain.PromptTemplateOverrides) error {
+	for _, item := range []struct {
+		kind   Kind
+		value  string
+		target *string
+	}{
+		{kind: KindDesign, value: overrides.Design, target: &result.Design},
+		{kind: KindImplementation, value: overrides.Implementation, target: &result.Implementation},
+		{kind: KindBatch, value: overrides.Batch, target: &result.Batch},
+	} {
+		if item.value == "" {
+			continue
+		}
+		if err := ValidateOverride(item.kind, item.value); err != nil {
+			var typed *Error
+			if errors.As(err, &typed) {
+				return newError(scope+"."+typed.Field, "%s", typed.Message)
+			}
+			return err
+		}
+		*item.target = item.value
+	}
+	return nil
 }
 
 // Normalize は省略されたテンプレートを組み込みの既定値で埋め、最初に見つかった

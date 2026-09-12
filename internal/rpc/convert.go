@@ -7,12 +7,13 @@ import (
 
 func protoProject(v domain.Project) *prxv1.Project {
 	return &prxv1.Project{
-		Id:          v.ID,
-		Title:       v.Title,
-		Description: v.Description,
-		Archived:    v.Archived,
-		CreatedAt:   v.CreatedAt.Format(timeFormat),
-		UpdatedAt:   v.UpdatedAt.Format(timeFormat),
+		Id:              v.ID,
+		Title:           v.Title,
+		Description:     v.Description,
+		Archived:        v.Archived,
+		CreatedAt:       v.CreatedAt.Format(timeFormat),
+		UpdatedAt:       v.UpdatedAt.Format(timeFormat),
+		PromptOverrides: protoPromptTemplateOverrides(v.PromptOverrides),
 	}
 }
 
@@ -34,7 +35,36 @@ func protoFeature(v domain.Feature) *prxv1.Feature {
 		MergedCount:        int32(v.MergedCount),
 		DisplayStatus:      protoFeatureStatus(v.DisplayStatus),
 		FinishedCount:      int32(v.FinishedCount),
+		PromptOverrides:    protoPromptTemplateOverrides(v.PromptOverrides),
 	}
+}
+
+func protoPromptTemplateOverrides(v domain.PromptTemplateOverrides) *prxv1.PromptTemplateOverrides {
+	return &prxv1.PromptTemplateOverrides{
+		Design: v.Design, Implementation: v.Implementation, Batch: v.Batch,
+	}
+}
+
+func domainPromptTemplateOverridesUpdate(
+	value *prxv1.PromptTemplateOverridesUpdate,
+) *domain.PromptTemplateOverridesUpdate {
+	if value == nil {
+		return nil
+	}
+	result := &domain.PromptTemplateOverridesUpdate{}
+	if value.Design != nil {
+		v := value.GetDesign()
+		result.Design = &v
+	}
+	if value.Implementation != nil {
+		v := value.GetImplementation()
+		result.Implementation = &v
+	}
+	if value.Batch != nil {
+		v := value.GetBatch()
+		result.Batch = &v
+	}
+	return result
 }
 
 func protoTask(v domain.Task) *prxv1.Task {
@@ -455,6 +485,8 @@ func protoDomainErrorCode(value domain.DomainErrorCode) prxv1.DomainErrorCode {
 		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_STATUS
 	case domain.DomainErrorCodeInvalidTitle:
 		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_TITLE
+	case domain.DomainErrorCodeInvalidPromptTemplate:
+		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_PROMPT_TEMPLATE
 	case domain.DomainErrorCodeNotFound:
 		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_NOT_FOUND
 	case domain.DomainErrorCodeReferencesExist:

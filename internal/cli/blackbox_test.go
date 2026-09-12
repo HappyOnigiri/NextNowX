@@ -2337,3 +2337,90 @@ func TestBlackBoxPromptUsesTheConfiguredTemplateAndReportsABrokenOne(t *testing.
 		t.Fatalf("broken template message=%q", failure.Error)
 	}
 }
+
+func TestBlackBoxPromptOverridesRespectHierarchyAndReadOnly(t *testing.T) {
+	binary := buildCLI(t)
+	root := t.TempDir()
+	dbPath := filepath.Join(root, "prompt-overrides.db")
+	configPath := filepath.Join(root, "prompt-overrides.yaml")
+	run := func(input string, args ...string) commandOutput {
+		base := []string{"--db", dbPath, "--config", configPath}
+		return executeCLI(t, binary, input, append(base, args...)...)
+	}
+	runJSON := func(args ...string) resultEnvelope {
+		result := run("", append([]string{"--json"}, args...)...)
+		if result.exit != 0 {
+			return decodeFailure(t, []byte(result.stderr), result.stderr)
+		}
+		return decodeResult(t, []byte(result.stdout), result.stdout)
+	}
+	if result := run("", "project", "create", "Prompts"); result.exit != 0 {
+		t.Fatalf("create project: stderr=%q", result.stderr)
+	}
+	if result := run("", "feature", "create", "Prompts", "--project", "P-1"); result.exit != 0 {
+		t.Fatalf("create feature: stderr=%q", result.stderr)
+	}
+	if result := run("", "task", "create", "F-1", "Add the checkout API"); result.exit != 0 {
+		t.Fatalf("create task: stderr=%q", result.stderr)
+	}
+
+	projectPath := filepath.Join(root, "project-design.txt")
+	if err := os.WriteFile(projectPath, []byte("Project design {{task_id}}\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if result := run("", "project", "prompt", "set", "P-1", "design", "--file", projectPath); result.exit != 0 ||
+		result.stdout != "Set project prompt override P-1 (design).\n" {
+		t.Fatalf("project prompt set: %+v", result)
+	}
+	featurePromptSet := run("Feature design {{task_id}}\n", "feature", "prompt", "set", "F-1", "design", "--stdin")
+	if featurePromptSet.exit != 0 || featurePromptSet.stdout != "Set feature prompt override F-1 (design).\n" {
+		t.Fatalf("feature prompt set: %+v", featurePromptSet)
+	}
+	if result := run("", "prompt", "T-1"); result.exit != 0 || result.stdout != "Feature design T-1\n" {
+		t.Fatalf("feature prompt=%+v", result)
+	}
+	if result := run("", "feature", "prompt", "unset", "F-1", "design"); result.exit != 0 ||
+		result.stdout != "Unset feature prompt override F-1 (design).\n" {
+		t.Fatalf("feature prompt unset: %+v", result)
+	}
+	if result := run("", "prompt", "T-1"); result.exit != 0 || result.stdout != "Project design T-1\n" {
+		t.Fatalf("project inherited prompt=%+v", result)
+	}
+
+	projectData := decodeDataObject(t, runJSON("project", "P-1"))
+	var projectValue struct {
+		PromptOverrides json.RawMessage `json:"prompt_overrides"`
+	}
+	if err := json.Unmarshal(projectData["project"], &projectValue); err != nil {
+		t.Fatal(err)
+	}
+	var overrides struct {
+		Design         string `json:"design"`
+		Implementation string `json:"implementation"`
+		Batch          string `json:"batch"`
+	}
+	if err := json.Unmarshal(projectValue.PromptOverrides, &overrides); err != nil {
+		t.Fatal(err)
+	}
+	if overrides.Design != "Project design {{task_id}}\n" || overrides.Implementation != "" || overrides.Batch != "" {
+		t.Fatalf("project prompt_overrides=%+v", overrides)
+	}
+
+	badPath := filepath.Join(root, "bad-prompt.txt")
+	if err := os.WriteFile(badPath, []byte("missing required placeholder"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	failure := runJSON("project", "prompt", "set", "P-1", "design", "--file", badPath)
+	if failure.ErrorCode != "invalid_prompt_template" ||
+		!strings.Contains(failure.Error, "project prompt override design") {
+		t.Fatalf("invalid prompt result=%+v", failure)
+	}
+
+	if result := run("", "project", "archive", "P-1"); result.exit != 0 {
+		t.Fatalf("archive project: %+v", result)
+	}
+	failure = runJSON("feature", "prompt", "unset", "F-1", "design")
+	if failure.ErrorCode != "archived_read_only" {
+		t.Fatalf("archived prompt write result=%+v", failure)
+	}
+}

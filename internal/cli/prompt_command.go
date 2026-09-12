@@ -5,9 +5,6 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/prompt"
 )
 
 // promptResponse は `prx prompt` の JSON 形式。kind を持たせるのは、呼び出し側が
@@ -25,43 +22,18 @@ func (s *state) promptCommand() *cobra.Command {
 		Long: "Print the agent prompt for a task.\n\n" +
 			"A task without an implementation plan gets the design prompt, and a task with one gets " +
 			"the implementation prompt.\n" +
-			"Both templates come from the shared configuration, so the WebUI copies the same text.",
+			"The result resolves global, project, and feature overrides, so the WebUI copies the same text.",
 		Example: "prx prompt T-1\nprx prompt T-1 --json",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			snapshot, err := s.service.Snapshot(cmd.Context())
+			kind, body, err := s.service.GetTaskPrompt(cmd.Context(), args[0])
 			if err != nil {
 				return err
 			}
-			task, ok := findSnapshotTask(snapshot, args[0])
-			if !ok {
-				return domain.NewError(domain.DomainErrorCodeNotFound, "task %q was not found", args[0])
-			}
-			store, err := s.configStore()
-			if err != nil {
-				return configCommandError(err)
-			}
-			settings, err := store.Load()
-			if err != nil {
-				return configCommandError(err)
-			}
-			kind, body, err := prompt.Render(task, settings.Prompts)
-			if err != nil {
-				return configCommandError(err)
-			}
-			value := promptResponse{TaskID: task.ID, Kind: string(kind), Prompt: body}
+			value := promptResponse{TaskID: args[0], Kind: string(kind), Prompt: body}
 			return s.write(value, renderPrompt(body))
 		},
 	}
-}
-
-func findSnapshotTask(snapshot domain.Snapshot, id string) (domain.Task, bool) {
-	for _, task := range snapshot.Tasks {
-		if task.ID == id {
-			return task, true
-		}
-	}
-	return domain.Task{}, false
 }
 
 // renderPrompt はプロンプト本文だけを出力する。それ以外があると、別のエージェントに

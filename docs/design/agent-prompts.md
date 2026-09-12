@@ -48,3 +48,21 @@ scope が無い場合は `(not specified)` としてレンダリングし、読�
 WebUI は、その場でレンダリングした prompt をコピーする。snapshot 取得後に plan が登録・削除されても誤ったテンプレートが選ばれないようにするためである。
 `prx prompt TASK_ID` は prompt 本文だけを、そのまま使える形で出力する。
 diagnostics は各テンプレートの長さと、組み込み既定値と一致するかどうかを報告する。ユーザーが書いた文面を露出せずにカスタマイズの有無を示す。
+
+### project・feature の上書き
+
+テンプレートの解決順は global、所属 project、feature の 3 層で、各層の design・implementation・batch は独立している。下位層の値が空、または DB の NULL なら上位層を継承し、非空の値だけをその種類について置き換える。
+feature を別の project へ移しても feature 自身の上書きは残り、継承している種類だけ新しい project の値に追従する。
+
+project と feature の応答には `prompt_overrides` オブジェクトを常に含め、空の各キーはその層で上書きしていないことを表す。人間向けの詳細表示は本文を露出せず、設定されている種類だけを示す。
+
+CLI では次のコマンドで本文をファイルまたは標準入力から設定・解除できる。`KIND` は `design`、`implementation`、`batch` のいずれかで、`set` は空本文と不正な placeholder を拒否する。
+
+```
+prx project prompt set PROJECT_ID KIND --file PATH|--stdin
+prx project prompt unset PROJECT_ID KIND
+prx feature prompt set FEATURE_ID KIND --file PATH|--stdin
+prx feature prompt unset FEATURE_ID KIND
+```
+
+アーカイブ済みの project・feature は本文を読めるが、ライフサイクル解除以外の書き込みを拒否する。上書き本文の検証に失敗した場合は `INVALID_PROMPT_TEMPLATE` を返し、エラーには scope と種類を含める。

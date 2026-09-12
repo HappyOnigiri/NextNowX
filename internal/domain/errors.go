@@ -30,6 +30,7 @@ const (
 	DomainErrorCodeInvalidImplementationPlan   DomainErrorCode = "invalid_implementation_plan"
 	DomainErrorCodeImplementationPlanTooLarge  DomainErrorCode = "implementation_plan_too_large"
 	DomainErrorCodeInvalidConfig               DomainErrorCode = "invalid_config"
+	DomainErrorCodeInvalidPromptTemplate       DomainErrorCode = "invalid_prompt_template"
 	DomainErrorCodeArchivedReadOnly            DomainErrorCode = "archived_read_only"
 	DomainErrorCodeAddressInUse                DomainErrorCode = "address_in_use"
 	DomainErrorCodeDaemonUnsupported           DomainErrorCode = "daemon_unsupported"

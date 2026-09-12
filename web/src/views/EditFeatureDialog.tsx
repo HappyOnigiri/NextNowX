@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next";
 import { X } from "lucide-react";
 import { useState, type SyntheticEvent } from "react";
 import { useTranslation } from "react-i18next";
@@ -15,6 +16,14 @@ import { IconButton } from "./IconButton";
 import { LifecycleActions, type LifecycleLabels } from "./LifecycleActions";
 import { MutationError } from "./MutationError";
 import { ProjectSelectField } from "./ProjectSelectField";
+import {
+  changedPromptValues,
+  promptValuesChanged,
+  promptValuesOf,
+} from "./promptOverrideDraft";
+import type { PromptValues } from "./PromptOverridesPanel";
+import { PromptOverridesTabPanel } from "./PromptOverridesTabPanel";
+import { TabList, TabPanel } from "./TabList";
 import { TitleDescriptionFields } from "./TitleDescriptionFields";
 import { DiscardChangesDialog, SaveButton } from "./UnsavedChanges";
 import { useCloseOnEscape } from "./useCloseOnEscape";
@@ -35,10 +44,13 @@ interface FeatureDraft {
   projectId: string;
 }
 
+type FeatureTab = "details" | "prompts";
+
 // 確認が送信の代わりになるため、送信時点のフォームの値は確認かキャンセルまで
 // 保持する。
 type FeatureUpdate = Parameters<typeof mutations.updateFeature>[0];
 
+// eslint-disable-next-line max-lines-per-function -- 下書きと確認ダイアログを同じ編集フローで管理するため。
 export function EditFeatureDialog({
   feature,
   projects,
@@ -53,6 +65,13 @@ export function EditFeatureDialog({
     status: feature.status,
     projectId: feature.projectId,
   }));
+  const [activeTab, setActiveTab] = useState<FeatureTab>("details");
+  const [promptsMounted, setPromptsMounted] = useState(false);
+  const [promptValues, setPromptValues] = useState<PromptValues>(() =>
+    promptValuesOf(feature.promptOverrides),
+  );
+  const [promptReady, setPromptReady] = useState(false);
+  const [promptInvalid, setPromptInvalid] = useState(false);
   const updateFeature = useDomainMutation(mutations.updateFeature);
   const deleteFeature = useDomainMutation(mutations.deleteFeature);
   const unfinished = unfinishedTaskCount(feature);
@@ -60,7 +79,17 @@ export function EditFeatureDialog({
     draft.title !== feature.title ||
     draft.description !== feature.description ||
     draft.status !== feature.status ||
-    draft.projectId !== feature.projectId;
+    draft.projectId !== feature.projectId ||
+    (promptReady &&
+      promptValuesChanged(
+        promptValues,
+        promptValuesOf(feature.promptOverrides),
+      ));
+
+  function openTab(tab: FeatureTab) {
+    setActiveTab(tab);
+    if (tab === "prompts") setPromptsMounted(true);
+  }
 
   function requestClose() {
     if (dirty) setConfirmation("discard");
@@ -80,7 +109,17 @@ export function EditFeatureDialog({
 
   async function submitFeature(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
-    const update: FeatureUpdate = { id: feature.id, ...draft };
+    const promptOverrides = promptReady
+      ? changedPromptValues(
+          promptValues,
+          promptValuesOf(feature.promptOverrides),
+        )
+      : undefined;
+    const update: FeatureUpdate = {
+      id: feature.id,
+      ...draft,
+      ...(promptOverrides ? { promptOverrides } : {}),
+    };
     if (draft.status === FeatureStatus.COMPLETED && unfinished > 0) {
       setPendingUpdate(update);
       setConfirmation("complete");
@@ -105,6 +144,16 @@ export function EditFeatureDialog({
           updatePending={updateFeature.isPending}
           deletePending={deleteFeature.isPending}
           updateError={updateFeature.error}
+          activeTab={activeTab}
+          promptsMounted={promptsMounted}
+          promptProjectId={draft.projectId}
+          promptInvalid={promptInvalid}
+          onTab={openTab}
+          onPromptStateChange={(values, ready, invalid) => {
+            setPromptValues(values);
+            setPromptReady(ready);
+            setPromptInvalid(invalid);
+          }}
           onSubmit={submitFeature}
           onClose={requestClose}
           onArchive={() => {
@@ -161,6 +210,16 @@ interface FeatureDialogContentProps {
   updatePending: boolean;
   deletePending: boolean;
   updateError: Error | null;
+  activeTab: FeatureTab;
+  promptsMounted: boolean;
+  promptProjectId: string;
+  promptInvalid: boolean;
+  onTab: (tab: FeatureTab) => void;
+  onPromptStateChange: (
+    values: PromptValues,
+    ready: boolean,
+    invalid: boolean,
+  ) => void;
   onSubmit: (event: SyntheticEvent<HTMLFormElement>) => void;
   onClose: () => void;
   onArchive: () => void;
@@ -200,6 +259,11 @@ function ReadOnlyFeatureDialog({
   onClose,
   onRestore,
   onDelete,
+  activeTab,
+  promptsMounted,
+  promptProjectId,
+  onTab,
+  onPromptStateChange,
 }: FeatureDialogContentProps) {
   const { t } = useTranslation();
   const labels = useFeatureLifecycleLabels(true);
@@ -210,7 +274,7 @@ function ReadOnlyFeatureDialog({
   const restorable = feature.archived && !projectArchived;
   return (
     <section
-      className="dialog feature-management-dialog"
+      className="dialog feature-management-dialog entity-edit-dialog"
       role="dialog"
       aria-modal="true"
       aria-label={t("featureEdit.manageLabel")}
@@ -219,34 +283,61 @@ function ReadOnlyFeatureDialog({
         <p className="section-label">{t("featureEdit.archivedEyebrow")}</p>
         <h2>{t("featureEdit.manageTitle")}</h2>
       </header>
-      <dl className="read-only-values">
-        <div>
-          <dt>{t("common.title")}</dt>
-          <dd>{feature.title}</dd>
-        </div>
-        <div>
-          <dt>{t("common.description")}</dt>
-          <dd>{feature.description || t("workspace.noDescription")}</dd>
-        </div>
-        <div>
-          <dt>{t("common.status")}</dt>
-          <dd>{featureStatusLabel(feature.displayStatus, t)}</dd>
-        </div>
-      </dl>
-      <MutationError error={updateError} />
-      <LifecycleActions
-        labels={
-          restorable
-            ? labels
-            : { ...labels, detail: t("featureEdit.projectArchivedDetail") }
-        }
-        updatePending={updatePending}
-        deletePending={deletePending}
-        // 復元が意味を持つのは feature 自身がアーカイブされている場合だけ。
-        // プロジェクトから継いだものはプロジェクト側で解除する。
-        {...(restorable ? { onRestore } : {})}
-        onDelete={onDelete}
+      <TabList
+        tabs={featureTabs(t)}
+        active={activeTab}
+        onSelect={onTab}
+        idPrefix="feature-edit"
+        className="settings-tabs entity-edit-tabs"
+        tabClassName="settings-tab"
       />
+      <TabPanel
+        active={activeTab === "details"}
+        className="entity-edit-tab-panel"
+        idPrefix="feature-edit"
+        tab="details"
+      >
+        <dl className="read-only-values">
+          <div>
+            <dt>{t("common.title")}</dt>
+            <dd>{feature.title}</dd>
+          </div>
+          <div>
+            <dt>{t("common.description")}</dt>
+            <dd>{feature.description || t("workspace.noDescription")}</dd>
+          </div>
+          <div>
+            <dt>{t("common.status")}</dt>
+            <dd>{featureStatusLabel(feature.displayStatus, t)}</dd>
+          </div>
+        </dl>
+        <LifecycleActions
+          labels={
+            restorable
+              ? labels
+              : { ...labels, detail: t("featureEdit.projectArchivedDetail") }
+          }
+          updatePending={updatePending}
+          deletePending={deletePending}
+          // 復元が意味を持つのは feature 自身がアーカイブされている場合だけ。
+          // プロジェクトから継いだものはプロジェクト側で解除する。
+          {...(restorable ? { onRestore } : {})}
+          onDelete={onDelete}
+        />
+      </TabPanel>
+      <PromptOverridesTabPanel
+        active={activeTab === "prompts"}
+        idPrefix="feature-edit"
+        promptsMounted={promptsMounted}
+        scope="feature"
+        overrides={feature.promptOverrides}
+        parentOverrides={
+          projects.find((item) => item.id === promptProjectId)?.promptOverrides
+        }
+        editable={false}
+        onStateChange={onPromptStateChange}
+      />
+      <MutationError error={updateError} />
       <footer>
         <IconButton
           icon={X}
@@ -272,57 +363,90 @@ function ActiveFeatureDialog({
   onClose,
   onArchive,
   onDelete,
+  activeTab,
+  promptsMounted,
+  promptProjectId,
+  promptInvalid,
+  onTab,
+  onPromptStateChange,
 }: FeatureDialogContentProps) {
   const { t } = useTranslation();
   const labels = useFeatureLifecycleLabels(false);
   return (
     <form
-      className="dialog feature-management-dialog"
+      className="dialog feature-management-dialog entity-edit-dialog"
       onSubmit={onSubmit}
       aria-label={t("featureEdit.formLabel")}
     >
       <header>
         <h2>{t("featureEdit.title")}</h2>
       </header>
-      <TitleDescriptionFields draft={draft} onChange={onDraftChange} />
-      <label>
-        {t("common.status")}
-        <select
-          name="status"
-          value={draft.status}
-          onChange={(event) => {
-            onDraftChange({ ...draft, status: Number(event.target.value) });
+      <TabList
+        tabs={featureTabs(t)}
+        active={activeTab}
+        onSelect={onTab}
+        idPrefix="feature-edit"
+        className="settings-tabs entity-edit-tabs"
+        tabClassName="settings-tab"
+      />
+      <TabPanel
+        active={activeTab === "details"}
+        className="entity-edit-tab-panel"
+        idPrefix="feature-edit"
+        tab="details"
+      >
+        <TitleDescriptionFields draft={draft} onChange={onDraftChange} />
+        <label>
+          {t("common.status")}
+          <select
+            name="status"
+            value={draft.status}
+            onChange={(event) => {
+              onDraftChange({ ...draft, status: Number(event.target.value) });
+            }}
+          >
+            {[
+              FeatureStatus.AUTO,
+              FeatureStatus.ACTIVE,
+              FeatureStatus.PAUSED,
+              FeatureStatus.COMPLETED,
+              FeatureStatus.CANCELLED,
+            ].map((status) => (
+              <option value={status} key={status}>
+                {featureStatusLabel(status, t)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <ProjectSelectField
+          projects={projects}
+          currentProjectId={feature.projectId}
+          value={draft.projectId}
+          onChange={(projectId) => {
+            onDraftChange({ ...draft, projectId });
           }}
-        >
-          {[
-            FeatureStatus.AUTO,
-            FeatureStatus.ACTIVE,
-            FeatureStatus.PAUSED,
-            FeatureStatus.COMPLETED,
-            FeatureStatus.CANCELLED,
-          ].map((status) => (
-            <option value={status} key={status}>
-              {featureStatusLabel(status, t)}
-            </option>
-          ))}
-        </select>
-      </label>
-      <ProjectSelectField
-        projects={projects}
-        currentProjectId={feature.projectId}
-        value={draft.projectId}
-        onChange={(projectId) => {
-          onDraftChange({ ...draft, projectId });
-        }}
+        />
+        <LifecycleActions
+          labels={labels}
+          updatePending={updatePending}
+          deletePending={deletePending}
+          onArchive={onArchive}
+          onDelete={onDelete}
+        />
+      </TabPanel>
+      <PromptOverridesTabPanel
+        active={activeTab === "prompts"}
+        idPrefix="feature-edit"
+        promptsMounted={promptsMounted}
+        scope="feature"
+        overrides={feature.promptOverrides}
+        parentOverrides={
+          projects.find((item) => item.id === promptProjectId)?.promptOverrides
+        }
+        editable
+        onStateChange={onPromptStateChange}
       />
       <MutationError error={updateError} />
-      <LifecycleActions
-        labels={labels}
-        updatePending={updatePending}
-        deletePending={deletePending}
-        onArchive={onArchive}
-        onDelete={onDelete}
-      />
       <footer>
         <IconButton
           icon={X}
@@ -331,7 +455,7 @@ function ActiveFeatureDialog({
           onClick={onClose}
         />
         <SaveButton
-          dirty={dirty}
+          dirty={dirty && !promptInvalid}
           label={t("featureEdit.submit")}
           pending={updatePending}
           type="submit"
@@ -412,4 +536,11 @@ function LifecycleConfirmation({
       onConfirm={onDelete}
     />
   );
+}
+
+function featureTabs(t: TFunction) {
+  return [
+    { id: "details" as const, label: t("featureEdit.tabs.details") },
+    { id: "prompts" as const, label: t("featureEdit.tabs.prompts") },
+  ];
 }

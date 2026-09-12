@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next";
 import { X } from "lucide-react";
 import { useState, type SyntheticEvent } from "react";
 import { useTranslation } from "react-i18next";
@@ -8,6 +9,14 @@ import { ConfirmationDialog } from "./ConfirmationDialog";
 import { IconButton } from "./IconButton";
 import { LifecycleActions, type LifecycleLabels } from "./LifecycleActions";
 import { MutationError } from "./MutationError";
+import {
+  changedPromptValues,
+  promptValuesChanged,
+  promptValuesOf,
+} from "./promptOverrideDraft";
+import type { PromptValues } from "./PromptOverridesPanel";
+import { PromptOverridesTabPanel } from "./PromptOverridesTabPanel";
+import { TabList, TabPanel } from "./TabList";
 import { TitleDescriptionFields } from "./TitleDescriptionFields";
 import { DiscardChangesDialog, SaveButton } from "./UnsavedChanges";
 import { useCloseOnEscape } from "./useCloseOnEscape";
@@ -28,8 +37,11 @@ interface ProjectDraft {
   description: string;
 }
 
+type ProjectTab = "details" | "prompts";
+
 type ProjectUpdate = Parameters<typeof mutations.updateProject>[0];
 
+// eslint-disable-next-line max-lines-per-function -- 下書きと確認ダイアログを同じ編集フローで管理するため。
 export function EditProjectDialog({
   project,
   referenceCount,
@@ -41,10 +53,28 @@ export function EditProjectDialog({
     title: project.title,
     description: project.description,
   }));
+  const [activeTab, setActiveTab] = useState<ProjectTab>("details");
+  const [promptsMounted, setPromptsMounted] = useState(false);
+  const [promptValues, setPromptValues] = useState<PromptValues>(() =>
+    promptValuesOf(project.promptOverrides),
+  );
+  const [promptReady, setPromptReady] = useState(false);
+  const [promptInvalid, setPromptInvalid] = useState(false);
   const updateProject = useDomainMutation(mutations.updateProject);
   const deleteProject = useDomainMutation(mutations.deleteProject);
   const dirty =
-    draft.title !== project.title || draft.description !== project.description;
+    draft.title !== project.title ||
+    draft.description !== project.description ||
+    (promptReady &&
+      promptValuesChanged(
+        promptValues,
+        promptValuesOf(project.promptOverrides),
+      ));
+
+  function openTab(tab: ProjectTab) {
+    setActiveTab(tab);
+    if (tab === "prompts") setPromptsMounted(true);
+  }
 
   function requestClose() {
     if (dirty) setConfirmation("discard");
@@ -64,7 +94,17 @@ export function EditProjectDialog({
 
   async function submitProject(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
-    await applyUpdate({ id: project.id, ...draft });
+    const promptOverrides = promptReady
+      ? changedPromptValues(
+          promptValues,
+          promptValuesOf(project.promptOverrides),
+        )
+      : undefined;
+    await applyUpdate({
+      id: project.id,
+      ...draft,
+      ...(promptOverrides ? { promptOverrides } : {}),
+    });
   }
 
   return (
@@ -82,6 +122,15 @@ export function EditProjectDialog({
           updatePending={updateProject.isPending}
           deletePending={deleteProject.isPending}
           updateError={updateProject.error}
+          activeTab={activeTab}
+          promptsMounted={promptsMounted}
+          promptInvalid={promptInvalid}
+          onTab={openTab}
+          onPromptStateChange={(values, ready, invalid) => {
+            setPromptValues(values);
+            setPromptReady(ready);
+            setPromptInvalid(invalid);
+          }}
           onSubmit={submitProject}
           onClose={requestClose}
           onArchive={() => {
@@ -190,6 +239,15 @@ interface ProjectDialogContentProps {
   updatePending: boolean;
   deletePending: boolean;
   updateError: Error | null;
+  activeTab: ProjectTab;
+  promptsMounted: boolean;
+  promptInvalid: boolean;
+  onTab: (tab: ProjectTab) => void;
+  onPromptStateChange: (
+    values: PromptValues,
+    ready: boolean,
+    invalid: boolean,
+  ) => void;
   onSubmit: (event: SyntheticEvent<HTMLFormElement>) => void;
   onClose: () => void;
   onArchive: () => void;
@@ -226,12 +284,16 @@ function ArchivedProjectDialog({
   onClose,
   onRestore,
   onDelete,
+  activeTab,
+  promptsMounted,
+  onTab,
+  onPromptStateChange,
 }: ProjectDialogContentProps) {
   const { t } = useTranslation();
   const labels = useProjectLifecycleLabels(true);
   return (
     <section
-      className="dialog feature-management-dialog"
+      className="dialog feature-management-dialog entity-edit-dialog"
       role="dialog"
       aria-modal="true"
       aria-label={t("projectEdit.manageLabel")}
@@ -240,24 +302,48 @@ function ArchivedProjectDialog({
         <p className="section-label">{t("projectEdit.archivedEyebrow")}</p>
         <h2>{t("projectEdit.manageTitle")}</h2>
       </header>
-      <dl className="read-only-values">
-        <div>
-          <dt>{t("common.title")}</dt>
-          <dd>{project.title}</dd>
-        </div>
-        <div>
-          <dt>{t("common.description")}</dt>
-          <dd>{project.description || t("project.noDescription")}</dd>
-        </div>
-      </dl>
-      <MutationError error={updateError} />
-      <LifecycleActions
-        labels={labels}
-        updatePending={updatePending}
-        deletePending={deletePending}
-        onRestore={onRestore}
-        onDelete={onDelete}
+      <TabList
+        tabs={projectTabs(t)}
+        active={activeTab}
+        onSelect={onTab}
+        idPrefix="project-edit"
+        className="settings-tabs entity-edit-tabs"
+        tabClassName="settings-tab"
       />
+      <TabPanel
+        active={activeTab === "details"}
+        className="entity-edit-tab-panel"
+        idPrefix="project-edit"
+        tab="details"
+      >
+        <dl className="read-only-values">
+          <div>
+            <dt>{t("common.title")}</dt>
+            <dd>{project.title}</dd>
+          </div>
+          <div>
+            <dt>{t("common.description")}</dt>
+            <dd>{project.description || t("project.noDescription")}</dd>
+          </div>
+        </dl>
+        <LifecycleActions
+          labels={labels}
+          updatePending={updatePending}
+          deletePending={deletePending}
+          onRestore={onRestore}
+          onDelete={onDelete}
+        />
+      </TabPanel>
+      <PromptOverridesTabPanel
+        active={activeTab === "prompts"}
+        idPrefix="project-edit"
+        promptsMounted={promptsMounted}
+        scope="project"
+        overrides={project.promptOverrides}
+        editable={false}
+        onStateChange={onPromptStateChange}
+      />
+      <MutationError error={updateError} />
       <footer>
         <IconButton
           icon={X}
@@ -271,6 +357,7 @@ function ArchivedProjectDialog({
 }
 
 function ActiveProjectDialog({
+  project,
   draft,
   dirty,
   onDraftChange,
@@ -281,27 +368,56 @@ function ActiveProjectDialog({
   onClose,
   onArchive,
   onDelete,
+  activeTab,
+  promptsMounted,
+  promptInvalid,
+  onTab,
+  onPromptStateChange,
 }: ProjectDialogContentProps) {
   const { t } = useTranslation();
   const labels = useProjectLifecycleLabels(false);
   return (
     <form
-      className="dialog feature-management-dialog"
+      className="dialog feature-management-dialog entity-edit-dialog"
       onSubmit={onSubmit}
       aria-label={t("projectEdit.formLabel")}
     >
       <header>
         <h2>{t("projectEdit.title")}</h2>
       </header>
-      <TitleDescriptionFields draft={draft} onChange={onDraftChange} />
-      <MutationError error={updateError} />
-      <LifecycleActions
-        labels={labels}
-        updatePending={updatePending}
-        deletePending={deletePending}
-        onArchive={onArchive}
-        onDelete={onDelete}
+      <TabList
+        tabs={projectTabs(t)}
+        active={activeTab}
+        onSelect={onTab}
+        idPrefix="project-edit"
+        className="settings-tabs entity-edit-tabs"
+        tabClassName="settings-tab"
       />
+      <TabPanel
+        active={activeTab === "details"}
+        className="entity-edit-tab-panel"
+        idPrefix="project-edit"
+        tab="details"
+      >
+        <TitleDescriptionFields draft={draft} onChange={onDraftChange} />
+        <LifecycleActions
+          labels={labels}
+          updatePending={updatePending}
+          deletePending={deletePending}
+          onArchive={onArchive}
+          onDelete={onDelete}
+        />
+      </TabPanel>
+      <PromptOverridesTabPanel
+        active={activeTab === "prompts"}
+        idPrefix="project-edit"
+        promptsMounted={promptsMounted}
+        scope="project"
+        overrides={project.promptOverrides}
+        editable
+        onStateChange={onPromptStateChange}
+      />
+      <MutationError error={updateError} />
       <footer>
         <IconButton
           icon={X}
@@ -310,7 +426,7 @@ function ActiveProjectDialog({
           onClick={onClose}
         />
         <SaveButton
-          dirty={dirty}
+          dirty={dirty && !promptInvalid}
           label={t("projectEdit.submit")}
           pending={updatePending}
           type="submit"
@@ -318,4 +434,11 @@ function ActiveProjectDialog({
       </footer>
     </form>
   );
+}
+
+function projectTabs(t: TFunction) {
+  return [
+    { id: "details" as const, label: t("projectEdit.tabs.details") },
+    { id: "prompts" as const, label: t("projectEdit.tabs.prompts") },
+  ];
 }

@@ -2,9 +2,11 @@ package app
 
 import (
 	"context"
+	"errors"
 	"strings"
 
 	"github.com/HappyOnigiri/PRX/internal/domain"
+	"github.com/HappyOnigiri/PRX/internal/prompt"
 )
 
 func (s *Service) CreateProject(ctx context.Context, title, description string) (domain.Project, error) {
@@ -37,6 +39,11 @@ func (s *Service) UpdateProject(
 	if update.Description != nil {
 		project.Description = *update.Description
 	}
+	if update.PromptOverrides != nil {
+		if err := applyPromptOverrides(&project.PromptOverrides, *update.PromptOverrides, "project"); err != nil {
+			return domain.Project{}, err
+		}
+	}
 	if update.Archived != nil {
 		project.Archived = *update.Archived
 	}
@@ -44,6 +51,51 @@ func (s *Service) UpdateProject(
 		return domain.Project{}, domain.NewError(domain.DomainErrorCodeInvalidTitle, "project title is required")
 	}
 	return s.repository.UpdateProject(ctx, project)
+}
+
+// applyPromptOverrides は project と feature で共有する種類別の部分更新を適用する。
+// 空文字列は DB の NULL に畳まれ、次の上位スコープを継承する。
+func applyPromptOverrides(
+	current *domain.PromptTemplateOverrides,
+	update domain.PromptTemplateOverridesUpdate,
+	scope string,
+) error {
+	for _, item := range []struct {
+		kind   prompt.Kind
+		value  *string
+		target *string
+		name   string
+	}{
+		{kind: prompt.KindDesign, value: update.Design, target: &current.Design, name: "design"},
+		{
+			kind: prompt.KindImplementation, value: update.Implementation,
+			target: &current.Implementation, name: "implementation",
+		},
+		{kind: prompt.KindBatch, value: update.Batch, target: &current.Batch, name: "batch"},
+	} {
+		if item.value == nil {
+			continue
+		}
+		if err := prompt.ValidateOverride(item.kind, *item.value); err != nil {
+			var typed *prompt.Error
+			if errors.As(err, &typed) {
+				return domain.NewError(
+					domain.DomainErrorCodeInvalidPromptTemplate,
+					"%s prompt override %s: %s",
+					scope,
+					item.name,
+					typed.Message,
+				)
+			}
+			return domain.NewError(
+				domain.DomainErrorCodeInvalidPromptTemplate,
+				"%s prompt override %s: %s",
+				scope, item.name, err,
+			)
+		}
+		*item.target = *item.value
+	}
+	return nil
 }
 
 // ResolveProject は公開 ID で project を引く。project を指すオペランドの入口を

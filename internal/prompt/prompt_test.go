@@ -269,3 +269,40 @@ func TestNormalizeRejectsABatchTemplateOutsideItsOwnVocabulary(t *testing.T) {
 		t.Fatalf("batch required placeholder=%q", prompt.BatchRequiredPlaceholder())
 	}
 }
+
+func TestResolveAppliesIndependentProjectAndFeatureOverrides(t *testing.T) {
+	global := prompt.Templates{
+		Design:         "global design {{task_id}}",
+		Implementation: "global implementation {{task_id}}",
+		Batch:          "global batch {{task_list}}",
+	}
+	resolved, err := prompt.Resolve(
+		global,
+		domain.PromptTemplateOverrides{
+			Design: "project design {{task_id}}",
+		},
+		domain.PromptTemplateOverrides{
+			Implementation: "feature implementation {{task_id}}",
+			Batch:          "feature batch {{task_list}}",
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resolved.Design != "project design {{task_id}}" ||
+		resolved.Implementation != "feature implementation {{task_id}}" ||
+		resolved.Batch != "feature batch {{task_list}}" {
+		t.Fatalf("resolved=%+v", resolved)
+	}
+}
+
+func TestResolveRejectsAnInvalidOverrideWithItsScope(t *testing.T) {
+	_, err := prompt.Resolve(
+		prompt.Templates{},
+		domain.PromptTemplateOverrides{Design: "missing target"},
+		domain.PromptTemplateOverrides{},
+	)
+	if err == nil || !strings.Contains(err.Error(), "project.prompt_overrides.design") {
+		t.Fatalf("error=%v, want project scope", err)
+	}
+}

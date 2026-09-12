@@ -43,6 +43,7 @@ func renderProjectFields(project domain.Project) humanRenderer {
 			{"Title", project.Title},
 			{"Description", displayValue(project.Description)},
 			{"Archived", yesNo(project.Archived)},
+			{"Prompt overrides", promptOverrideSummary(project.PromptOverrides)},
 			{"Created", formatTime(project.CreatedAt)},
 			{"Updated", formatTime(project.UpdatedAt)},
 		})
@@ -107,6 +108,7 @@ func renderFeatureDetail(feature domain.Feature) humanRenderer {
 			{"Project", feature.ProjectID},
 			{"Title", feature.Title},
 			{"Description", displayValue(feature.Description)},
+			{"Prompt overrides", promptOverrideSummary(feature.PromptOverrides)},
 			{"Status", string(feature.Status)},
 			{"Display status", string(feature.DisplayStatus)},
 			{"Archived", yesNo(feature.Archived)},
@@ -121,6 +123,23 @@ func renderFeatureDetail(feature domain.Feature) humanRenderer {
 			{"Updated", formatTime(feature.UpdatedAt)},
 		})
 	}
+}
+
+func promptOverrideSummary(overrides domain.PromptTemplateOverrides) string {
+	values := make([]string, 0, 3)
+	if overrides.Design != "" {
+		values = append(values, "design")
+	}
+	if overrides.Implementation != "" {
+		values = append(values, "implementation")
+	}
+	if overrides.Batch != "" {
+		values = append(values, "batch")
+	}
+	if len(values) == 0 {
+		return "none"
+	}
+	return strings.Join(values, ", ")
 }
 
 func renderTaskList(tasks []domain.Task) humanRenderer {

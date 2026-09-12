@@ -307,6 +307,67 @@ func TestRPCBatchPromptRejectsASelectionMissingABlocker(t *testing.T) {
 	}
 }
 
+func TestRPCPromptOverridesResolveAtProjectAndFeatureScope(t *testing.T) {
+	ctx := context.Background()
+	client := newPromptClient(t)
+	projectID := newRPCProject(t, ctx, client, "Prompt overrides")
+	feature, err := client.CreateFeature(ctx, connect.NewRequest(&prxv1.CreateFeatureRequest{
+		Title: "Override feature", ProjectId: projectID,
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	featureID := feature.Msg.GetFeature().GetId()
+	task, err := client.CreateTask(ctx, connect.NewRequest(&prxv1.CreateTaskRequest{
+		FeatureId: featureID, Title: "Override task",
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	taskID := task.Msg.GetTask().GetId()
+	projectDesign := "Project design {{task_id}}"
+	featureBatch := "Feature batch {{task_list}}"
+	updatedProject, err := client.UpdateProject(ctx, connect.NewRequest(&prxv1.UpdateProjectRequest{
+		Id:              projectID,
+		PromptOverrides: &prxv1.PromptTemplateOverridesUpdate{Design: &projectDesign},
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updatedProject.Msg.GetProject().GetPromptOverrides().GetDesign() != projectDesign {
+		t.Fatalf("project overrides=%+v", updatedProject.Msg.GetProject().GetPromptOverrides())
+	}
+	updatedFeature, err := client.UpdateFeature(ctx, connect.NewRequest(&prxv1.UpdateFeatureRequest{
+		Id:              featureID,
+		PromptOverrides: &prxv1.PromptTemplateOverridesUpdate{Batch: &featureBatch},
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updatedFeature.Msg.GetFeature().GetPromptOverrides().GetBatch() != featureBatch {
+		t.Fatalf("feature overrides=%+v", updatedFeature.Msg.GetFeature().GetPromptOverrides())
+	}
+	result, err := client.GetTaskPrompt(ctx, connect.NewRequest(&prxv1.GetTaskPromptRequest{TaskId: taskID}))
+	if err != nil || result.Msg.GetPrompt() != "Project design "+taskID {
+		t.Fatalf("task prompt=%+v err=%v", result.Msg, err)
+	}
+	batch, err := client.GetBatchPrompt(ctx, connect.NewRequest(&prxv1.GetBatchPromptRequest{
+		FeatureId: featureID, TaskIds: []string{taskID},
+	}))
+	if err != nil || !strings.HasPrefix(batch.Msg.GetPrompt(), "Feature batch ") {
+		t.Fatalf("batch prompt=%+v err=%v", batch.Msg, err)
+	}
+	bad := "missing {{task_id}}?"
+	_, err = client.UpdateFeature(ctx, connect.NewRequest(&prxv1.UpdateFeatureRequest{
+		Id:              featureID,
+		PromptOverrides: &prxv1.PromptTemplateOverridesUpdate{Batch: &bad},
+	}))
+	if errorDetailCode(t, err) != prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_PROMPT_TEMPLATE ||
+		!strings.Contains(err.Error(), "feature prompt override batch") {
+		t.Fatalf("invalid override error=%v", err)
+	}
+}
+
 func createBatchFeature(
 	t *testing.T,
 	client prxv1connect.PRXServiceClient,

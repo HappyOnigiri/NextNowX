@@ -339,10 +339,15 @@ func domainFeature(value db.Feature, projectID string) domain.Feature {
 		ProjectID:   projectID,
 		Title:       value.Title,
 		Description: value.Description,
-		Status:      status,
-		Archived:    value.Archived != 0,
-		CreatedAt:   parseTime(value.CreatedAt),
-		UpdatedAt:   parseTime(value.UpdatedAt),
+		PromptOverrides: domain.PromptTemplateOverrides{
+			Design:         value.PromptDesign.String,
+			Implementation: value.PromptImplementation.String,
+			Batch:          value.PromptBatch.String,
+		},
+		Status:    status,
+		Archived:  value.Archived != 0,
+		CreatedAt: parseTime(value.CreatedAt),
+		UpdatedAt: parseTime(value.UpdatedAt),
 	}
 }
 
@@ -360,9 +365,14 @@ func domainProject(value db.Project) domain.Project {
 		StorageID:   value.ID,
 		Title:       value.Title,
 		Description: value.Description,
-		Archived:    value.Archived != 0,
-		CreatedAt:   parseTime(value.CreatedAt),
-		UpdatedAt:   parseTime(value.UpdatedAt),
+		PromptOverrides: domain.PromptTemplateOverrides{
+			Design:         value.PromptDesign.String,
+			Implementation: value.PromptImplementation.String,
+			Batch:          value.PromptBatch.String,
+		},
+		Archived:  value.Archived != 0,
+		CreatedAt: parseTime(value.CreatedAt),
+		UpdatedAt: parseTime(value.UpdatedAt),
 	}
 }
 

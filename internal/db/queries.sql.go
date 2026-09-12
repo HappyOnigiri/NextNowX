@@ -141,21 +141,25 @@ func (q *Queries) CreateDocument(ctx context.Context, arg CreateDocumentParams) 
 
 const createFeature = `-- name: CreateFeature :one
 INSERT INTO features (
-  id, public_id, title, description, status, status_auto, archived, project_id, created_at, updated_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, title, description, status, archived, created_at, updated_at, public_id, status_auto, project_id
+  id, public_id, title, description, status, status_auto, archived, project_id, created_at, updated_at,
+  prompt_design, prompt_implementation, prompt_batch
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, title, description, status, archived, created_at, updated_at, public_id, status_auto, project_id, prompt_design, prompt_implementation, prompt_batch
 `
 
 type CreateFeatureParams struct {
-	ID          string `json:"id"`
-	PublicID    string `json:"public_id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Status      string `json:"status"`
-	StatusAuto  int64  `json:"status_auto"`
-	Archived    int64  `json:"archived"`
-	ProjectID   string `json:"project_id"`
-	CreatedAt   string `json:"created_at"`
-	UpdatedAt   string `json:"updated_at"`
+	ID                   string         `json:"id"`
+	PublicID             string         `json:"public_id"`
+	Title                string         `json:"title"`
+	Description          string         `json:"description"`
+	Status               string         `json:"status"`
+	StatusAuto           int64          `json:"status_auto"`
+	Archived             int64          `json:"archived"`
+	ProjectID            string         `json:"project_id"`
+	CreatedAt            string         `json:"created_at"`
+	UpdatedAt            string         `json:"updated_at"`
+	PromptDesign         sql.NullString `json:"prompt_design"`
+	PromptImplementation sql.NullString `json:"prompt_implementation"`
+	PromptBatch          sql.NullString `json:"prompt_batch"`
 }
 
 func (q *Queries) CreateFeature(ctx context.Context, arg CreateFeatureParams) (Feature, error) {
@@ -170,6 +174,9 @@ func (q *Queries) CreateFeature(ctx context.Context, arg CreateFeatureParams) (F
 		arg.ProjectID,
 		arg.CreatedAt,
 		arg.UpdatedAt,
+		arg.PromptDesign,
+		arg.PromptImplementation,
+		arg.PromptBatch,
 	)
 	var i Feature
 	err := row.Scan(
@@ -183,24 +190,31 @@ func (q *Queries) CreateFeature(ctx context.Context, arg CreateFeatureParams) (F
 		&i.PublicID,
 		&i.StatusAuto,
 		&i.ProjectID,
+		&i.PromptDesign,
+		&i.PromptImplementation,
+		&i.PromptBatch,
 	)
 	return i, err
 }
 
 const createProject = `-- name: CreateProject :one
 INSERT INTO projects (
-  id, public_id, title, description, archived, created_at, updated_at
-) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id, public_id, title, description, archived, created_at, updated_at
+  id, public_id, title, description, archived, created_at, updated_at,
+  prompt_design, prompt_implementation, prompt_batch
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, public_id, title, description, archived, created_at, updated_at, prompt_design, prompt_implementation, prompt_batch
 `
 
 type CreateProjectParams struct {
-	ID          string `json:"id"`
-	PublicID    string `json:"public_id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Archived    int64  `json:"archived"`
-	CreatedAt   string `json:"created_at"`
-	UpdatedAt   string `json:"updated_at"`
+	ID                   string         `json:"id"`
+	PublicID             string         `json:"public_id"`
+	Title                string         `json:"title"`
+	Description          string         `json:"description"`
+	Archived             int64          `json:"archived"`
+	CreatedAt            string         `json:"created_at"`
+	UpdatedAt            string         `json:"updated_at"`
+	PromptDesign         sql.NullString `json:"prompt_design"`
+	PromptImplementation sql.NullString `json:"prompt_implementation"`
+	PromptBatch          sql.NullString `json:"prompt_batch"`
 }
 
 func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (Project, error) {
@@ -212,6 +226,9 @@ func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (P
 		arg.Archived,
 		arg.CreatedAt,
 		arg.UpdatedAt,
+		arg.PromptDesign,
+		arg.PromptImplementation,
+		arg.PromptBatch,
 	)
 	var i Project
 	err := row.Scan(
@@ -222,6 +239,9 @@ func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (P
 		&i.Archived,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PromptDesign,
+		&i.PromptImplementation,
+		&i.PromptBatch,
 	)
 	return i, err
 }
@@ -443,7 +463,7 @@ func (q *Queries) GetDocument(ctx context.Context, id string) (Document, error) 
 }
 
 const getFeature = `-- name: GetFeature :one
-SELECT id, title, description, status, archived, created_at, updated_at, public_id, status_auto, project_id FROM features WHERE id = ?
+SELECT id, title, description, status, archived, created_at, updated_at, public_id, status_auto, project_id, prompt_design, prompt_implementation, prompt_batch FROM features WHERE id = ?
 `
 
 func (q *Queries) GetFeature(ctx context.Context, id string) (Feature, error) {
@@ -460,12 +480,15 @@ func (q *Queries) GetFeature(ctx context.Context, id string) (Feature, error) {
 		&i.PublicID,
 		&i.StatusAuto,
 		&i.ProjectID,
+		&i.PromptDesign,
+		&i.PromptImplementation,
+		&i.PromptBatch,
 	)
 	return i, err
 }
 
 const getFeatureByPublicID = `-- name: GetFeatureByPublicID :one
-SELECT id, title, description, status, archived, created_at, updated_at, public_id, status_auto, project_id FROM features WHERE public_id = ?
+SELECT id, title, description, status, archived, created_at, updated_at, public_id, status_auto, project_id, prompt_design, prompt_implementation, prompt_batch FROM features WHERE public_id = ?
 `
 
 func (q *Queries) GetFeatureByPublicID(ctx context.Context, publicID string) (Feature, error) {
@@ -482,6 +505,9 @@ func (q *Queries) GetFeatureByPublicID(ctx context.Context, publicID string) (Fe
 		&i.PublicID,
 		&i.StatusAuto,
 		&i.ProjectID,
+		&i.PromptDesign,
+		&i.PromptImplementation,
+		&i.PromptBatch,
 	)
 	return i, err
 }
@@ -552,7 +578,7 @@ func (q *Queries) GetImplementationPlanDocument(ctx context.Context, taskID sql.
 }
 
 const getProject = `-- name: GetProject :one
-SELECT id, public_id, title, description, archived, created_at, updated_at FROM projects WHERE id = ?
+SELECT id, public_id, title, description, archived, created_at, updated_at, prompt_design, prompt_implementation, prompt_batch FROM projects WHERE id = ?
 `
 
 func (q *Queries) GetProject(ctx context.Context, id string) (Project, error) {
@@ -566,12 +592,15 @@ func (q *Queries) GetProject(ctx context.Context, id string) (Project, error) {
 		&i.Archived,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PromptDesign,
+		&i.PromptImplementation,
+		&i.PromptBatch,
 	)
 	return i, err
 }
 
 const getProjectByPublicID = `-- name: GetProjectByPublicID :one
-SELECT id, public_id, title, description, archived, created_at, updated_at FROM projects WHERE public_id = ?
+SELECT id, public_id, title, description, archived, created_at, updated_at, prompt_design, prompt_implementation, prompt_batch FROM projects WHERE public_id = ?
 `
 
 func (q *Queries) GetProjectByPublicID(ctx context.Context, publicID string) (Project, error) {
@@ -585,6 +614,9 @@ func (q *Queries) GetProjectByPublicID(ctx context.Context, publicID string) (Pr
 		&i.Archived,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PromptDesign,
+		&i.PromptImplementation,
+		&i.PromptBatch,
 	)
 	return i, err
 }
@@ -786,7 +818,7 @@ func (q *Queries) ListDocuments(ctx context.Context) ([]ListDocumentsRow, error)
 }
 
 const listFeatures = `-- name: ListFeatures :many
-SELECT id, title, description, status, archived, created_at, updated_at, public_id, status_auto, project_id FROM features ORDER BY archived, updated_at DESC, public_id
+SELECT id, title, description, status, archived, created_at, updated_at, public_id, status_auto, project_id, prompt_design, prompt_implementation, prompt_batch FROM features ORDER BY archived, updated_at DESC, public_id
 `
 
 func (q *Queries) ListFeatures(ctx context.Context) ([]Feature, error) {
@@ -809,6 +841,9 @@ func (q *Queries) ListFeatures(ctx context.Context) ([]Feature, error) {
 			&i.PublicID,
 			&i.StatusAuto,
 			&i.ProjectID,
+			&i.PromptDesign,
+			&i.PromptImplementation,
+			&i.PromptBatch,
 		); err != nil {
 			return nil, err
 		}
@@ -824,7 +859,7 @@ func (q *Queries) ListFeatures(ctx context.Context) ([]Feature, error) {
 }
 
 const listFeaturesByProject = `-- name: ListFeaturesByProject :many
-SELECT id, title, description, status, archived, created_at, updated_at, public_id, status_auto, project_id FROM features WHERE project_id=? ORDER BY updated_at DESC, public_id
+SELECT id, title, description, status, archived, created_at, updated_at, public_id, status_auto, project_id, prompt_design, prompt_implementation, prompt_batch FROM features WHERE project_id=? ORDER BY updated_at DESC, public_id
 `
 
 func (q *Queries) ListFeaturesByProject(ctx context.Context, projectID string) ([]Feature, error) {
@@ -847,6 +882,9 @@ func (q *Queries) ListFeaturesByProject(ctx context.Context, projectID string) (
 			&i.PublicID,
 			&i.StatusAuto,
 			&i.ProjectID,
+			&i.PromptDesign,
+			&i.PromptImplementation,
+			&i.PromptBatch,
 		); err != nil {
 			return nil, err
 		}
@@ -922,7 +960,7 @@ func (q *Queries) ListImplementationPlanTaskIDs(ctx context.Context) ([]sql.Null
 }
 
 const listProjects = `-- name: ListProjects :many
-SELECT id, public_id, title, description, archived, created_at, updated_at FROM projects ORDER BY archived, updated_at DESC, public_id
+SELECT id, public_id, title, description, archived, created_at, updated_at, prompt_design, prompt_implementation, prompt_batch FROM projects ORDER BY archived, updated_at DESC, public_id
 `
 
 func (q *Queries) ListProjects(ctx context.Context) ([]Project, error) {
@@ -942,6 +980,9 @@ func (q *Queries) ListProjects(ctx context.Context) ([]Project, error) {
 			&i.Archived,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.PromptDesign,
+			&i.PromptImplementation,
+			&i.PromptBatch,
 		); err != nil {
 			return nil, err
 		}
@@ -1168,19 +1209,23 @@ func (q *Queries) UpdateDocument(ctx context.Context, arg UpdateDocumentParams) 
 
 const updateFeature = `-- name: UpdateFeature :one
 UPDATE features
-SET title=?, description=?, status=?, status_auto=?, archived=?, project_id=?, updated_at=?
-WHERE id=? RETURNING id, title, description, status, archived, created_at, updated_at, public_id, status_auto, project_id
+SET title=?, description=?, status=?, status_auto=?, archived=?, project_id=?, updated_at=?,
+  prompt_design=?, prompt_implementation=?, prompt_batch=?
+WHERE id=? RETURNING id, title, description, status, archived, created_at, updated_at, public_id, status_auto, project_id, prompt_design, prompt_implementation, prompt_batch
 `
 
 type UpdateFeatureParams struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Status      string `json:"status"`
-	StatusAuto  int64  `json:"status_auto"`
-	Archived    int64  `json:"archived"`
-	ProjectID   string `json:"project_id"`
-	UpdatedAt   string `json:"updated_at"`
-	ID          string `json:"id"`
+	Title                string         `json:"title"`
+	Description          string         `json:"description"`
+	Status               string         `json:"status"`
+	StatusAuto           int64          `json:"status_auto"`
+	Archived             int64          `json:"archived"`
+	ProjectID            string         `json:"project_id"`
+	UpdatedAt            string         `json:"updated_at"`
+	PromptDesign         sql.NullString `json:"prompt_design"`
+	PromptImplementation sql.NullString `json:"prompt_implementation"`
+	PromptBatch          sql.NullString `json:"prompt_batch"`
+	ID                   string         `json:"id"`
 }
 
 func (q *Queries) UpdateFeature(ctx context.Context, arg UpdateFeatureParams) (Feature, error) {
@@ -1192,6 +1237,9 @@ func (q *Queries) UpdateFeature(ctx context.Context, arg UpdateFeatureParams) (F
 		arg.Archived,
 		arg.ProjectID,
 		arg.UpdatedAt,
+		arg.PromptDesign,
+		arg.PromptImplementation,
+		arg.PromptBatch,
 		arg.ID,
 	)
 	var i Feature
@@ -1206,20 +1254,27 @@ func (q *Queries) UpdateFeature(ctx context.Context, arg UpdateFeatureParams) (F
 		&i.PublicID,
 		&i.StatusAuto,
 		&i.ProjectID,
+		&i.PromptDesign,
+		&i.PromptImplementation,
+		&i.PromptBatch,
 	)
 	return i, err
 }
 
 const updateProject = `-- name: UpdateProject :one
-UPDATE projects SET title=?, description=?, archived=?, updated_at=? WHERE id=? RETURNING id, public_id, title, description, archived, created_at, updated_at
+UPDATE projects SET title=?, description=?, archived=?, updated_at=?,
+  prompt_design=?, prompt_implementation=?, prompt_batch=? WHERE id=? RETURNING id, public_id, title, description, archived, created_at, updated_at, prompt_design, prompt_implementation, prompt_batch
 `
 
 type UpdateProjectParams struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Archived    int64  `json:"archived"`
-	UpdatedAt   string `json:"updated_at"`
-	ID          string `json:"id"`
+	Title                string         `json:"title"`
+	Description          string         `json:"description"`
+	Archived             int64          `json:"archived"`
+	UpdatedAt            string         `json:"updated_at"`
+	PromptDesign         sql.NullString `json:"prompt_design"`
+	PromptImplementation sql.NullString `json:"prompt_implementation"`
+	PromptBatch          sql.NullString `json:"prompt_batch"`
+	ID                   string         `json:"id"`
 }
 
 func (q *Queries) UpdateProject(ctx context.Context, arg UpdateProjectParams) (Project, error) {
@@ -1228,6 +1283,9 @@ func (q *Queries) UpdateProject(ctx context.Context, arg UpdateProjectParams) (P
 		arg.Description,
 		arg.Archived,
 		arg.UpdatedAt,
+		arg.PromptDesign,
+		arg.PromptImplementation,
+		arg.PromptBatch,
 		arg.ID,
 	)
 	var i Project
@@ -1239,6 +1297,9 @@ func (q *Queries) UpdateProject(ctx context.Context, arg UpdateProjectParams) (P
 		&i.Archived,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PromptDesign,
+		&i.PromptImplementation,
+		&i.PromptBatch,
 	)
 	return i, err
 }
