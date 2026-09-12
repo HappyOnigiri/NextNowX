@@ -99,9 +99,9 @@ take the option you can defend and write it into the plan as a stated assumption
      local file prints that locator instead, so open it yourself.
 4. Investigate the repository and decide how the scope above should be built.
 5. Register the resulting plan on the task.
-   - ` + "`prx plan set {{task_id}} --stdin`" + ` and paste the plan in.
-   - ` + "`prx plan set {{task_id}} --file PATH`" + ` reads it from a file instead: put that file outside
-     the repository and delete it once the plan is registered.
+   Write the plan to a file in a temporary directory outside the repository, register that file,
+   and delete it afterwards. A plan left inside the repository ends up committed by the next step.
+   - ` + "`prx plan set {{task_id}} --file PATH`" + `
    Write the plan in the language the repository's own documents and agent instructions use.
    Registering the plan is what presents the task as designed, so leave the status alone afterwards.
 

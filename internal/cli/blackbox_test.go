@@ -2324,7 +2324,7 @@ func TestBlackBoxPromptFollowsThePlanAndTheConfiguredTemplates(t *testing.T) {
 	if !strings.HasPrefix(design.stdout, "Design PRX task T-1 of feature F-1.\n") {
 		t.Fatalf("design prompt=%q", design.stdout)
 	}
-	for _, expected := range []string{"Add the checkout API", "Server only", "prx plan set T-1 --stdin"} {
+	for _, expected := range []string{"Add the checkout API", "Server only", "prx plan set T-1 --file PATH"} {
 		if !strings.Contains(design.stdout, expected) {
 			t.Fatalf("design prompt does not contain %q: %q", expected, design.stdout)
 		}
