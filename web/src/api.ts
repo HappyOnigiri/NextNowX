@@ -106,6 +106,11 @@ export const mutations = {
     title?: string;
     description?: string;
     archived?: boolean;
+    promptOverrides?: {
+      design?: string;
+      implementation?: string;
+      batch?: string;
+    };
   }) => client.updateProject(create(UpdateProjectRequestSchema, input)),
   // cascade は project の feature を削除せず切り離すので、WebUI に必要な形は
   // これだけ。
@@ -125,6 +130,11 @@ export const mutations = {
     status?: FeatureStatus;
     archived?: boolean;
     projectId?: string;
+    promptOverrides?: {
+      design?: string;
+      implementation?: string;
+      batch?: string;
+    };
   }) => client.updateFeature(create(UpdateFeatureRequestSchema, input)),
   deleteFeature: (id: string) =>
     client.deleteFeature(

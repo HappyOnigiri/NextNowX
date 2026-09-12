@@ -7,7 +7,7 @@ Print the agent prompt for a task
 Print the agent prompt for a task.
 
 A task without an implementation plan gets the design prompt, and a task with one gets the implementation prompt.
-Both templates come from the shared configuration, so the WebUI copies the same text.
+The result resolves global, project, and feature overrides, so the WebUI copies the same text.
 
 ```
 prx prompt TASK_ID [flags]

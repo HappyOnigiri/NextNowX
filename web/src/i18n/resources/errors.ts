@@ -28,6 +28,7 @@ export const errors = {
         "Implementation plans support content up to 1 MiB.",
       invalidParent: "Choose either a feature or a task for this reference.",
       invalidPullRequestUrl: "Enter a github.com pull request URL.",
+      invalidPromptTemplate: "The prompt template is invalid.",
       invalidStatus: "The selected status is invalid.",
       invalidTitle: "Enter a title.",
       notFound: "The requested item was not found.",
@@ -64,6 +65,7 @@ export const errors = {
         "参照先はフィーチャーまたはタスクのどちらか一方を選んでください。",
       invalidPullRequestUrl:
         "github.com のプルリクエスト URL を入力してください。",
+      invalidPromptTemplate: "プロンプトテンプレートが正しくありません。",
       invalidStatus: "選択したステータスは正しくありません。",
       invalidTitle: "タイトルを入力してください。",
       notFound: "指定された項目が見つかりません。",

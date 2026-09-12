@@ -112,6 +112,22 @@ const (
 	DocumentKindMarkdown  DocumentKind = "markdown"
 )
 
+// PromptTemplateOverrides は project や feature が明示的に差し替える
+// エージェント用テンプレートを保持する。空文字列は継承を表す。
+type PromptTemplateOverrides struct {
+	Design         string `json:"design"`
+	Implementation string `json:"implementation"`
+	Batch          string `json:"batch"`
+}
+
+// PromptTemplateOverridesUpdate は種類ごとの上書きを部分更新する。
+// nil は変更なし、空文字列は上書き解除、非空文字列は新しい本文を表す。
+type PromptTemplateOverridesUpdate struct {
+	Design         *string
+	Implementation *string
+	Batch          *string
+}
+
 type BlockedReasonCode string
 
 const (
@@ -122,41 +138,45 @@ const (
 // Project は feature をまとめる。feature は必ずいずれかに属し、project が持つ状態は
 // archived かどうかだけで、feature のような 2 層の status は持たない。
 type Project struct {
-	ID          string    `json:"id"`
-	StorageID   string    `json:"-"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	Archived    bool      `json:"archived"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID              string                  `json:"id"`
+	StorageID       string                  `json:"-"`
+	Title           string                  `json:"title"`
+	Description     string                  `json:"description"`
+	Archived        bool                    `json:"archived"`
+	PromptOverrides PromptTemplateOverrides `json:"prompt_overrides"`
+	CreatedAt       time.Time               `json:"created_at"`
+	UpdatedAt       time.Time               `json:"updated_at"`
 }
 
 // ProjectUpdate は project 更新で変更しうる全フィールドを運ぶ。nil ポインタは省略、空文字は
 // クリア要求を表す。1 つの比較可能な値にまとめることで、archive の防壁は個々のフィールドを
 // 挙げずに変更の有無を判定できる。
 type ProjectUpdate struct {
-	Title       *string
-	Description *string
-	Archived    *bool
+	Title           *string
+	Description     *string
+	Archived        *bool
+	PromptOverrides *PromptTemplateOverridesUpdate
 }
 
 // FeatureUpdate は feature 更新で変更しうる全フィールドを運ぶ。ポインタの規約と、
 // 1 つの値にまとめる理由は ProjectUpdate と同じ。
 type FeatureUpdate struct {
-	Title       *string
-	Description *string
-	Status      *FeatureStatus
-	Archived    *bool
-	ProjectID   *string
+	Title           *string
+	Description     *string
+	Status          *FeatureStatus
+	Archived        *bool
+	ProjectID       *string
+	PromptOverrides *PromptTemplateOverridesUpdate
 }
 
 type Feature struct {
-	ID          string        `json:"id"`
-	StorageID   string        `json:"-"`
-	ProjectID   string        `json:"project_id"`
-	Title       string        `json:"title"`
-	Description string        `json:"description"`
-	Status      FeatureStatus `json:"status"`
+	ID              string                  `json:"id"`
+	StorageID       string                  `json:"-"`
+	ProjectID       string                  `json:"project_id"`
+	Title           string                  `json:"title"`
+	Description     string                  `json:"description"`
+	PromptOverrides PromptTemplateOverrides `json:"prompt_overrides"`
+	Status          FeatureStatus           `json:"status"`
 	// ReadOnly は導出値で、feature 自身か所属 project が archived であることを表す。
 	// クライアントは feature と project のフラグを組み合わせず、この値から読み取り専用
 	// 状態を表示する。

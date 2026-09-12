@@ -65,8 +65,8 @@ func TestMigrationConstraintsAndRollback(t *testing.T) {
 	if err := database.DB().
 		QueryRowContext(ctx, `SELECT COUNT(*) FROM schema_migrations`).
 		Scan(&migrations); err != nil ||
-		migrations != 16 {
-		t.Fatalf("migration count=%d err=%v", migrations, err)
+		migrations != 17 {
+		t.Fatalf("migration count=%d err=%v, want 17", migrations, err)
 	}
 	var foreignKeys, journalMode int
 	var journal string
@@ -643,8 +643,8 @@ func TestMigrationRepairsConflictingBranchVersions(t *testing.T) {
 	var migrationCount int
 	if err := database.DB().
 		QueryRowContext(ctx, `SELECT COUNT(*) FROM schema_migrations`).
-		Scan(&migrationCount); err != nil || migrationCount != 16 {
-		t.Fatalf("migration count=%d err=%v", migrationCount, err)
+		Scan(&migrationCount); err != nil || migrationCount != 17 {
+		t.Fatalf("migration count=%d err=%v, want 17", migrationCount, err)
 	}
 	var status string
 	if err := database.DB().

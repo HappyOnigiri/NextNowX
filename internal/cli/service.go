@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/HappyOnigiri/PRX/internal/domain"
+	"github.com/HappyOnigiri/PRX/internal/prompt"
 )
 
 // ServiceOptions は CLI が選んだ実行時の境界条件を運ぶ。パスの出所も含めるのは、
@@ -86,6 +87,8 @@ type Service interface {
 	ReadDocumentContent(ctx context.Context, id string) (string, error)
 
 	Debug(ctx context.Context) (domain.DebugReport, error)
+	GetTaskPrompt(ctx context.Context, taskID string) (prompt.Kind, string, error)
+	GetBatchPrompt(ctx context.Context, featureID string, taskIDs []string) (string, error)
 	Snapshot(ctx context.Context) (domain.Snapshot, error)
 	Sync(ctx context.Context, featureID, taskID string) (int, int, error)
 	SyncIfDue(ctx context.Context) (bool, domain.GitHubSyncStatus, error)

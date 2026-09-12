@@ -173,6 +173,11 @@ func (s *Service) UpdateFeature(
 	if update.Description != nil {
 		feature.Description = *update.Description
 	}
+	if update.PromptOverrides != nil {
+		if err := applyPromptOverrides(&feature.PromptOverrides, *update.PromptOverrides, "feature"); err != nil {
+			return domain.Feature{}, err
+		}
+	}
 	if update.Status != nil && *update.Status != "" {
 		feature.Status = *update.Status
 	}

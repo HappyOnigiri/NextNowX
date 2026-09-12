@@ -252,6 +252,7 @@ export const errorKeys = {
     "error.implementationPlanTooLarge",
   [DomainErrorCode.INVALID_PARENT]: "error.invalidParent",
   [DomainErrorCode.INVALID_PULL_REQUEST_URL]: "error.invalidPullRequestUrl",
+  [DomainErrorCode.INVALID_PROMPT_TEMPLATE]: "error.invalidPromptTemplate",
   [DomainErrorCode.INVALID_STATUS]: "error.invalidStatus",
   [DomainErrorCode.INVALID_TITLE]: "error.invalidTitle",
   [DomainErrorCode.NOT_FOUND]: "error.notFound",
