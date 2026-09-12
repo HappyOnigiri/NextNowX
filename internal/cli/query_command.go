@@ -32,13 +32,21 @@ func (s *state) graphCommand() *cobra.Command {
 		Example: "prx graph F-1",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			feature, err := s.service.ResolveFeature(cmd.Context(), args[0])
-			if err != nil {
-				return err
-			}
 			snapshot, err := s.service.Snapshot(cmd.Context())
 			if err != nil {
 				return err
+			}
+			var feature domain.Feature
+			found := false
+			for _, candidate := range snapshot.Features {
+				if candidate.ID == args[0] {
+					feature = candidate
+					found = true
+					break
+				}
+			}
+			if !found {
+				return domain.NewError(domain.DomainErrorCodeNotFound, "feature %q was not found", args[0])
 			}
 			tasks := filterTasks(snapshot.Tasks, func(task domain.Task) bool { return task.FeatureID == feature.ID })
 			ids := map[string]bool{}

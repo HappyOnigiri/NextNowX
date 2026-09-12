@@ -34,8 +34,8 @@ func writeProjectTable(out io.Writer, projects []domain.Project) error {
 	})
 }
 
-// renderProjectFields は project 単体を描画する。`show` は中身の取得元である
-// スナップショットを読まずに 1 レコードだけ解決するので、これを使う。
+// renderProjectFields は project 単体を描画する。`show` と project 詳細は
+// 同じ描画部品を使う。
 func renderProjectFields(project domain.Project) humanRenderer {
 	return func(out io.Writer) error {
 		return writeFields(out, [][2]string{
