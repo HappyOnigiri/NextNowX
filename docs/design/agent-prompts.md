@@ -4,6 +4,7 @@ PRX は PRX を知らないエージェントに task を渡すため、prompt �
 task prompt や batch prompt のレンダリングは、task の状態・readiness・依存関係・implementation plan のいずれも変更しない。
 他の読み取りコマンドと同じく、`prx prompt TASK_ID` は [github-sync.md](github-sync.md) の共有 GitHub refresh 間隔を確認する。
 組み込みテンプレートは、PRX がローカルのツールであってリポジトリの読み手には見えないことを伝え、コードコメント・コミットメッセージ・pull request で PRX やその識別子・コマンドに言及しないよう指示する。
+組み込みテンプレートは 3 種類とも無人実行を前提とし、質問を禁じて未確定事項を仮定として明記させる。プロンプトは人の見ていない実行にも batch の SubAgent にも同じ文面のまま渡るためである。
 
 ## Task prompt
 
@@ -16,6 +17,11 @@ task のテンプレートを選ぶのは implementation plan の有無だけで
 
 作業前にステータスを設定することで進行中の作業が可視化され、plan を登録すれば designing の task は designed として提示される。
 組み込みの implementation テンプレートと batch テンプレートは、作業のベースから分岐するようエージェントに指示する。stacked pull request のために、未解決の blocker のブランチも対象に含む。
+
+組み込みの design テンプレートは feature graph を、兄弟 task の scope を自分の設計から切り分けるために読ませる。graph にまだない依存を見つけた場合は `prx dependency add` で登録させ、計画の中だけに書き残させない。
+計画の登録は `prx plan set TASK_ID --file PATH` だけを案内し、その本文は対象リポジトリの外の一時ディレクトリに書いて登録後に削除させる。設計の成果物が対象リポジトリに混入し、次の実装ステップでコミットされるのを避けるためである。
+標準入力からの登録は案内しない。本文をシェルの heredoc に通すと、引用符なしのデリミタでは `$` や `` ` `` が展開され、計画に含めたコマンド例が書き換わったり実行されたりするためである。エージェントに正しい引用を任せるより、ファイル経由に一本化するほうが安全である。
+計画の本文は、対象リポジトリ自身の文書とエージェント向け指示が使っている言語で書かせる。組み込みテンプレートは対象リポジトリを選ばないので、言語を固定せずリポジトリ側の慣習に従わせる。
 
 組み込みの design テンプレートと implementation テンプレートは、設計や実装を始める前に task・feature・project の document を読むようエージェントに案内する。
 プロンプトは document の本文を含めず、`prx document` と `prx document get DOCUMENT_ID` へ誘導する。plan と同じく本文が大きくなり得るためである。

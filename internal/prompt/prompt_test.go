@@ -113,6 +113,25 @@ func TestDefaultTemplatesGuideTheAgentThroughPRX(t *testing.T) {
 	}
 }
 
+// プロンプトは無人で走るエージェントにも batch の SubAgent にも渡るため、既定テンプレートは
+// 3 種類とも質問を禁じ、未確定事項を仮定として残させなければならない。
+func TestDefaultTemplatesForbidQuestions(t *testing.T) {
+	defaults := prompt.DefaultTemplates()
+	for name, template := range map[string]string{
+		"design":         defaults.Design,
+		"implementation": defaults.Implementation,
+		"batch":          defaults.Batch,
+	} {
+		if !strings.Contains(template, "do not ask questions") &&
+			!strings.Contains(template, "asks questions") {
+			t.Fatalf("default %s template does not forbid questions", name)
+		}
+		if !strings.Contains(template, "stated assumption") {
+			t.Fatalf("default %s template does not ask for stated assumptions", name)
+		}
+	}
+}
+
 // 資料は task だけでなく feature や project にも付く。既定テンプレートは、設計と実装の
 // どちらでもその 3 か所を読むよう案内しなければならない。
 func TestDefaultTemplatesPointTheAgentAtAttachedDocuments(t *testing.T) {
