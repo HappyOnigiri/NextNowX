@@ -80,12 +80,16 @@ Run ` + "`prx --help`" + ` and ` + "`prx <command> --help`" + ` for its exact su
 PRX runs on this machine only, so nobody reading the repository can see it.
 Keep it out of what the repository carries: no code comment, commit message, or pull request
 may mention PRX, its identifiers, or its commands.
+Nobody is watching this run, so do not ask questions. Where the material leaves something undecided,
+take the option you can defend and write it into the plan as a stated assumption.
 
 1. Mark the task as being designed before anything else.
    - ` + "`prx task update {{task_id}} --status designing`" + `
 2. Read the task and the work it depends on.
    - ` + "`prx task {{task_id}}`" + `
    - ` + "`prx graph {{feature_id}}`" + `
+   The other tasks in that graph carry their own scope: rely on their result, do not design it here.
+   A dependency the graph does not show yet goes in as ` + "`prx dependency add BLOCKER_TASK_ID {{task_id}}`" + `.
 3. Read the reference material attached in PRX before you decide anything.
    Documents hang off the task, off its feature, and off the project that feature belongs to,
    and any of them may carry the requirements this scope has to meet.
@@ -95,8 +99,10 @@ may mention PRX, its identifiers, or its commands.
      local file prints that locator instead, so open it yourself.
 4. Investigate the repository and decide how the scope above should be built.
 5. Register the resulting plan on the task.
-   - ` + "`prx plan set {{task_id}} --file PLAN.md`" + `
-   - ` + "`prx plan set {{task_id}} --stdin`" + `
+   - ` + "`prx plan set {{task_id}} --stdin`" + ` and paste the plan in.
+   - ` + "`prx plan set {{task_id}} --file PATH`" + ` reads it from a file instead: put that file outside
+     the repository and delete it once the plan is registered.
+   Write the plan in the language the repository's own documents and agent instructions use.
    Registering the plan is what presents the task as designed, so leave the status alone afterwards.
 
 Design only: leave the implementation and the pull request to the next step.
@@ -112,6 +118,8 @@ Run ` + "`prx --help`" + ` and ` + "`prx <command> --help`" + ` for its exact su
 PRX runs on this machine only, so nobody reading the repository can see it.
 Keep it out of what the repository carries: no code comment, commit message, or pull request
 may mention PRX, its identifiers, or its commands.
+Nobody is watching this run, so do not ask questions. Where the plan leaves something undecided,
+take the option you can defend and report it as a stated assumption.
 
 1. Read the task, the work it depends on, and its registered plan.
    - ` + "`prx task {{task_id}}`" + `
@@ -145,6 +153,8 @@ Run ` + "`prx --help`" + ` and ` + "`prx <command> --help`" + ` for its exact su
 PRX runs on this machine only, so nobody reading the repository can see it.
 Keep it out of what the repository carries, in your work and in every SubAgent's: no code comment,
 commit message, or pull request may mention PRX, its identifiers, or its commands.
+Nobody is watching this run, so neither you nor any SubAgent asks questions. Where the material
+leaves something undecided, take the option you can defend and report it as a stated assumption.
 
 Tasks:
 {{task_list}}
