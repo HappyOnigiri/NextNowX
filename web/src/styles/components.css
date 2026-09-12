@@ -466,6 +466,16 @@
   line-height: 1.55;
 }
 
+/* 継承中やアーカイブ済みで編集できないことが見た目で伝わるよう、枠・背景・
+   文字を弱め、リサイズハンドルも消す。 */
+.dialog .prompt-override-textarea:disabled {
+  border-color: var(--border);
+  background: color-mix(in srgb, var(--surface-2) 45%, var(--bg));
+  color: var(--text-3);
+  cursor: not-allowed;
+  resize: none;
+}
+
 .prompt-override-field small {
   display: block;
   margin-top: 6px;
