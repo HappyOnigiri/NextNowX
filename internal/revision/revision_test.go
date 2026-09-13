@@ -239,6 +239,26 @@ func TestWatcherReportsWhetherItIsWatching(t *testing.T) {
 	waitFor(t, func() bool { return watcher.Revisions().Watching() })
 }
 
+// 起動直後の 1 回の読み取り失敗で変化とみなすと、接続が集中する時間帯に全
+// クライアントが一度きりの無駄な取り直しをする。
+func TestWatcherHoldsTheRevisionWhenTheBaselineReadFailed(t *testing.T) {
+	reader := newFakeReader(9)
+	reader.set(9, errors.New("the database cannot be read"))
+	watcher := startWatcher(t, reader, func(error) {})
+	reader.set(9, nil)
+	reader.awaitReads(t, 3)
+	current, updates, cancel := watcher.Revisions().Subscribe()
+	t.Cleanup(cancel)
+	if current != 1 {
+		t.Fatalf("the revision is %d, want 1", current)
+	}
+	select {
+	case value := <-updates:
+		t.Fatalf("the watcher published revision %d without a change", value)
+	default:
+	}
+}
+
 // waitFor は条件が成立するまで短い間隔で確かめる。読み取りと状態の更新は監視の
 // goroutine が行うので、読み取りの完了だけでは同期できない。
 func waitFor(t *testing.T, condition func() bool) {

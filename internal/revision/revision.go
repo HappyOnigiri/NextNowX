@@ -138,12 +138,19 @@ func (w *Watcher) Run(ctx context.Context) {
 		if !read {
 			continue
 		}
-		// data_version は 32 ビットで折り返す。`>` で比較すると折り返し後に
-		// 検知が永久停止する。
-		if ok && current == baseline {
+		// 基準値を持てていないときは比べる相手がないので、変化とみなさず基準値に
+		// する。ここで進めると、起動直後の 1 回の読み取り失敗が全クライアントの
+		// 取り直しに化ける。
+		if !ok {
+			baseline, ok = current, true
 			continue
 		}
-		baseline, ok = current, true
+		// data_version は 32 ビットで折り返す。`>` で比較すると折り返し後に
+		// 検知が永久停止する。
+		if current == baseline {
+			continue
+		}
+		baseline = current
 		revision++
 		w.broadcaster.publish(revision)
 	}
