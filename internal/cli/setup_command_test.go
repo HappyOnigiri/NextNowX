@@ -10,9 +10,63 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/HappyOnigiri/PRX/internal/daemon"
+	"github.com/HappyOnigiri/PRX/internal/launchd"
 	"github.com/HappyOnigiri/PRX/internal/runstate"
 	"github.com/HappyOnigiri/PRX/internal/tui"
 )
+
+func TestSetupSettledMessage(t *testing.T) {
+	tests := []struct {
+		name   string
+		status daemon.Status
+		want   string
+	}{
+		{
+			name: "stale plist kept",
+			status: daemon.Status{
+				Installed: true, PlistStatus: launchd.PlistStale,
+				Running: true, State: runstate.State{URL: "http://127.0.0.1:7331"},
+			},
+			want: "Kept the existing LaunchAgent. Run prx daemon install to update it.",
+		},
+		{
+			name:   "left stopped",
+			status: daemon.Status{Installed: true, PlistStatus: launchd.PlistCurrent},
+			want:   "Left the PRX server stopped. Run prx daemon start when you need it.",
+		},
+		{
+			name: "already running",
+			status: daemon.Status{
+				Installed: true, PlistStatus: launchd.PlistCurrent,
+				Running: true, State: runstate.State{URL: "http://127.0.0.1:7331"},
+			},
+			want: "PRX is already set up and listening on http://127.0.0.1:7331.",
+		},
+		{
+			name: "running with unknown address",
+			status: daemon.Status{
+				Installed: true, PlistStatus: launchd.PlistCurrent,
+				Running: true, AddressUnknown: true,
+			},
+			want: "PRX is already set up and running.",
+		},
+		{
+			name: "running without recorded url",
+			status: daemon.Status{
+				Installed: true, PlistStatus: launchd.PlistCurrent, Running: true,
+			},
+			want: "PRX is already set up and running.",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := setupSettledMessage(test.status); got != test.want {
+				t.Fatalf("message=%q, want %q", got, test.want)
+			}
+		})
+	}
+}
 
 func TestSetupWithoutTerminalDoesNotOpenService(t *testing.T) {
 	previousTerminal := setupIsTerminal
