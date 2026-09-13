@@ -57,7 +57,7 @@ test("hides completed tasks and leaves their dependency visible", async ({
     .locator(".node-hidden-dependency-in");
   await expect(stub).toHaveAttribute(
     "aria-label",
-    "Hidden completed blockers: Verify storage boundary",
+    "Hidden blockers: Verify storage boundary",
   );
 
   // スイッチはブラウザローカルの状態なので、リロードしても絞り込みが残る。

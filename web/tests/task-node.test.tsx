@@ -228,16 +228,16 @@ describe("TaskNode", () => {
       </ReactFlowProvider>,
     );
     const blockers = screen.getByRole("img", {
-      name: "Hidden completed blockers: Migrate schema, Design schema",
+      name: "Hidden blockers: Migrate schema, Design schema",
     });
     expect(blockers).toHaveClass("node-hidden-dependency-in");
     expect(blockers).toHaveAttribute(
       "title",
-      "Hidden completed blockers: Migrate schema, Design schema",
+      "Hidden blockers: Migrate schema, Design schema",
     );
     expect(
       screen.getByRole("img", {
-        name: "Hidden completed dependents: Announce",
+        name: "Hidden dependents: Announce",
       }),
     ).toHaveClass("node-hidden-dependency-out");
     expect(container.querySelectorAll(".node-hidden-dependency")).toHaveLength(

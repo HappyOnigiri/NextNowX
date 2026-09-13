@@ -261,3 +261,48 @@
     transition: none;
   }
 }
+
+.graph-search {
+  flex: 0 1 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 3px 4px 3px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-3);
+}
+
+.graph-search:focus-within {
+  border-color: var(--accent);
+}
+
+.graph-search-input {
+  width: 180px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-sm);
+}
+
+.graph-search-input:focus-visible {
+  outline: none;
+}
+
+.graph-search-count {
+  flex: 0 0 auto;
+  color: var(--text-3);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+@media (width <= 900px) {
+  .graph-search-input {
+    width: 120px;
+  }
+}

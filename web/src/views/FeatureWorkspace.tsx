@@ -5,8 +5,10 @@ import {
   Pencil,
   Plus,
   RefreshCw,
+  Search,
+  X,
 } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { mutations } from "../api";
 import type {
@@ -25,11 +27,6 @@ import {
   writeHideCompletedTasks,
 } from "../i18n/settings";
 import { BatchPromptDialog } from "./BatchPromptDialog";
-import {
-  emptyHiddenDependencies,
-  hideFinishedTasks,
-  type HiddenDependencies,
-} from "./completedTasks";
 import { CopyableIdentifier } from "./CopyableIdentifier";
 import { CreateTaskDialog } from "./CreateTaskDialog";
 import type { PendingDependency } from "./dependencyGraph";
@@ -38,11 +35,20 @@ import { DocumentReferences } from "./DocumentReferences";
 import { EditFeatureDialog } from "./EditFeatureDialog";
 import { EntityIcon } from "./EntityIcon";
 import { FeatureGraph } from "./FeatureGraph";
+import { matchesGraphSearch } from "./graphSearch";
 import { IconButton } from "./IconButton";
 import { MarkdownPreview } from "./MarkdownPreview";
 import { StatusBadge } from "./StatusBadge";
 import { TaskInspector } from "./TaskInspector";
 import { type TaskNodeDocument } from "./TaskNode";
+import { useCloseOnEscape } from "./useCloseOnEscape";
+import {
+  emptyHiddenDependencies,
+  hideTasks,
+  isFinishedTask,
+  type HiddenDependencies,
+  type VisibleGraph,
+} from "./visibleGraph";
 
 interface DocumentTarget {
   taskId: string;
@@ -55,7 +61,6 @@ interface TaskDraft {
 }
 
 export function FeatureWorkspace() {
-  const { t } = useTranslation();
   const { featureId } = useParams({ from: "/features/$featureId" });
   const navigate = useNavigate();
   const snapshot = useSnapshot();
@@ -72,6 +77,7 @@ export function FeatureWorkspace() {
     setHideCompleted(hide);
     writeHideCompletedTasks(hide);
   }, []);
+  const search = useGraphSearch();
   const data = snapshot.data;
   const feature = data?.features.find((item) => item.id === featureId);
   const project = data?.projects.find((item) => item.id === feature?.projectId);
@@ -82,7 +88,22 @@ export function FeatureWorkspace() {
     documentsByTask,
     featureDocuments,
   } = useFeatureWorkspaceData(data, featureId);
-  const visible = useVisibleGraph(tasks, dependencies, hideCompleted);
+  const visible = useVisibleGraph(
+    tasks,
+    dependencies,
+    pullRequests,
+    hideCompleted,
+    search.query,
+  );
+  // Cmd/Ctrl+F はブラウザの検索を奪うので、キャンバスが前面にある間だけ受ける。
+  // 手前でダイアログが開いているときは、その入力欄の検索を邪魔しない。
+  const overlayOpen =
+    taskDraft !== undefined ||
+    previewDocument !== undefined ||
+    documentTarget !== undefined ||
+    showFeatureEdit ||
+    showBatchPrompt;
+  useGraphSearchShortcut(Boolean(feature) && !overlayOpen, search.open);
   // 開いている作成ダイアログは開き直しても置き換えない。背景のツールバーへ
   // フォーカスが届くので、指定済みの依存と入力を消さずに残す。
   const openTaskDialog = useCallback((dependency?: PendingDependency) => {
@@ -98,25 +119,8 @@ export function FeatureWorkspace() {
   );
   const sync = useDomainMutation((id: string) => mutations.sync(id));
 
-  if (snapshot.isPending)
-    return (
-      <div className="state-message">
-        <div className="spinner" />
-        <h1>{t("workspace.loading")}</h1>
-      </div>
-    );
-  if (!feature || !data)
-    return (
-      <div className="state-message">
-        <h1>{t("workspace.notFound")}</h1>
-        <IconButton
-          icon={ArrowLeft}
-          label={t("workspace.returnOverview")}
-          variant="secondary"
-          onClick={() => void navigate({ to: "/" })}
-        />
-      </div>
-    );
+  if (snapshot.isPending) return <WorkspaceLoading />;
+  if (!feature || !data) return <WorkspaceMissing />;
 
   // インスペクタはキャンバスに従う。読み手が隠したタスクは、隣のパネルに
   // 開いたまま残らずノードと一緒に画面から消える。
@@ -134,6 +138,7 @@ export function FeatureWorkspace() {
       hiddenTaskCount={tasks.length - visible.tasks.length}
       hideCompleted={hideCompleted}
       onHideCompletedChange={changeHideCompleted}
+      search={search}
       pullRequests={pullRequests}
       documentsByTask={documentsByTask}
       featureDocuments={featureDocuments}
@@ -181,6 +186,32 @@ export function FeatureWorkspace() {
         void navigate(deletedFeatureDestination(feature));
       }}
     />
+  );
+}
+
+function WorkspaceLoading() {
+  const { t } = useTranslation();
+  return (
+    <div className="state-message">
+      <div className="spinner" />
+      <h1>{t("workspace.loading")}</h1>
+    </div>
+  );
+}
+
+function WorkspaceMissing() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  return (
+    <div className="state-message">
+      <h1>{t("workspace.notFound")}</h1>
+      <IconButton
+        icon={ArrowLeft}
+        label={t("workspace.returnOverview")}
+        variant="secondary"
+        onClick={() => void navigate({ to: "/" })}
+      />
+    </div>
   );
 }
 
@@ -246,18 +277,104 @@ function useFeatureWorkspaceData(
 
 // レイアウトは渡されたものの同一性を見るので、フィルタを使わないときは複製では
 // なくスナップショットが作った配列そのものを返す必要がある。
+// 完了済みと検索の不一致は 1 つの述語に束ね、隠す処理は 1 度だけ通す。
 function useVisibleGraph(
   tasks: Task[],
   dependencies: Dependency[],
+  pullRequests: Map<string, PullRequest>,
   hideCompleted: boolean,
-) {
-  return useMemo(
-    () =>
-      hideCompleted
-        ? hideFinishedTasks(tasks, dependencies)
-        : { tasks, dependencies, hiddenDependencies: emptyHiddenDependencies },
-    [tasks, dependencies, hideCompleted],
-  );
+  query: string,
+): VisibleGraph {
+  return useMemo(() => {
+    if (!hideCompleted && query === "")
+      return {
+        tasks,
+        dependencies,
+        hiddenDependencies: emptyHiddenDependencies,
+      };
+    return hideTasks(
+      tasks,
+      dependencies,
+      (task) =>
+        (hideCompleted && isFinishedTask(task)) ||
+        !matchesGraphSearch(task, pullRequests.get(task.id), query),
+    );
+  }, [tasks, dependencies, pullRequests, hideCompleted, query]);
+}
+
+// 検索語は URL にもブラウザローカルにも残さない。1 回の閲覧の中で使う一時的な
+// 操作だからである。docs/design/webui.md を参照。
+interface GraphSearch {
+  opened: boolean;
+  input: string;
+  query: string;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  open: () => void;
+  close: () => void;
+  change: (value: string) => void;
+}
+
+function useGraphSearch(): GraphSearch {
+  const [opened, setOpened] = useState(false);
+  const [input, setInput] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const settled = useDebounced(input, 200);
+  const open = useCallback(() => {
+    setOpened(true);
+    // 既に開いているときは打ち直せるよう、入力欄へ戻して全選択する。
+    const field = inputRef.current;
+    if (!field) return;
+    field.focus();
+    field.select();
+  }, []);
+  const close = useCallback(() => {
+    setOpened(false);
+    setInput("");
+  }, []);
+  return {
+    opened,
+    input,
+    query: opened ? settled.trim() : "",
+    inputRef,
+    open,
+    close,
+    change: setInput,
+  };
+}
+
+// ELK のレイアウトは Web Worker で走るので、打鍵ごとには絞り込まない。入力欄の
+// 値は即時に映し、グラフへ渡す語だけを遅らせる。
+function useDebounced(value: string, delay: number): string {
+  const [settled, setSettled] = useState(value);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSettled(value);
+    }, delay);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [value, delay]);
+  return settled;
+}
+
+function useGraphSearchShortcut(enabled: boolean, open: () => void) {
+  const latest = useRef(open);
+  useEffect(() => {
+    latest.current = open;
+  });
+  useEffect(() => {
+    if (!enabled) return;
+    const handle = (event: KeyboardEvent) => {
+      if (event.key !== "f" || event.altKey || event.shiftKey) return;
+      if (!event.metaKey && !event.ctrlKey) return;
+      event.preventDefault();
+      latest.current();
+    };
+    window.addEventListener("keydown", handle);
+    return () => {
+      window.removeEventListener("keydown", handle);
+    };
+  }, [enabled]);
 }
 
 interface WorkspaceContentProps {
@@ -272,6 +389,7 @@ interface WorkspaceContentProps {
   hiddenTaskCount: number;
   hideCompleted: boolean;
   onHideCompletedChange: (hide: boolean) => void;
+  search: GraphSearch;
   pullRequests: Map<string, PullRequest>;
   documentsByTask: Map<string, TaskNodeDocument[]>;
   featureDocuments: TaskNodeDocument[];
@@ -312,6 +430,7 @@ function WorkspaceContent(props: WorkspaceContentProps) {
           dependencies={props.visibleDependencies}
           hiddenDependencies={props.hiddenDependencies}
           hiddenTaskCount={props.hiddenTaskCount}
+          searching={props.search.query !== ""}
           pullRequests={props.pullRequests}
           documentsByTask={props.documentsByTask}
           onEditTask={props.onEditTask}
@@ -376,6 +495,11 @@ function FeatureWorkspaceHead({
         )}
       </div>
       <div className="workspace-actions">
+        <GraphSearchControl
+          search={props.search}
+          matched={props.visibleTasks.length}
+          total={props.tasks.length}
+        />
         <HideCompletedToggle
           checked={props.hideCompleted}
           onChange={props.onHideCompletedChange}
@@ -425,6 +549,91 @@ function FeatureWorkspaceHead({
         />
       </div>
     </header>
+  );
+}
+
+// ショートカットだけでは機能があることが伝わらないので、ツールバーにも入口を
+// 置く。Cmd/Ctrl+F はその加速手段として添える。
+function GraphSearchControl({
+  search,
+  matched,
+  total,
+}: {
+  search: GraphSearch;
+  matched: number;
+  total: number;
+}) {
+  const { t } = useTranslation();
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  // 閉じた後の焦点は、検索を開いたアイコンへ戻す。
+  const wasOpened = useRef(search.opened);
+  useEffect(() => {
+    if (wasOpened.current && !search.opened) buttonRef.current?.focus();
+    wasOpened.current = search.opened;
+  }, [search.opened]);
+  if (!search.opened)
+    return (
+      <IconButton
+        icon={Search}
+        label={t("workspace.searchTasks")}
+        variant="secondary"
+        iconOnly
+        ref={buttonRef}
+        onClick={search.open}
+      />
+    );
+  return <GraphSearchField search={search} matched={matched} total={total} />;
+}
+
+function GraphSearchField({
+  search,
+  matched,
+  total,
+}: {
+  search: GraphSearch;
+  matched: number;
+  total: number;
+}) {
+  const { t } = useTranslation();
+  const { close, inputRef } = search;
+  // 検索窓は Escape の重なりに乗せる。手前でダイアログが開いていれば、規約
+  // どおりそちらが先に閉じる。
+  useCloseOnEscape(close);
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, [inputRef]);
+  return (
+    <div className="graph-search" role="search">
+      <Search aria-hidden="true" focusable="false" size={14} />
+      <input
+        ref={inputRef}
+        type="text"
+        className="graph-search-input"
+        value={search.input}
+        aria-label={t("workspace.searchLabel")}
+        aria-describedby="graph-search-count"
+        placeholder={t("workspace.searchPlaceholder")}
+        autoComplete="off"
+        onChange={(event) => {
+          search.change(event.currentTarget.value);
+        }}
+      />
+      <span
+        className="graph-search-count"
+        id="graph-search-count"
+        aria-live="polite"
+      >
+        {t("workspace.searchMatchCount", { matched, total })}
+      </span>
+      <IconButton
+        icon={X}
+        label={t("workspace.searchClose")}
+        variant="quiet"
+        size="compact"
+        iconOnly
+        onClick={close}
+      />
+    </div>
   );
 }
 

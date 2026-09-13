@@ -732,6 +732,29 @@ describe("FeatureGraph", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("names the search as the reason when the filter leaves nothing", () => {
+    render(
+      <FeatureGraph
+        tasks={[]}
+        dependencies={[]}
+        pullRequests={new Map()}
+        documentsByTask={new Map()}
+        hiddenTaskCount={4}
+        searching
+        onEditTask={vi.fn()}
+        onPreviewDocument={vi.fn()}
+        onCreateTask={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "No task matches the search" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Every task is completed" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("keeps an archived empty graph read-only", () => {
     const onCreateTask = vi.fn();
     render(

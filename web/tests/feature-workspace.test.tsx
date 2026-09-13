@@ -3,6 +3,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import type { ReactNode } from "react";
@@ -93,6 +94,7 @@ vi.mock("../src/views/FeatureGraph", () => ({
     tasks,
     hiddenDependencies,
     hiddenTaskCount,
+    searching,
     onCreateTask,
     onEditTask,
     onPreviewDocument,
@@ -102,6 +104,7 @@ vi.mock("../src/views/FeatureGraph", () => ({
     tasks: { id: string }[];
     hiddenDependencies: Map<string, { blockers: string[] }>;
     hiddenTaskCount: number;
+    searching: boolean;
     onCreateTask: (dependency?: {
       taskId: string;
       direction: "blocks" | "blockedBy";
@@ -117,6 +120,7 @@ vi.mock("../src/views/FeatureGraph", () => ({
         {tasks.map((task) => task.id).join(",")}
       </span>
       <span data-testid="mock-graph-hidden">{hiddenTaskCount}</span>
+      <span data-testid="mock-graph-searching">{String(searching)}</span>
       <span data-testid="mock-graph-hidden-blockers">
         {[...hiddenDependencies]
           .map(([id, hidden]) => `${id}:${hidden.blockers.join("|")}`)
@@ -410,6 +414,145 @@ describe("FeatureWorkspace", () => {
     ).not.toBeInTheDocument();
   });
 
+  describe("graph search", () => {
+    const shipApi = makeTask({
+      id: "task-1",
+      featureId: "feature-1",
+      title: "Ship API",
+      displayState: TaskDisplayState.NOT_STARTED,
+    });
+    const migrate = makeTask({
+      id: "migrate",
+      featureId: "feature-1",
+      title: "Migrate schema",
+      displayState: TaskDisplayState.NOT_STARTED,
+    });
+    const announce = makeTask({
+      id: "announce",
+      featureId: "feature-1",
+      title: "Announce release",
+      displayState: TaskDisplayState.COMPLETED,
+    });
+
+    beforeEach(() => {
+      workspaceMocks.snapshot.data = makeSnapshot({
+        features: [feature],
+        tasks: [shipApi, migrate, announce],
+        dependencies: [
+          makeDependency({ blockerTaskId: "migrate", blockedTaskId: "task-1" }),
+        ],
+      });
+    });
+
+    const graphTasks = () => screen.getByTestId("mock-graph-tasks").textContent;
+
+    it("filters the canvas from the toolbar and restores it on Escape", async () => {
+      render(<FeatureWorkspace />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Search tasks" }));
+      const field = screen.getByRole("textbox", {
+        name: "Search tasks on this graph",
+      });
+      expect(field).toHaveFocus();
+
+      fireEvent.change(field, { target: { value: "migrate" } });
+      await waitFor(() => {
+        expect(graphTasks()).toBe("migrate");
+      });
+      expect(screen.getByTestId("mock-graph-searching")).toHaveTextContent(
+        "true",
+      );
+      expect(screen.getByText("1 of 3 shown")).toBeInTheDocument();
+      // 絞り込みで消えたタスクも、残ったノードに依存の文脈を残す。migrate が
+      // ブロックしていた Ship API は、隠れたブロック対象として代表される。
+      expect(
+        screen.getByTestId("mock-graph-hidden-blockers"),
+      ).toHaveTextContent("migrate:");
+
+      fireEvent.keyDown(window, { key: "Escape" });
+      expect(
+        screen.queryByRole("textbox", { name: "Search tasks on this graph" }),
+      ).not.toBeInTheDocument();
+      expect(graphTasks()).toBe("task-1,migrate,announce");
+      expect(
+        screen.getByRole("button", { name: "Search tasks" }),
+      ).toHaveFocus();
+    });
+
+    it("opens on Cmd+F and combines the filter with hiding completed tasks", async () => {
+      render(<FeatureWorkspace />);
+
+      fireEvent.click(screen.getByRole("switch", { name: "Hide completed" }));
+      fireEvent.keyDown(window, { key: "f", metaKey: true });
+      const field = screen.getByRole("textbox", {
+        name: "Search tasks on this graph",
+      });
+      fireEvent.change(field, { target: { value: "SHIP" } });
+      await waitFor(() => {
+        expect(graphTasks()).toBe("task-1");
+      });
+      // Ship API を塞いでいた migrate は検索で消えるので、残った側にスタブが付く。
+      expect(
+        screen.getByTestId("mock-graph-hidden-blockers"),
+      ).toHaveTextContent("task-1:Migrate schema");
+      expect(screen.getByTestId("mock-graph-hidden")).toHaveTextContent("2");
+    });
+
+    it("explains an empty result through the graph instead of the hide toggle", async () => {
+      render(<FeatureWorkspace />);
+
+      fireEvent.keyDown(window, { key: "f", ctrlKey: true });
+      fireEvent.change(
+        screen.getByRole("textbox", { name: "Search tasks on this graph" }),
+        { target: { value: "nothing here" } },
+      );
+      await waitFor(() => {
+        expect(graphTasks()).toBe("");
+      });
+      expect(screen.getByTestId("mock-graph-searching")).toHaveTextContent(
+        "true",
+      );
+    });
+
+    it("closes the inspector when the filter takes the selected task away", async () => {
+      render(<FeatureWorkspace />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Mock edit task" }));
+      expect(
+        screen.getByRole("complementary", { name: "Mock task inspector" }),
+      ).toBeInTheDocument();
+
+      fireEvent.keyDown(window, { key: "f", metaKey: true });
+      fireEvent.change(
+        screen.getByRole("textbox", { name: "Search tasks on this graph" }),
+        { target: { value: "announce" } },
+      );
+      await waitFor(() => {
+        expect(
+          screen.queryByRole("complementary", { name: "Mock task inspector" }),
+        ).not.toBeInTheDocument();
+      });
+    });
+
+    it("leaves the browser shortcut alone while a dialog is in front", () => {
+      render(<FeatureWorkspace />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Mock create task" }));
+      const event = new KeyboardEvent("keydown", {
+        key: "f",
+        metaKey: true,
+        bubbles: true,
+        cancelable: true,
+      });
+      window.dispatchEvent(event);
+
+      expect(event.defaultPrevented).toBe(false);
+      expect(
+        screen.queryByRole("textbox", { name: "Search tasks on this graph" }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   it("coordinates active sync, feature management, task inspection, and previews", () => {
     render(<FeatureWorkspace />);
 
@@ -422,6 +565,7 @@ describe("FeatureWorkspace", () => {
           (button) => button.getAttribute("aria-label") ?? button.textContent,
         ),
     ).toEqual([
+      "Search tasks",
       "References",
       "Refresh",
       "Copy batch prompt",

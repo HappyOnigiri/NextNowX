@@ -204,7 +204,7 @@ function matchesText(
   );
 }
 
-function normalizeText(value: string): string {
+export function normalizeText(value: string): string {
   return value.normalize("NFKC").toLowerCase();
 }
 
