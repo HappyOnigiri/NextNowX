@@ -165,8 +165,12 @@ Tasks:
 1. Read the feature graph so you know how the listed tasks relate to the rest of the work.
    - ` + "`prx graph {{feature_id}}`" + `
 2. Hand every task to its own SubAgent: one task per SubAgent, and never two tasks to the same one.
+   Give each SubAgent a checkout of its own before you hand the task over:
+   ` + "`git worktree add --detach PATH`" + ` outside the repository, removed once that SubAgent has reported.
+   SubAgents sharing a working tree commit each other's half-finished edits.
    Each SubAgent takes its instructions from PRX rather than from you.
    - It runs ` + "`prx prompt TASK_ID`" + ` for the task it was given and follows the prompt that prints.
+   - It works inside the worktree you gave it and touches no other checkout.
    - It reports what it changed and anything the prompt did not cover.
    Tasks the graph shows as independent may run in parallel.
    A task that depends on another task of this list is implemented after that task is finished,
