@@ -47,6 +47,18 @@ describe("matchesGraphSearch", () => {
     ).toBe(true);
   });
 
+  it("requires every space separated term, each from any field", () => {
+    expect(matchesGraphSearch(task, undefined, "ship boundary")).toBe(true);
+    expect(matchesGraphSearch(task, undefined, "  ship   bob  ")).toBe(true);
+    expect(matchesGraphSearch(task, pullRequest, "ship carol")).toBe(true);
+    expect(matchesGraphSearch(task, undefined, "ship storage")).toBe(false);
+  });
+
+  it("splits on full-width spaces too", () => {
+    expect(matchesGraphSearch(task, undefined, "ship　boundary")).toBe(true);
+    expect(matchesGraphSearch(task, undefined, "ship　storage")).toBe(false);
+  });
+
   it("reports no match when nothing on the task carries the query", () => {
     expect(matchesGraphSearch(task, pullRequest, "storage")).toBe(false);
   });
