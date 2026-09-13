@@ -122,7 +122,9 @@ test("archives a project and makes its feature read-only", async ({ page }) => {
   await page.getByRole("tab", { name: "Archived" }).click();
   await page.getByRole("tabpanel").getByText(featureTitle).click();
   await expect(page.getByText("Project archived · read-only")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Refresh" })).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Refresh", exact: true }),
+  ).toHaveCount(0);
   await page.getByRole("button", { name: "Manage feature" }).click();
   const manage = page.getByRole("dialog", {
     name: "Manage archived feature",
@@ -140,7 +142,9 @@ test("archives a project and makes its feature read-only", async ({ page }) => {
   await expect(page.getByRole("tabpanel")).not.toContainText(featureTitle);
   await page.getByRole("tab", { name: "Active" }).click();
   await page.getByRole("tabpanel").getByText(featureTitle).click();
-  await expect(page.getByRole("button", { name: "Refresh" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Refresh", exact: true }),
+  ).toBeVisible();
 
   // project を削除すると、抱えている feature も一緒に消える。
   await page.locator(".workspace-project-link").click();

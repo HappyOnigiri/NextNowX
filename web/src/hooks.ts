@@ -1,5 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef } from "react";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import {
   getConfig,
   getDebugReport,
@@ -11,6 +16,14 @@ import {
 import type { QueryDiagnostic } from "./debug-text";
 import { setDisplayLanguage } from "./i18n";
 import { isSupportedLanguage } from "./i18n/settings";
+import { runWhenIdle } from "./refresh-gate";
+import { startSharedRevisionStream } from "./revision-share";
+import {
+  disconnectedNoticeMs,
+  localWriteRevisionWindowMs,
+  RevisionStreamContext,
+  type RevisionStreamStatus,
+} from "./revision-status";
 
 const snapshotKey = ["snapshot"] as const;
 const configKey = ["github-config"] as const;
@@ -134,19 +147,111 @@ export function useAutoSync(enabled = true) {
   return { status, checking: check.isPending, error: check.error };
 }
 
+// useRevisionStream はローカルデータベースの変更を購読し、届くたびにサーバー側の
+// 状態を写した query を捨てる。CLI や別タブの書き込みもこれで反映される。
+// AppShell から 1 回だけ呼ぶ。ストリームはブラウザプロファイル全体で 1 本に絞る。
+export function useRevisionStream(): RevisionStreamStatus {
+  const queryClient = useQueryClient();
+  const [connected, setConnected] = useState(false);
+  const [stale, setStale] = useState(false);
+
+  useEffect(() => {
+    const writes = watchLocalWrites(queryClient);
+    // GitHub 同期の実行状態も同じデータベースにあるので、mutation と同じ 2 つを捨てる。
+    // 進行中のポインタジェスチャを壊さないよう、取り直しは gate 越しに行う。
+    const refresh = () => {
+      runWhenIdle(() => {
+        void queryClient.invalidateQueries({ queryKey: snapshotKey });
+        void queryClient.invalidateQueries({ queryKey: syncStatusKey });
+      });
+    };
+    let notice: ReturnType<typeof setTimeout> | undefined;
+    const stop = startSharedRevisionStream({
+      // 接続のたびに無条件で捨てる。切断中の変更は、これで 1 回の再取得に畳まれる。
+      onConnect: () => {
+        if (notice !== undefined) clearTimeout(notice);
+        notice = undefined;
+        setConnected(true);
+        setStale(false);
+        refresh();
+      },
+      // このタブ自身の書き込みが起こしたリビジョンでは取り直さない。useDomainMutation
+      // がすでに同じ 2 つを捨てており、二重の取り直しは画面を触っている最中に届く。
+      onRevision: () => {
+        if (writes.recent()) return;
+        refresh();
+      },
+      onDisconnect: () => {
+        setConnected(false);
+        if (notice !== undefined) return;
+        notice = setTimeout(() => {
+          setStale(true);
+        }, disconnectedNoticeMs);
+      },
+    });
+    // StrictMode の二重マウントで 2 本張らないよう、後片付けで必ず止める。
+    return () => {
+      if (notice !== undefined) clearTimeout(notice);
+      writes.stop();
+      stop();
+    };
+  }, [queryClient]);
+
+  return { connected, stale };
+}
+
+// watchLocalWrites はこのタブの書き込みが最後に走った時刻を追う。サーバーは自分の
+// 書き込みも他人のものと同じく検知するので、これがないと 1 回の変更で 2 回取り直す。
+
+// 数えるのはデータベースを書く mutation だけである。書かないものまで数えると、
+// 60 秒ごとの GitHub 同期の確認が、そのたびに外からの変更を捨てる窓を作る。
+function watchLocalWrites(queryClient: QueryClient) {
+  let lastAt = 0;
+  // 同じ mutation について複数のイベントが届くので、数ではなく id の集合で数える。
+  const pending = new Set<number>();
+  const unsubscribe = queryClient.getMutationCache().subscribe((event) => {
+    const mutation = event.mutation;
+    if (!mutation) return;
+    if (mutation.meta?.["domainWrite"] !== true) return;
+    if (mutation.state.status === "pending") {
+      pending.add(mutation.mutationId);
+      return;
+    }
+    if (!pending.delete(mutation.mutationId)) return;
+    lastAt = Date.now();
+  });
+  return {
+    recent: () =>
+      pending.size > 0 || Date.now() - lastAt < localWriteRevisionWindowMs,
+    stop: unsubscribe,
+  };
+}
+
 // useQueryDiagnostics は shell が保持する query のキャッシュ状態を返す。購読では
 // なくキャッシュを読むので、debug タブを開いても新たな取得は始まらず、すでに失敗
 // している query も隠れない。
 export function useQueryDiagnostics(): QueryDiagnostic[] {
   const queryClient = useQueryClient();
-  return [snapshotKey, configKey, syncStatusKey].map((key) => {
+  const stream = useContext(RevisionStreamContext);
+  const queries = [snapshotKey, configKey, syncStatusKey].map((key) => {
     const state = queryClient.getQueryState(key);
     if (!state) return { name: key[0], state: "not requested" };
     if (state.error)
       return { name: key[0], state: `error: ${state.error.message}` };
     return { name: key[0], state: `${state.status}, ${state.fetchStatus}` };
   });
+  return [...queries, { name: "revision-stream", state: streamState(stream) }];
 }
+
+function streamState(stream: RevisionStreamStatus | undefined): string {
+  if (!stream) return "not started";
+  if (stream.connected) return "connected";
+  return stream.stale ? "disconnected, stale" : "disconnected";
+}
+
+// domainWrite は、この mutation がローカルデータベースを書き換えることを表す。
+// 設定やテンプレートの書き込みは設定ファイルへ行くので、この印を付けない。
+const domainWriteMeta = { domainWrite: true } as const;
 
 export function useDomainMutation<TVariables, TData>(
   mutationFn: (input: TVariables) => Promise<TData>,
@@ -154,6 +259,7 @@ export function useDomainMutation<TVariables, TData>(
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn,
+    meta: domainWriteMeta,
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: snapshotKey }),

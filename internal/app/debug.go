@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	prx "github.com/HappyOnigiri/PRX"
@@ -17,6 +18,25 @@ type DiagnosticsRepository interface {
 	EmbeddedSchemaVersion() (int, error)
 	DatabaseFile() domain.DebugDatabaseFile
 	ListGitHubRepositoryAuthCache(ctx context.Context) ([]domain.DebugAuthCacheEntry, error)
+}
+
+// DataVersionReader は実データベースを開いているとき SQLite repository が実装する。
+// DiagnosticsRepository と同じ理由で任意のままにしている。
+type DataVersionReader interface {
+	DataVersion(ctx context.Context) (int64, error)
+}
+
+// ErrDataVersionUnsupported は、この repository では変更検知を行えないことを表す。
+var ErrDataVersionUnsupported = errors.New("the repository does not report a data version")
+
+// DataVersion はローカルデータベースの変更検知に使う値を返す。CLI は app を
+// import できないので、値はプリミティブ型のまま境界を越える。
+func (s *Service) DataVersion(ctx context.Context) (int64, error) {
+	reader, ok := s.repository.(DataVersionReader)
+	if !ok {
+		return 0, ErrDataVersionUnsupported
+	}
+	return reader.DataVersion(ctx)
 }
 
 // ProcessInfo は配線層だけが知る事実、すなわちこのプロセスの起動方法と、
