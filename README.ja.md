@@ -23,7 +23,7 @@ Apple Silicon 向けのバイナリを配布しています。
 curl -fsSL https://github.com/HappyOnigiri/PRX/releases/latest/download/install.sh | bash
 ```
 
-更新も同じコマンドで行えます。
+更新も同じコマンドで行えます。`prx update` でも新しいリリースを確認して更新できます。新しいリリースがあるときは WebUI からも更新できます。
 
 ### Linux / WSL2
 

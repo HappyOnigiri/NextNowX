@@ -37,6 +37,9 @@ const (
 	DomainErrorCodeDaemonNotInstalled          DomainErrorCode = "daemon_not_installed"
 	DomainErrorCodeDaemonNotRunning            DomainErrorCode = "daemon_not_running"
 	DomainErrorCodeDaemonFailed                DomainErrorCode = "daemon_failed"
+	DomainErrorCodeUpdateUnavailable           DomainErrorCode = "update_unavailable"
+	DomainErrorCodeUpdateCheckFailed           DomainErrorCode = "update_check_failed"
+	DomainErrorCodeUpdateFailed                DomainErrorCode = "update_failed"
 	DomainErrorCodeInternal                    DomainErrorCode = "internal"
 )
 

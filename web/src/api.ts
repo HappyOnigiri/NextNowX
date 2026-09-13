@@ -6,6 +6,7 @@ import {
   AddDocumentRequestSchema,
   AddGitHubAuthMethodRequestSchema,
   AddGitHubHostRequestSchema,
+  ApplyUpdateRequestSchema,
   AttachPullRequestRequestSchema,
   CreateFeatureRequestSchema,
   CreateProjectRequestSchema,
@@ -26,11 +27,13 @@ import {
   GetPromptTemplatesRequestSchema,
   GetSnapshotRequestSchema,
   GetTaskPromptRequestSchema,
+  GetUpdateStatusRequestSchema,
   PRXService,
   ReadDocumentContentRequestSchema,
   RemoveDependencyRequestSchema,
   ReorderGitHubAuthMethodsRequestSchema,
   SelectLocalFileRequestSchema,
+  SkipUpdateVersionRequestSchema,
   SyncGitHubIfDueRequestSchema,
   SyncRequestSchema,
   UpdateDocumentRequestSchema,
@@ -54,6 +57,7 @@ import {
   type PromptTemplates,
   type Snapshot,
   type TaskStatus,
+  type UpdateStatus,
   type WatchRevisionResponse,
 } from "./gen/prx/v1/prx_pb";
 
@@ -99,6 +103,31 @@ export async function getSyncStatus(): Promise<GitHubSyncStatus> {
 
 export async function syncIfDue() {
   return client.syncGitHubIfDue(create(SyncGitHubIfDueRequestSchema));
+}
+
+// サーバーが 24 時間の間引きを持つので、クライアントは頻繁に呼んでよい。
+export async function getUpdateStatus(): Promise<UpdateStatus> {
+  const response = await client.getUpdateStatus(
+    create(GetUpdateStatusRequestSchema),
+  );
+  if (!response.status)
+    throw new Error("The server returned an empty update status.");
+  return response.status;
+}
+
+export async function skipUpdateVersion(
+  version: string,
+): Promise<UpdateStatus> {
+  const response = await client.skipUpdateVersion(
+    create(SkipUpdateVersionRequestSchema, { version }),
+  );
+  if (!response.status)
+    throw new Error("The server returned an empty update status.");
+  return response.status;
+}
+
+export async function applyUpdate(version: string) {
+  return client.applyUpdate(create(ApplyUpdateRequestSchema, { version }));
 }
 
 export const mutations = {

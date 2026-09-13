@@ -1,5 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { PanelLeftClose, PanelLeftOpen, Settings, X } from "lucide-react";
+import {
+  Download,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Settings,
+  X,
+} from "lucide-react";
 import {
   useEffect,
   useRef,
@@ -19,6 +25,7 @@ import {
   useDisplayLanguage,
   useRevisionStream,
   useSnapshot,
+  useUpdateStatus,
 } from "./hooks";
 import {
   readRailCollapsed,
@@ -35,6 +42,7 @@ import { IconButton } from "./views/IconButton";
 import { ProjectTree } from "./views/ProjectTree";
 import { RailResizer } from "./views/RailResizer";
 import { SettingsDialog } from "./views/SettingsDialog";
+import { UpdateDialog } from "./views/UpdateDialog";
 
 const railId = "prx-rail";
 
@@ -56,6 +64,9 @@ function AppShellLayout({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   const snapshot = useSnapshot();
   const [showSettings, setShowSettings] = useState(false);
+  const [showUpdate, setShowUpdate] = useState(false);
+  const update = useUpdateStatus(true);
+  const updateStatus = update.data;
   const [railWidth, setRailWidth] = useState(readRailWidth);
   const [railCollapsed, setRailCollapsed] = useState(readRailCollapsed);
   const [railResizing, setRailResizing] = useState(false);
@@ -83,27 +94,12 @@ function AppShellLayout({ children }: { children: ReactNode }) {
       style={{ "--rail-width": `${railWidth}px` } as CSSProperties}
     >
       {demo && (
-        <div className="demo-banner" role="status">
-          <span className="demo-banner-full">
-            DEMO — Changes reset on restart / 変更は再起動時にリセットされます
-          </span>
-          <span className="demo-banner-compact">
-            <span>DEMO · Reset on restart</span>
-            <span>再起動でリセット</span>
-          </span>
-          <IconButton
-            className="demo-banner-dismiss"
-            icon={X}
-            iconOnly
-            label={t("demo.dismiss")}
-            size="compact"
-            variant="quiet"
-            onClick={() => {
-              setDemoDismissed(true);
-              writeDemoNoticeDismissed();
-            }}
-          />
-        </div>
+        <DemoBanner
+          onDismiss={() => {
+            setDemoDismissed(true);
+            writeDemoNoticeDismissed();
+          }}
+        />
       )}
       <aside className="rail" id={railId}>
         <div className="rail-head">
@@ -132,7 +128,19 @@ function AppShellLayout({ children }: { children: ReactNode }) {
             setShowSettings(true);
           }}
         />
-        <RailHealth serverUnavailable={snapshot.isError} />
+        <RailHealth
+          serverUnavailable={snapshot.isError}
+          updateNotice={
+            updateStatus?.shouldNotify ? (
+              <RailUpdateNotice
+                version={updateStatus.latestVersion}
+                onOpen={() => {
+                  setShowUpdate(true);
+                }}
+              />
+            ) : undefined
+          }
+        />
         <RailResizer
           railId={railId}
           width={railWidth}
@@ -163,18 +171,58 @@ function AppShellLayout({ children }: { children: ReactNode }) {
           }}
         />
       )}
+      {showUpdate && updateStatus && (
+        <UpdateDialog
+          status={updateStatus}
+          onClose={() => {
+            setShowUpdate(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function DemoBanner({ onDismiss }: { onDismiss: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <div className="demo-banner" role="status">
+      <span className="demo-banner-full">
+        DEMO — Changes reset on restart / 変更は再起動時にリセットされます
+      </span>
+      <span className="demo-banner-compact">
+        <span>DEMO · Reset on restart</span>
+        <span>再起動でリセット</span>
+      </span>
+      <IconButton
+        className="demo-banner-dismiss"
+        icon={X}
+        iconOnly
+        label={t("demo.dismiss")}
+        size="compact"
+        variant="quiet"
+        onClick={onDismiss}
+      />
     </div>
   );
 }
 
 // RailHealth は足元の状態表示をまとめる。自動更新の停止は切断が
 // disconnectedNoticeMs 以上続いたときだけ出す。単発の切断では出さない。
-function RailHealth({ serverUnavailable }: { serverUnavailable: boolean }) {
+// 新しいリリースの案内も、.rail の直下ではなくここへ入れる。
+function RailHealth({
+  serverUnavailable,
+  updateNotice,
+}: {
+  serverUnavailable: boolean;
+  updateNotice?: ReactNode;
+}) {
   const { t } = useTranslation();
   const { stale } = useRevisionStreamStatus();
-  if (!serverUnavailable && !stale) return null;
+  if (!serverUnavailable && !stale && !updateNotice) return null;
   return (
     <div className="rail-foot">
+      {updateNotice}
       {serverUnavailable && (
         <span className="rail-health">
           <span className="health bad" />
@@ -233,6 +281,27 @@ function RailNavigation({
       )}
       <hr className="nav-divider" />
     </nav>
+  );
+}
+
+// 案内は更新があるときだけ描く。押すとモーダルが開く。
+function RailUpdateNotice({
+  version,
+  onOpen,
+}: {
+  version: string;
+  onOpen: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <IconButton
+      className="rail-update"
+      icon={Download}
+      label={t("update.available", { version })}
+      size="compact"
+      variant="secondary"
+      onClick={onOpen}
+    />
   );
 }
 

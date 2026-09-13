@@ -68,6 +68,13 @@ func (s *Service) SetDaemonInspector(inspect func(context.Context) domain.DebugD
 // リクエストが到達しうる前に呼ばれる。
 func (s *Service) SetProcessInfo(info ProcessInfo) { s.processInfo = info }
 
+// SetUpdateSources は更新の確認と実行を行う実装を注入する。app は配布元へ出る
+// HTTP も bash の起動も知らないので、配線層だけが知る事実として受け取る。
+func (s *Service) SetUpdateSources(releases ReleaseProvider, updater Updater) {
+	s.releases = releases
+	s.updater = updater
+}
+
 // SetServeEndpoint は bind した listen アドレスを記録する。service のフィールドで
 // 唯一、listener 生成後に書かれるため、サーバー起動順序に頼らず atomic に保存する。
 func (s *Service) SetServeEndpoint(address string, startedAt time.Time) {

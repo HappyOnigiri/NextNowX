@@ -39,6 +39,7 @@ vi.mock("../src/hooks", () => ({
     refetch: vi.fn(),
   }),
   useRevisionStream: () => ({ connected: true, stale: false }),
+  useUpdateStatus: () => ({ data: undefined }),
   useAutoSync: () => ({
     status: { data: undefined, isError: false },
     checking: false,

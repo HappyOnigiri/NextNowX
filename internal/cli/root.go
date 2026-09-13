@@ -99,7 +99,7 @@ func newRootWithState(out, errOut io.Writer, openService OpenService) (*cobra.Co
 			if cmd.Name() == "help" || cmd.Name() == "schema-version" {
 				return nil
 			}
-			// daemon と open は launchd と稼働記録だけを見る。設定を開くと flock を取り
+			// daemon・open・setup・update はストレージを見ない。設定を開くと flock を取り
 			// 警告も出すので、docs/design/daemon.md の「設定も開かない」と食い違う。
 			if isOfflineCommand(cmd) {
 				return nil
@@ -205,6 +205,7 @@ func (s *state) addCommands(root *cobra.Command) {
 		s.validateCommand(),
 		s.debugCommand(),
 		s.setupCommand(),
+		s.updateCommand(),
 		s.serveCommand(),
 		s.daemonCommand(),
 		s.openCommand(),
@@ -302,11 +303,19 @@ func (s *state) acquireRunLock() error {
 }
 
 // offlineCommandName はデータベースを開かないコマンド群のうち cmd が属するものの名前を
-// 返す。これらは launchd と稼働記録だけを見るので、ストレージを触る理由がない。
+// 返す。これらは launchd・稼働記録・配布元のリリースだけを見るので、ストレージを
+// 触る理由がない。
 func offlineCommandName(command *cobra.Command) string {
 	for current := command; current != nil; current = current.Parent() {
-		if current.Name() == "daemon" || current.Name() == "open" || current.Name() == "setup" {
+		switch current.Name() {
+		case "daemon", "open", "setup":
 			return current.Name()
+		case "update":
+			// `task update` のような変更コマンドと名前が衝突するので、
+			// ルート直下の `prx update` だけをストレージ不要と見なす。
+			if current.Parent() != nil && current.Parent().Parent() == nil {
+				return current.Name()
+			}
 		}
 	}
 	return ""

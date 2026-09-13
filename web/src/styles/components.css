@@ -1400,3 +1400,77 @@
   pointer-events: none;
   transform: translate(-50%, -100%);
 }
+
+.update-scrim {
+  z-index: 115;
+}
+
+.update-dialog {
+  width: min(720px, 100%);
+  max-height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
+}
+
+.update-dialog > header {
+  margin-bottom: 16px;
+}
+
+.update-dialog h2 {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+.update-dialog > header p {
+  margin: 6px 0 0;
+  color: var(--text-2);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+.update-notes {
+  overflow: auto;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.update-release + .update-release {
+  border-top: 1px solid var(--border);
+}
+
+.update-release h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 16px 0;
+  font-size: var(--text-sm);
+}
+
+.update-release h3 span {
+  color: var(--text-3);
+  font-size: var(--text-xs);
+  font-weight: 400;
+}
+
+/* 全画面プレビュー向けの余白と枠は、モーダルの中では場所を取りすぎる。 */
+.update-release .markdown-content {
+  max-width: none;
+  min-height: 0;
+  margin: 0;
+  padding: 4px 16px 12px;
+  border-inline: 0;
+  background: transparent;
+  font-size: var(--text-sm);
+}
+
+.update-result {
+  margin: 12px 0 0;
+  color: var(--text-2);
+  font-size: var(--text-sm);
+}
+
+.rail-update {
+  width: 100%;
+  justify-content: flex-start;
+}

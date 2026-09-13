@@ -14,6 +14,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/HappyOnigiri/PRX/internal/domain"
 	"github.com/HappyOnigiri/PRX/internal/prompt"
 )
 
@@ -148,6 +149,12 @@ func (c GitHubConfig) MarshalYAML() (any, error) {
 	}, nil
 }
 
+// UpdateConfig は更新の案内に関する利用者の意思表明。ブラウザを変えても残るべき
+// 選択なので、機械内部の確認状態とは分けてここに置く。
+type UpdateConfig struct {
+	SkippedVersion string `yaml:"skipped_version,omitempty" json:"skipped_version,omitempty"`
+}
+
 // Config はディスク上の設定。AuthMethod.Token は意図的に JSON 化しないので、
 // 人間向けや RPC の出力には Public を使うこと。Prompts は CLI も出力するため、
 // Local Storage ではなくここに置く。
@@ -156,6 +163,7 @@ type Config struct {
 	Language string           `yaml:"language,omitempty" json:"language"`
 	GitHub   GitHubConfig     `yaml:"github"             json:"github"`
 	Server   ServerConfig     `yaml:"server"             json:"server"`
+	Update   UpdateConfig     `yaml:"update,omitempty"   json:"update"`
 	Prompts  prompt.Templates `yaml:"prompts"            json:"prompts"`
 }
 
@@ -172,11 +180,12 @@ func (c Config) EffectiveLanguage() prompt.Language {
 // yamlConfig は YAML 出力用の Config の写し。組み込みテンプレートのままの設定で
 // キーごと省略できるよう、Prompts はポインタにしてある。
 type yamlConfig struct {
-	Version  int          `yaml:"version"`
-	Language string       `yaml:"language,omitempty"`
-	GitHub   GitHubConfig `yaml:"github"`
-	Server   ServerConfig `yaml:"server"`
-	Prompts  *yamlPrompts `yaml:"prompts,omitempty"`
+	Version  int           `yaml:"version"`
+	Language string        `yaml:"language,omitempty"`
+	GitHub   GitHubConfig  `yaml:"github"`
+	Server   ServerConfig  `yaml:"server"`
+	Update   *UpdateConfig `yaml:"update,omitempty"`
+	Prompts  *yamlPrompts  `yaml:"prompts,omitempty"`
 }
 
 type yamlPrompts struct {
@@ -207,6 +216,11 @@ func (c Config) MarshalYAML() (any, error) {
 	}
 	if prompts != (yamlPrompts{}) {
 		result.Prompts = &prompts
+	}
+	// 何もスキップしていない状態は、キーを持たない状態と同じ意味なので書き出さない。
+	if c.Update != (UpdateConfig{}) {
+		update := c.Update
+		result.Update = &update
 	}
 	return result, nil
 }
@@ -346,6 +360,11 @@ func (c Config) Normalize() (Config, error) {
 	if _, err := ParseServerPort(result.Server.Port.String()); err != nil {
 		return Config{}, err
 	}
+	skipped, err := normalizeSkippedVersion(c.Update.SkippedVersion)
+	if err != nil {
+		return Config{}, err
+	}
+	result.Update.SkippedVersion = skipped
 	if result.GitHub.AutoSyncIntervalSeconds < MinimumAutoSyncIntervalSeconds {
 		return Config{}, newError(
 			ErrorCodeInvalid,
@@ -744,6 +763,32 @@ func (c *Config) SetAutoSyncInterval(seconds int64) error {
 	}
 	c.GitHub.AutoSyncIntervalSeconds = seconds
 	return c.normalizeInPlace()
+}
+
+// SetSkippedUpdateVersion は案内しないバージョンを設定する。空文字列は指定を消し、
+// 次の確認から案内を再開させる。
+func (c *Config) SetSkippedUpdateVersion(value string) error {
+	previous := c.Update.SkippedVersion
+	c.Update.SkippedVersion = value
+	if err := c.normalizeInPlace(); err != nil {
+		c.Update.SkippedVersion = previous
+		return err
+	}
+	return nil
+}
+
+// normalizeSkippedVersion は保存する表記を v 付きの semver に揃える。読めない値を
+// 黙って捨てると、案内が戻った理由を利用者が説明できない。
+func normalizeSkippedVersion(value string) (string, error) {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return "", nil
+	}
+	canonical := domain.CanonicalVersion(trimmed)
+	if canonical == "" {
+		return "", newError(ErrorCodeInvalid, "update.skipped_version %q is not a release version", trimmed)
+	}
+	return canonical, nil
 }
 
 // SetServerPort は待ち受けポートを設定する。CLI と YAML が auto という同じ語彙を

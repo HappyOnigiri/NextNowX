@@ -257,6 +257,9 @@ export const errorKeys = {
   [DomainErrorCode.INVALID_TITLE]: "error.invalidTitle",
   [DomainErrorCode.NOT_FOUND]: "error.notFound",
   [DomainErrorCode.REFERENCES_EXIST]: "error.referencesExist",
+  [DomainErrorCode.UPDATE_UNAVAILABLE]: "error.updateUnavailable",
+  [DomainErrorCode.UPDATE_CHECK_FAILED]: "error.updateCheckFailed",
+  [DomainErrorCode.UPDATE_FAILED]: "error.updateFailed",
 } as const satisfies Record<DomainErrorCode, string>;
 
 // 循環経路は task ID で届くので、画面上の task を知る呼び出し側は resolver を
@@ -274,6 +277,8 @@ export function formatError(
     return t("error.cycle", {
       path: detail.path.map((id) => taskTitle?.(id) ?? id).join(" → "),
     });
+  // 更新の失敗は、インストーラーや GitHub が返した理由そのものが次の行動を決める。
+  // 説明を訳したうえで、原文のメッセージを添える。
   const key = errorKeys[detail.code];
-  return t(key);
+  return t(key, { message: connectError.rawMessage });
 }

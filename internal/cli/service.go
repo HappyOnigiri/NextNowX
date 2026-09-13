@@ -93,5 +93,10 @@ type Service interface {
 	Sync(ctx context.Context, featureID, taskID string) (int, int, error)
 	SyncIfDue(ctx context.Context) (bool, domain.GitHubSyncStatus, error)
 	SyncStatus(ctx context.Context) (domain.GitHubSyncStatus, error)
+	// 更新の 3 つは `prx update` ではなく serve が公開する RPC のためにある。
+	// `prx update` はデータベースも設定も開かないので、この境界を通らない。
+	GetUpdateStatus(ctx context.Context) (domain.UpdateStatus, error)
+	SkipUpdateVersion(ctx context.Context, version string) (domain.UpdateStatus, error)
+	ApplyUpdate(ctx context.Context, version string) (domain.UpdateResult, error)
 	Validate(ctx context.Context) []string
 }

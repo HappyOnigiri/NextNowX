@@ -10,6 +10,7 @@ import { prompt } from "./resources/prompt";
 import { shell } from "./resources/shell";
 import { taskCard } from "./resources/task-card";
 import { tasks } from "./resources/tasks";
+import { update } from "./resources/update";
 import { workspace } from "./resources/workspace";
 
 export const resources = {
@@ -28,6 +29,7 @@ export const resources = {
       ...taskCard.en,
       ...project.en,
       ...prompt.en,
+      ...update.en,
     },
   },
   ja: {
@@ -45,6 +47,7 @@ export const resources = {
       ...taskCard.ja,
       ...project.ja,
       ...prompt.ja,
+      ...update.ja,
     },
   },
 } as const;

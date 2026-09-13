@@ -11,6 +11,7 @@ import {
   getPromptTemplates,
   getSnapshot,
   getSyncStatus,
+  getUpdateStatus,
   syncIfDue,
 } from "./api";
 import type { QueryDiagnostic } from "./debug-text";
@@ -30,6 +31,7 @@ const configKey = ["github-config"] as const;
 const promptTemplatesKey = ["prompt-templates"] as const;
 const syncStatusKey = ["github-sync-status"] as const;
 const debugReportKey = ["debug-report"] as const;
+const updateStatusKey = ["update-status"] as const;
 
 // query オブジェクトをそのまま返して React Query のプロパティ追跡を保つ。分解す
 // ると全 getter を読むため、ポーリングのたびに変わる isFetching のような無関係な
@@ -145,6 +147,41 @@ export function useAutoSync(enabled = true) {
   }, [enabled, mutate]);
 
   return { status, checking: check.isPending, error: check.error };
+}
+
+// useUpdateStatus は更新の状況を読む。間引きはサーバーが持つので、タブが前面へ
+// 戻るたびに読み直してよい。確認の失敗は画面の読み込みを壊さない。
+export function useUpdateStatus(enabled = true) {
+  const status = useQuery({
+    queryKey: updateStatusKey,
+    queryFn: getUpdateStatus,
+    enabled,
+  });
+  const { refetch } = status;
+
+  useEffect(() => {
+    if (!enabled) return;
+    const run = () => {
+      if (document.visibilityState === "visible") void refetch();
+    };
+    document.addEventListener("visibilitychange", run);
+    window.addEventListener("focus", run);
+    return () => {
+      document.removeEventListener("visibilitychange", run);
+      window.removeEventListener("focus", run);
+    };
+  }, [enabled, refetch]);
+
+  return status;
+}
+
+// useUpdateStatusInvalidation は更新のスキップや適用のあと、状況を読み直させる。
+export function useUpdateStatusInvalidation() {
+  const queryClient = useQueryClient();
+  return useCallback(
+    () => queryClient.invalidateQueries({ queryKey: updateStatusKey }),
+    [queryClient],
+  );
 }
 
 // useRevisionStream はローカルデータベースの変更を購読し、届くたびにサーバー側の

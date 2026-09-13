@@ -711,3 +711,82 @@ func TestPublicConfigReportsTheRawAndEffectiveLanguage(t *testing.T) {
 		t.Fatalf("language=%q effective=%q", public.Language, public.EffectiveLanguage)
 	}
 }
+
+// スキップは利用者の意思表明なので設定に残るが、未指定はキーごと書き出さない。
+func TestSkippedUpdateVersionIsWrittenOnlyWhenChosen(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	store, err := NewStore(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Save(Default()); err != nil {
+		t.Fatal(err)
+	}
+	body, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(body), "update:") {
+		t.Fatalf("an empty update section was serialized: %s", body)
+	}
+
+	value, err := store.Update(func(settings *Config) error {
+		return settings.SetSkippedUpdateVersion("0.4.0")
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 保存する表記は v 付きに揃える。比較のたびに解釈を変えないためである。
+	if value.Update.SkippedVersion != "v0.4.0" {
+		t.Fatalf("config=%+v", value.Update)
+	}
+	body, err = os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(body), "skipped_version: v0.4.0") {
+		t.Fatalf("config body=%s", body)
+	}
+
+	reloaded, err := store.Load()
+	if err != nil || reloaded.Update.SkippedVersion != "v0.4.0" {
+		t.Fatalf("reloaded=%+v err=%v", reloaded.Update, err)
+	}
+	cleared, err := store.Update(func(settings *Config) error {
+		return settings.SetSkippedUpdateVersion("")
+	})
+	if err != nil || cleared.Update.SkippedVersion != "" {
+		t.Fatalf("cleared=%+v err=%v", cleared.Update, err)
+	}
+}
+
+// 読めない値を黙って捨てると、案内が戻った理由を利用者が説明できない。
+func TestSkippedUpdateVersionRejectsValuesThatAreNotReleaseTags(t *testing.T) {
+	settings := Default()
+	for _, value := range []string{"nightly", "v1.2", "v1.2.3-rc.1"} {
+		if err := settings.SetSkippedUpdateVersion(value); err == nil {
+			t.Fatalf("value %q was accepted", value)
+		}
+		if settings.Update.SkippedVersion != "" {
+			t.Fatalf("the rejected value was kept: %+v", settings.Update)
+		}
+	}
+}
+
+// 古い PRX が書き戻した設定には update セクションが無い。読み込みは壊れず、
+// スキップだけが消える。
+func TestConfigWithoutAnUpdateSectionLoadsWithoutASkippedVersion(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	body := "version: 1\ngithub:\n  hosts: []\n  auto_sync_interval_seconds: 3600\nserver:\n  port: auto\n"
+	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	store, err := NewStore(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	value, err := store.Load()
+	if err != nil || value.Update.SkippedVersion != "" {
+		t.Fatalf("value=%+v err=%v", value.Update, err)
+	}
+}

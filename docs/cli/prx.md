@@ -38,5 +38,6 @@ Manage pull-request dependency roadmaps
 * [prx stale](prx_stale.md)	 - List tasks with stale GitHub state
 * [prx sync](prx_sync.md)	 - Refresh GitHub state for pull-request tasks
 * [prx task](prx_task.md)	 - List tasks or show one by ID
+* [prx update](prx_update.md)	 - Check for a newer PRX release and install it
 * [prx validate](prx_validate.md)	 - Validate the stored dependency data
 

@@ -393,7 +393,7 @@ type DebugReport struct {
 func NewDebugBuild(version string) DebugBuild {
 	return DebugBuild{
 		Version:     version,
-		Development: strings.HasSuffix(version, "-dev"),
+		Development: IsDevelopmentBuild(version),
 		GoVersion:   runtime.Version(),
 		OS:          runtime.GOOS,
 		Arch:        runtime.GOARCH,

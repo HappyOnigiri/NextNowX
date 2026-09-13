@@ -95,11 +95,39 @@ type GitHubSyncStateRepository interface {
 	) (bool, error)
 }
 
+// UpdateCheckStateRepository は、更新確認の間引きとキャッシュを持つ repository が
+// 実装する。GitHubSyncStateRepository と同じく任意にしておくことで、application 層の
+// テストが使う小さな fake をそのまま保てる。
+type UpdateCheckStateRepository interface {
+	UpdateCheckState(ctx context.Context) (domain.UpdateCheckState, error)
+	// AcquireUpdateCheck は間引きの判定と実行権の付与を 1 つの UPDATE で行う。
+	AcquireUpdateCheck(ctx context.Context, checkedAt time.Time, dueBeforeUnix int64) (bool, error)
+	CompleteUpdateCheck(
+		ctx context.Context,
+		checkedAt time.Time,
+		releases []domain.ReleaseNote,
+		checkError string,
+	) error
+}
+
+// ReleaseProvider は配布元のリリース一覧を読む境界。
+type ReleaseProvider interface {
+	Releases(ctx context.Context) ([]domain.ReleaseNote, error)
+}
+
+// Updater は対象のリリースへ実際に置き換える境界。取得も実行もこの向こう側にある。
+type Updater interface {
+	Apply(ctx context.Context, version string) (domain.UpdateApply, error)
+}
+
 type Service struct {
 	repository  Repository
 	provider    githubprovider.Provider
 	configStore *config.Store
 	now         func() time.Time
+	// releases と updater は service の配線中に一度だけ書かれ、更新の経路だけが読む。
+	releases ReleaseProvider
+	updater  Updater
 	// processInfo は service の配線中に一度だけ書かれ、診断レポートだけが読む。
 	processInfo ProcessInfo
 	// daemonInspector は service の配線中に一度だけ書かれ、診断レポートだけが読む。
