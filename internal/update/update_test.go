@@ -97,6 +97,20 @@ func TestApplyRejectsValuesThatAreNotReleaseTags(t *testing.T) {
 	}
 }
 
+// HOME に空白を含む環境でも置き換えの報告は読み取れなければならない。
+func TestApplyReadsInstallPathsThatContainSpaces(t *testing.T) {
+	applier := newTestApplier(t, "#!/bin/bash\n", func(string) (string, error) {
+		return "Installed prx v0.4.0 to /Users/Ada Lovelace/.local/bin/prx\n", nil
+	})
+	result, err := applier.Apply(context.Background(), "v0.4.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.InstalledPath != "/Users/Ada Lovelace/.local/bin/prx" {
+		t.Fatalf("installed path=%q", result.InstalledPath)
+	}
+}
+
 func TestApplyFailsWhenTheInstallerCannotBeDownloaded(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNotFound)

@@ -39,7 +39,8 @@ const (
 
 // installedPattern は install.sh が報告する配置先を読み取る。標準以外の場所に
 // 入れている環境では報告が出ないため、置き換わったかどうかの判定に使う。
-var installedPattern = regexp.MustCompile(`(?m)^Installed prx (\S+) to (\S+)$`)
+// 配置先は行末まで取る。HOME に空白を含む環境でも報告を取りこぼさないためである。
+var installedPattern = regexp.MustCompile(`(?m)^Installed prx (\S+) to (.+)$`)
 
 // Applier は 1 つのリリースへ更新する実行器。
 type Applier struct {
@@ -176,7 +177,7 @@ func applyResult(tag, output string) (domain.UpdateApply, error) {
 	if domain.CanonicalVersion(match[1]) != tag {
 		return domain.UpdateApply{}, fmt.Errorf("the installer reported %s instead of %s", match[1], tag)
 	}
-	return domain.UpdateApply{Version: tag, InstalledPath: match[2], Output: output}, nil
+	return domain.UpdateApply{Version: tag, InstalledPath: strings.TrimSpace(match[2]), Output: output}, nil
 }
 
 // summarize はインストーラーの出力の末尾だけを残す。失敗の理由は最後の行にあり、
