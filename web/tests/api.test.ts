@@ -13,6 +13,7 @@ import {
   readDocumentContent,
   selectLocalFile,
   syncIfDue,
+  watchRevision,
 } from "../src/api";
 import { makeSnapshot } from "./factories";
 
@@ -57,6 +58,7 @@ const apiMocks = vi.hoisted(() => {
     updatePromptTemplates: vi.fn(),
     getTaskPrompt: vi.fn(),
     getBatchPrompt: vi.fn(),
+    watchRevision: vi.fn(),
   };
   return {
     client,
@@ -251,6 +253,22 @@ describe("RPC API wrappers", () => {
       canceled: false,
     });
     expect(apiMocks.client.selectLocalFile).toHaveBeenCalledOnce();
+  });
+
+  // 購読は signal でしか終えられないので、呼び出しにそのまま渡す。
+  it("opens the revision subscription with the caller's abort signal", () => {
+    const messages: AsyncIterable<{ revision: bigint }> = {
+      [Symbol.asyncIterator]: () => ({
+        next: () => Promise.resolve({ value: { revision: 3n }, done: true }),
+      }),
+    };
+    apiMocks.client.watchRevision.mockReturnValueOnce(messages);
+    const controller = new AbortController();
+    expect(watchRevision(controller.signal)).toBe(messages);
+    expect(apiMocks.client.watchRevision).toHaveBeenCalledWith(
+      expect.anything(),
+      { signal: controller.signal },
+    );
   });
 
   it("serializes every project mutation and always cascades a delete", async () => {

@@ -49,7 +49,7 @@ test("shows GitHub sync diagnostics and runs a full refresh", async ({
   await page.goto("/");
   await expect(page.locator(".page-head .dashboard-sync")).toBeVisible();
   await expect(page.locator(".rail .dashboard-sync")).toHaveCount(0);
-  const syncButton = page.getByRole("button", { name: "Refresh" });
+  const syncButton = page.getByRole("button", { name: "Refresh", exact: true });
   await expect(syncButton).toBeEnabled();
   const syncResponse = page.waitForResponse(
     (response) =>
@@ -543,7 +543,7 @@ test("creates and edits a feature DAG while preserving state", async ({
   await openTask(page, "E2E API");
   await expect(inspector.locator("input[name=assignee]")).toHaveValue("");
   await page.getByRole("button", { name: "Close inspector" }).click();
-  await page.getByRole("button", { name: "Refresh" }).click();
+  await page.getByRole("button", { name: "Refresh", exact: true }).click();
   // タスクは未完了である in progress のままなので、同期後にノードが何を示すかは
   // 紐づいた pull request が決める。コンフリクトはステータスではなくブロック
   // ラベルなので、ステータスはレビュー中になる。
@@ -708,7 +708,9 @@ test("archives and safely deletes a feature", async ({ page }) => {
   await expect(rail.getByText(title)).toHaveCount(0);
   await page.goto("/projects/P-1?features=archived");
   await page.getByRole("tabpanel").getByText(title).click();
-  await expect(page.getByRole("button", { name: "Refresh" })).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Refresh", exact: true }),
+  ).toHaveCount(0);
   await page
     .getByRole("button", { name: "View Archived E2E task details" })
     .click();
@@ -719,7 +721,9 @@ test("archives and safely deletes a feature", async ({ page }) => {
 
   await page.getByRole("button", { name: "Manage feature" }).click();
   await page.getByRole("button", { name: "Restore feature" }).click();
-  await expect(page.getByRole("button", { name: "Refresh" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Refresh", exact: true }),
+  ).toBeVisible();
   // 復元すると feature は作業対象に戻るので、画面遷移なしで rail のツリーに
   // 再び現れる。
   await expect(rail.getByText(title)).toHaveCount(1);

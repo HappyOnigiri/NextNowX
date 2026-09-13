@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"sync/atomic"
+	"time"
 
 	"connectrpc.com/connect"
 
@@ -19,12 +21,39 @@ type LocalFilePicker interface {
 	SelectFile(ctx context.Context) (path string, canceled bool, err error)
 }
 
+// RevisionSubscriber は現在のリビジョンの購読だけを表す。Service に含めないのは、
+// これがアプリケーション境界ではなくサーバープロセスの実行時事情だからである。
+type RevisionSubscriber interface {
+	Subscribe() (current uint64, updates <-chan uint64, cancel func())
+	// Watching は変更を検知できている間だけ true を返す。
+	Watching() bool
+}
+
+// Options は serve の配線だけが与える実行時の差し替え点。
+type Options struct {
+	FilePicker LocalFilePicker
+	// Revisions が nil なら WatchRevision はリビジョン 1 と heartbeat だけを流す。
+	Revisions RevisionSubscriber
+	// HeartbeatInterval が 0 なら defaultHeartbeatInterval を使う。
+	HeartbeatInterval time.Duration
+}
+
+// defaultHeartbeatInterval は無変化と死亡をクライアントが区別するための再送間隔。
+const defaultHeartbeatInterval = 15 * time.Second
+
+// maxRevisionStreams は同時に開ける WatchRevision の本数。1 タブ 1 本の想定に対し、
+// 取り残された goroutine が無制限に積み上がらないようにする。
+const maxRevisionStreams = 64
+
 type Handler struct {
 	prxv1connect.UnimplementedPRXServiceHandler
-	service     Service
-	configStore *config.Store
-	filePicker  LocalFilePicker
-	pickerBusy  chan struct{}
+	service           Service
+	configStore       *config.Store
+	filePicker        LocalFilePicker
+	pickerBusy        chan struct{}
+	revisions         RevisionSubscriber
+	heartbeatInterval time.Duration
+	openStreams       atomic.Int64
 }
 
 func New(service Service) (string, http.Handler) {
@@ -33,6 +62,19 @@ func New(service Service) (string, http.Handler) {
 
 // NewWithFilePicker は差し替え可能なネイティブ選択ダイアログを使う RPC ハンドラを構築する。
 func NewWithFilePicker(service Service, picker LocalFilePicker) (string, http.Handler) {
+	return NewWithOptions(service, Options{FilePicker: picker})
+}
+
+// NewWithOptions は serve が組み立てた実行時の差し替え点を受け取る。
+func NewWithOptions(service Service, options Options) (string, http.Handler) {
+	picker := options.FilePicker
+	if picker == nil {
+		picker = filepicker.New()
+	}
+	heartbeat := options.HeartbeatInterval
+	if heartbeat <= 0 {
+		heartbeat = defaultHeartbeatInterval
+	}
 	var configStore *config.Store
 	if configStore == nil {
 		if provider, ok := service.(interface{ ConfigStore() *config.Store }); ok {
@@ -45,6 +87,7 @@ func NewWithFilePicker(service Service, picker LocalFilePicker) (string, http.Ha
 		&Handler{
 			service: service, configStore: configStore, filePicker: picker,
 			pickerBusy: make(chan struct{}, 1),
+			revisions:  options.Revisions, heartbeatInterval: heartbeat,
 		},
 		connect.WithRequireConnectProtocolHeader(),
 	)

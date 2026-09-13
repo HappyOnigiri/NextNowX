@@ -35,6 +35,9 @@ const (
 const (
 	// PRXServiceGetSnapshotProcedure is the fully-qualified name of the PRXService's GetSnapshot RPC.
 	PRXServiceGetSnapshotProcedure = "/prx.v1.PRXService/GetSnapshot"
+	// PRXServiceWatchRevisionProcedure is the fully-qualified name of the PRXService's WatchRevision
+	// RPC.
+	PRXServiceWatchRevisionProcedure = "/prx.v1.PRXService/WatchRevision"
 	// PRXServiceCreateProjectProcedure is the fully-qualified name of the PRXService's CreateProject
 	// RPC.
 	PRXServiceCreateProjectProcedure = "/prx.v1.PRXService/CreateProject"
@@ -150,6 +153,9 @@ const (
 type PRXServiceClient interface {
 	// GetSnapshot は現在の正規化データと導出キューを返す。
 	GetSnapshot(context.Context, *connect.Request[v1.GetSnapshotRequest]) (*connect.Response[v1.GetSnapshotResponse], error)
+	// WatchRevision はローカルデータベースのリビジョンを流し続ける。開いた直後と、
+	// 値が変わったときと、生存確認のときに送る。
+	WatchRevision(context.Context, *connect.Request[v1.WatchRevisionRequest]) (*connect.ServerStreamForClient[v1.WatchRevisionResponse], error)
 	// CreateProject は project を新規作成する。
 	CreateProject(context.Context, *connect.Request[v1.CreateProjectRequest]) (*connect.Response[v1.CreateProjectResponse], error)
 	// UpdateProject はリクエストにあるフィールドを既存の project に適用し、アーカイブも含む。
@@ -245,6 +251,12 @@ func NewPRXServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			httpClient,
 			baseURL+PRXServiceGetSnapshotProcedure,
 			connect.WithSchema(pRXServiceMethods.ByName("GetSnapshot")),
+			connect.WithClientOptions(opts...),
+		),
+		watchRevision: connect.NewClient[v1.WatchRevisionRequest, v1.WatchRevisionResponse](
+			httpClient,
+			baseURL+PRXServiceWatchRevisionProcedure,
+			connect.WithSchema(pRXServiceMethods.ByName("WatchRevision")),
 			connect.WithClientOptions(opts...),
 		),
 		createProject: connect.NewClient[v1.CreateProjectRequest, v1.CreateProjectResponse](
@@ -487,6 +499,7 @@ func NewPRXServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 // pRXServiceClient implements PRXServiceClient.
 type pRXServiceClient struct {
 	getSnapshot              *connect.Client[v1.GetSnapshotRequest, v1.GetSnapshotResponse]
+	watchRevision            *connect.Client[v1.WatchRevisionRequest, v1.WatchRevisionResponse]
 	createProject            *connect.Client[v1.CreateProjectRequest, v1.CreateProjectResponse]
 	updateProject            *connect.Client[v1.UpdateProjectRequest, v1.UpdateProjectResponse]
 	deleteProject            *connect.Client[v1.DeleteProjectRequest, v1.DeleteProjectResponse]
@@ -531,6 +544,11 @@ type pRXServiceClient struct {
 // GetSnapshot calls prx.v1.PRXService.GetSnapshot.
 func (c *pRXServiceClient) GetSnapshot(ctx context.Context, req *connect.Request[v1.GetSnapshotRequest]) (*connect.Response[v1.GetSnapshotResponse], error) {
 	return c.getSnapshot.CallUnary(ctx, req)
+}
+
+// WatchRevision calls prx.v1.PRXService.WatchRevision.
+func (c *pRXServiceClient) WatchRevision(ctx context.Context, req *connect.Request[v1.WatchRevisionRequest]) (*connect.ServerStreamForClient[v1.WatchRevisionResponse], error) {
+	return c.watchRevision.CallServerStream(ctx, req)
 }
 
 // CreateProject calls prx.v1.PRXService.CreateProject.
@@ -732,6 +750,9 @@ func (c *pRXServiceClient) GetBatchPrompt(ctx context.Context, req *connect.Requ
 type PRXServiceHandler interface {
 	// GetSnapshot は現在の正規化データと導出キューを返す。
 	GetSnapshot(context.Context, *connect.Request[v1.GetSnapshotRequest]) (*connect.Response[v1.GetSnapshotResponse], error)
+	// WatchRevision はローカルデータベースのリビジョンを流し続ける。開いた直後と、
+	// 値が変わったときと、生存確認のときに送る。
+	WatchRevision(context.Context, *connect.Request[v1.WatchRevisionRequest], *connect.ServerStream[v1.WatchRevisionResponse]) error
 	// CreateProject は project を新規作成する。
 	CreateProject(context.Context, *connect.Request[v1.CreateProjectRequest]) (*connect.Response[v1.CreateProjectResponse], error)
 	// UpdateProject はリクエストにあるフィールドを既存の project に適用し、アーカイブも含む。
@@ -823,6 +844,12 @@ func NewPRXServiceHandler(svc PRXServiceHandler, opts ...connect.HandlerOption) 
 		PRXServiceGetSnapshotProcedure,
 		svc.GetSnapshot,
 		connect.WithSchema(pRXServiceMethods.ByName("GetSnapshot")),
+		connect.WithHandlerOptions(opts...),
+	)
+	pRXServiceWatchRevisionHandler := connect.NewServerStreamHandler(
+		PRXServiceWatchRevisionProcedure,
+		svc.WatchRevision,
+		connect.WithSchema(pRXServiceMethods.ByName("WatchRevision")),
 		connect.WithHandlerOptions(opts...),
 	)
 	pRXServiceCreateProjectHandler := connect.NewUnaryHandler(
@@ -1063,6 +1090,8 @@ func NewPRXServiceHandler(svc PRXServiceHandler, opts ...connect.HandlerOption) 
 		switch r.URL.Path {
 		case PRXServiceGetSnapshotProcedure:
 			pRXServiceGetSnapshotHandler.ServeHTTP(w, r)
+		case PRXServiceWatchRevisionProcedure:
+			pRXServiceWatchRevisionHandler.ServeHTTP(w, r)
 		case PRXServiceCreateProjectProcedure:
 			pRXServiceCreateProjectHandler.ServeHTTP(w, r)
 		case PRXServiceUpdateProjectProcedure:
@@ -1152,6 +1181,10 @@ type UnimplementedPRXServiceHandler struct{}
 
 func (UnimplementedPRXServiceHandler) GetSnapshot(context.Context, *connect.Request[v1.GetSnapshotRequest]) (*connect.Response[v1.GetSnapshotResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("prx.v1.PRXService.GetSnapshot is not implemented"))
+}
+
+func (UnimplementedPRXServiceHandler) WatchRevision(context.Context, *connect.Request[v1.WatchRevisionRequest], *connect.ServerStream[v1.WatchRevisionResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("prx.v1.PRXService.WatchRevision is not implemented"))
 }
 
 func (UnimplementedPRXServiceHandler) CreateProject(context.Context, *connect.Request[v1.CreateProjectRequest]) (*connect.Response[v1.CreateProjectResponse], error) {

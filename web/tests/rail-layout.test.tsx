@@ -40,6 +40,7 @@ vi.mock("../src/hooks", () => ({
     isError: false,
   }),
   useSnapshot: () => ({ data: snapshot, isError: false }),
+  useRevisionStream: () => ({ connected: true, stale: false }),
   useAutoSync: () => ({
     enabled: true,
     status: { data: undefined, isError: false },
