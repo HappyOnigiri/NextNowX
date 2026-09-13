@@ -132,6 +132,9 @@
    glance, so the node itself answers it: a node stands as a raised surface until
    nothing about it is worth reading, and then it lies flush with the canvas.
    See docs/design/webui.md. */
+
+/* 寸法の正本は useGraphLayout で、ここはその枠に従う。カードだけを小さく
+   すると、枠基準で置いたエッジの端点がカードの外に残る。 */
 .task-node {
   width: 284px;
   height: 100%;
@@ -185,7 +188,7 @@
 }
 
 /* ステータスとブロックラベルは 1 つの並びとして操作の下に置く。ノード幅を
-   丸ごと使い、2 個目のラベルから折り返す高さを useGraphLayout で予測する。 */
+   丸ごと使い、2 個目のラベルから折り返す。 */
 .task-node-badges {
   min-height: 24px;
   display: flex;
@@ -280,8 +283,10 @@
   vertical-align: -2px;
 }
 
+/* 枠の高さは全ノード共通なので、アセットが少ないカードで伸ばすと中が間延び
+   する。内容のぶんだけ取り、入り切らないときだけ縮んでスクロールする。 */
 .node-assets {
-  flex: 1;
+  flex: 0 1 auto;
   min-height: 0;
   overflow: auto;
   border-block: 1px solid var(--border);
@@ -365,7 +370,7 @@
 .node-add-reference {
   width: 100%;
   min-height: 28px;
-  margin-top: auto;
+  margin-top: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -377,10 +382,6 @@
   padding: 0 8px;
   font-size: var(--text-xs);
   font-weight: 500;
-}
-
-.node-assets + .node-add-reference {
-  margin-top: 8px;
 }
 
 .node-add-reference:hover,

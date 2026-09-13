@@ -27,6 +27,47 @@ interface LayoutRequest extends GraphLayoutOptions {
   attempt: number;
 }
 
+// ノードの寸法はフィーチャー内で揃える。中身に合わせて 1 件ずつ高さを変える
+// と、ELK はそのノードの周囲まで座標を動かし、ステータスが変わるだけでグラフ
+// が動く。docs/design/webui.md を参照。
+const nodeWidth = 284;
+// ヘッダ・ステータス行・タイトル・担当者に、ブロックラベルが 2 行目へ折り返す
+// ぶんを足した高さ。ラベルの数は同期で増減するので常に 2 行ぶんを確保する。
+const nodeBaseHeight = 196;
+const assetRowHeight = 34;
+// これより多いアセットはノードの中でスクロールさせる。
+const maxAssetRows = 4;
+
+// 高さはフィーチャーで最も嵩むタスクに合わせる。全件を最大寸法にすると、
+// アセットの少ないフィーチャーで必要以上に大きなカードになる。
+function nodeHeightFor({
+  tasks,
+  pullRequests,
+  documentsByTask,
+  readOnly,
+}: {
+  tasks: Task[];
+  pullRequests: Map<string, PullRequest>;
+  documentsByTask: Map<string, TaskNodeDocument[]>;
+  readOnly: boolean;
+}) {
+  const assets = Math.max(
+    0,
+    ...tasks.map(
+      (task) =>
+        (documentsByTask.get(task.id)?.length ?? 0) +
+        (pullRequests.has(task.id) ? 1 : 0),
+    ),
+  );
+  // 参照の追加ボタンは読み取り専用でなければどのノードにも並ぶ。
+  const rows = Math.min(assets + (readOnly ? 0 : 1), maxAssetRows);
+  return nodeBaseHeight + rows * assetRowHeight;
+}
+
+// タスク ID は T-<連番> なので、素の文字列比較では T-10 が T-9 より前に来る。
+// ロケールを固定し、実行環境で並びが変わらないようにする。
+const taskIdOrder = new Intl.Collator("en", { numeric: true });
+
 function isSameLayoutRequest(
   completed: LayoutRequest | undefined,
   requested: LayoutRequest,
@@ -56,45 +97,49 @@ function buildRawNodes({
   readOnly = false,
 }: GraphLayoutOptions) {
   const omitOwner = hasSingleOwner(pullRequests);
-  return tasks.map((task) => {
-    const pr = pullRequests.get(task.id);
-    const documents = documentsByTask.get(task.id) ?? [];
-    const assetCount = documents.length + (pr ? 1 : 0) + (readOnly ? 0 : 1);
-    const syncError = pr?.syncError ?? "";
-    return {
-      id: task.id,
-      width: 284,
-      // 工程表示が長くなったため、ラベル 0〜1 個は 1 行、2〜4 個は 2 行を確保する。
-      height:
-        170 +
-        Math.min(assetCount, 4) * 34 +
-        (task.blockLabels.length >= 2 ? 26 : 0),
-      data: {
-        title: task.title,
-        assignee: task.assignee,
-        state: task.displayState,
-        dormant: isDormantTask(task),
-        blocked: isDependencyBlockedTask(task),
-        blockLabels: task.blockLabels,
-        hasImplementationPlan: task.hasImplementationPlan,
-        stale: pr?.stale ?? false,
-        syncError,
-        pullRequest: pr
-          ? { label: pullRequestLabel(pr, omitOwner), url: pr.url }
-          : undefined,
-        documents,
-        ...hiddenDependencyData(hiddenDependencies.get(task.id)),
-        readOnly,
-        onEdit: () => {
-          onEditTask(task.id);
-        },
-        onPreview: onPreviewDocument,
-        onAddReference: (trigger: HTMLButtonElement) => {
-          onAddDocument?.(task.id, trigger);
-        },
-      },
-    };
+  const nodeHeight = nodeHeightFor({
+    tasks,
+    pullRequests,
+    documentsByTask,
+    readOnly,
   });
+  // tasks はインスペクタや件数表示と同じ配列なので、複製してから並べ替える。
+  return [...tasks]
+    .sort((left, right) => taskIdOrder.compare(left.id, right.id))
+    .map((task) => {
+      const pr = pullRequests.get(task.id);
+      const documents = documentsByTask.get(task.id) ?? [];
+      const syncError = pr?.syncError ?? "";
+      return {
+        id: task.id,
+        width: nodeWidth,
+        height: nodeHeight,
+        data: {
+          title: task.title,
+          assignee: task.assignee,
+          state: task.displayState,
+          dormant: isDormantTask(task),
+          blocked: isDependencyBlockedTask(task),
+          blockLabels: task.blockLabels,
+          hasImplementationPlan: task.hasImplementationPlan,
+          stale: pr?.stale ?? false,
+          syncError,
+          pullRequest: pr
+            ? { label: pullRequestLabel(pr, omitOwner), url: pr.url }
+            : undefined,
+          documents,
+          ...hiddenDependencyData(hiddenDependencies.get(task.id)),
+          readOnly,
+          onEdit: () => {
+            onEditTask(task.id);
+          },
+          onPreview: onPreviewDocument,
+          onAddReference: (trigger: HTMLButtonElement) => {
+            onAddDocument?.(task.id, trigger);
+          },
+        },
+      };
+    });
 }
 
 // フィーチャーの pull request がすべて同じ host と owner にあるなら、その部分は
@@ -122,6 +167,16 @@ function hiddenDependencyData(hidden: HiddenDependencies | undefined) {
 
 type RawNode = ReturnType<typeof buildRawNodes>[number];
 
+// considerModelOrder は children だけでなくエッジの入力順も見る。サーバーが
+// 返す依存の並びは created_at が同値だと揺れるので、ここで ID 順に揃える。
+function orderedDependencies(dependencies: Dependency[]) {
+  return [...dependencies].sort(
+    (left, right) =>
+      taskIdOrder.compare(left.blockerTaskId, right.blockerTaskId) ||
+      taskIdOrder.compare(left.blockedTaskId, right.blockedTaskId),
+  );
+}
+
 function buildLayoutGraph(raw: RawNode[], dependencies: Dependency[]): ElkNode {
   return {
     id: "root",
@@ -130,12 +185,14 @@ function buildLayoutGraph(raw: RawNode[], dependencies: Dependency[]): ElkNode {
       "elk.direction": "RIGHT",
       "elk.edgeRouting": "ORTHOGONAL",
       "elk.layered.mergeEdges": "false",
+      // 同じ列の縦並びを入力順に合わせ、依存が許す範囲でタスク ID 順にする。
+      "elk.layered.considerModelOrder.strategy": "NODES_AND_EDGES",
       "elk.spacing.componentComponent": "120",
       "elk.spacing.nodeNode": "72",
       "elk.layered.spacing.nodeNodeBetweenLayers": "110",
     },
     children: raw.map(({ id, width, height }) => ({ id, width, height })),
-    edges: dependencies.map((dependency) => ({
+    edges: orderedDependencies(dependencies).map((dependency) => ({
       id: dependencyEdgeId(dependency.blockerTaskId, dependency.blockedTaskId),
       sources: [dependency.blockerTaskId],
       targets: [dependency.blockedTaskId],
