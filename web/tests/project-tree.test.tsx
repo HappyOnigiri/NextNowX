@@ -128,6 +128,33 @@ describe("ProjectTree", () => {
     expect(childList("P-1")).toHaveAttribute("hidden");
   });
 
+  // 三角のマーカーを置かない代わりに、フォルダの開閉そのものが展開状態を示す。
+  it("opens the folder glyph while the row is expanded", () => {
+    render(tree());
+    const toggle = screen.getByRole("button", {
+      name: "Expand or collapse Delivery platform",
+    });
+
+    expect(toggle.querySelector("svg")).toHaveClass("lucide-folder-open");
+
+    fireEvent.click(toggle);
+    expect(toggle.querySelector("svg")).toHaveClass("lucide-folder");
+  });
+
+  // 展開できない行が開いて見えるのは誤りなので、トグルのない行は閉じたまま。
+  it("keeps the folder closed on a row that cannot expand", () => {
+    const { container } = render(
+      <ProjectTree
+        headingId="nav-projects-heading"
+        projects={projects}
+        features={[]}
+      />,
+    );
+    const spacer = container.querySelector(".nav-tree-toggle-spacer");
+
+    expect(spacer?.querySelector("svg")).toHaveClass("lucide-folder");
+  });
+
   // 書き込みのたびに画面上の行から一覧を作り直すので、行がなくなった ID は
   // 次のトグルで消える。
   it("drops a stored ID that no longer names a row", () => {
