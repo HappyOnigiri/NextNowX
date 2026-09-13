@@ -59,7 +59,6 @@ type UpdateStatus struct {
 type UpdateApply struct {
 	Version       string
 	InstalledPath string
-	Output        string
 }
 
 // UpdateResult は適用した更新を呼び出し側へ返す形。

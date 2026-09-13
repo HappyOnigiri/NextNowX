@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/HappyOnigiri/PRX/internal/domain"
@@ -56,23 +57,23 @@ func TestReleasesKeepsPublishedSemverTagsOnly(t *testing.T) {
 }
 
 // 未認証の呼び出し上限は時間が解決するので、権限の失敗とは別に伝える必要がある。
-func TestReleasesClassifiesFailures(t *testing.T) {
+func TestReleasesExplainsFailures(t *testing.T) {
 	tests := []struct {
 		name    string
 		status  int
 		headers map[string]string
-		want    release.ErrorClass
+		want    string
 	}{
 		{
 			name:    "exhausted rate limit",
 			status:  http.StatusForbidden,
 			headers: map[string]string{"X-RateLimit-Remaining": "0"},
-			want:    release.ErrorClassRateLimit,
+			want:    "rate limit is exhausted",
 		},
-		{name: "too many requests", status: http.StatusTooManyRequests, want: release.ErrorClassRateLimit},
-		{name: "missing feed", status: http.StatusNotFound, want: release.ErrorClassNotFound},
-		{name: "server failure", status: http.StatusBadGateway, want: release.ErrorClassTransient},
-		{name: "forbidden", status: http.StatusForbidden, want: release.ErrorClassOther},
+		{name: "too many requests", status: http.StatusTooManyRequests, want: "rate limit is exhausted"},
+		{name: "missing feed", status: http.StatusNotFound, want: "release feed for " + release.Repository},
+		{name: "server failure", status: http.StatusBadGateway, want: "status 502"},
+		{name: "forbidden", status: http.StatusForbidden, want: "status 403"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -86,8 +87,8 @@ func TestReleasesClassifiesFailures(t *testing.T) {
 			if err == nil {
 				t.Fatal("expected a failure")
 			}
-			if got := release.ClassOf(err); got != test.want {
-				t.Fatalf("class=%q, want %q: %v", got, test.want, err)
+			if !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("error=%v, want %q", err, test.want)
 			}
 		})
 	}
@@ -98,23 +99,17 @@ func TestReleasesReportsUnreadableResponses(t *testing.T) {
 		_, _ = w.Write([]byte("not json"))
 	})
 	_, err := provider.Releases(context.Background())
-	if err == nil || release.ClassOf(err) != release.ErrorClassOther {
-		t.Fatalf("error=%v class=%q", err, release.ClassOf(err))
+	if err == nil || !strings.Contains(err.Error(), "decode releases") {
+		t.Fatalf("error=%v", err)
 	}
 }
 
-// 到達できないホストは時間をおけば直りうるので transient に寄せる。
-func TestReleasesTreatsTransportFailuresAsTransient(t *testing.T) {
+// 到達できないホストの失敗も、そのまま読める説明で返る。
+func TestReleasesReportsTransportFailures(t *testing.T) {
 	provider := release.NewWithOptions("http://127.0.0.1:0/releases", nil)
 	_, err := provider.Releases(context.Background())
-	if err == nil || release.ClassOf(err) != release.ErrorClassTransient {
-		t.Fatalf("error=%v class=%q", err, release.ClassOf(err))
-	}
-}
-
-func TestClassOfUnclassifiedErrorIsOther(t *testing.T) {
-	if got := release.ClassOf(errors.New("boom")); got != release.ErrorClassOther {
-		t.Fatalf("class=%q", got)
+	if err == nil || !strings.Contains(err.Error(), "read releases") {
+		t.Fatalf("error=%v", err)
 	}
 }
 

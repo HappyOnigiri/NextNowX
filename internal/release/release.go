@@ -37,40 +37,6 @@ type Provider interface {
 	Releases(ctx context.Context) ([]domain.ReleaseNote, error)
 }
 
-// ErrorClass は確認の失敗を、利用者への説明が変わる粒度で分ける。
-type ErrorClass string
-
-const (
-	// ErrorClassRateLimit は未認証の呼び出し上限に達したことを表す。
-	ErrorClassRateLimit ErrorClass = "rate_limit"
-	// ErrorClassNotFound は配布元のリリースが読めないことを表す。
-	ErrorClassNotFound ErrorClass = "not_found"
-	// ErrorClassTransient は時間をおけば直りうる失敗を表す。
-	ErrorClassTransient ErrorClass = "transient"
-	// ErrorClassOther はそれ以外の失敗を表す。
-	ErrorClassOther ErrorClass = "other"
-)
-
-// Error は確認の失敗と、その分類。
-type Error struct {
-	Class      ErrorClass
-	StatusCode int
-	Err        error
-}
-
-func (e *Error) Error() string { return e.Err.Error() }
-
-func (e *Error) Unwrap() error { return e.Err }
-
-// ClassOf は失敗の分類を返す。分類のない失敗は other として扱う。
-func ClassOf(err error) ErrorClass {
-	var typed *Error
-	if errors.As(err, &typed) {
-		return typed.Class
-	}
-	return ErrorClassOther
-}
-
 // LiveProvider は GitHub Releases API を未認証で読む。
 type LiveProvider struct {
 	baseURL string
@@ -107,13 +73,13 @@ func (p *LiveProvider) Releases(ctx context.Context) ([]domain.ReleaseNote, erro
 	url := fmt.Sprintf("%s?per_page=%d", p.baseURL, requestPageSize)
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return nil, &Error{Class: ErrorClassOther, Err: fmt.Errorf("build release request: %w", err)}
+		return nil, fmt.Errorf("build release request: %w", err)
 	}
 	request.Header.Set("Accept", "application/vnd.github+json")
 	request.Header.Set("X-GitHub-Api-Version", "2022-11-28")
 	response, err := p.client.Do(request)
 	if err != nil {
-		return nil, &Error{Class: ErrorClassTransient, Err: fmt.Errorf("read releases: %w", err)}
+		return nil, fmt.Errorf("read releases: %w", err)
 	}
 	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode != http.StatusOK {
@@ -121,11 +87,11 @@ func (p *LiveProvider) Releases(ctx context.Context) ([]domain.ReleaseNote, erro
 	}
 	body, err := io.ReadAll(io.LimitReader(response.Body, maxResponseBytes))
 	if err != nil {
-		return nil, &Error{Class: ErrorClassTransient, Err: fmt.Errorf("read releases: %w", err)}
+		return nil, fmt.Errorf("read releases: %w", err)
 	}
 	var decoded []apiRelease
 	if err := json.Unmarshal(body, &decoded); err != nil {
-		return nil, &Error{Class: ErrorClassOther, Err: fmt.Errorf("decode releases: %w", err)}
+		return nil, fmt.Errorf("decode releases: %w", err)
 	}
 	return releaseNotes(decoded), nil
 }
@@ -137,31 +103,13 @@ func statusError(response *http.Response) error {
 	switch {
 	case status == http.StatusTooManyRequests,
 		status == http.StatusForbidden && response.Header.Get("X-RateLimit-Remaining") == "0":
-		return &Error{
-			Class:      ErrorClassRateLimit,
-			StatusCode: status,
-			Err: errors.New(
-				"GitHub refused the update check because the unauthenticated rate limit is exhausted; try again later",
-			),
-		}
+		return errors.New(
+			"GitHub refused the update check because the unauthenticated rate limit is exhausted; try again later",
+		)
 	case status == http.StatusNotFound:
-		return &Error{
-			Class:      ErrorClassNotFound,
-			StatusCode: status,
-			Err:        fmt.Errorf("the release feed for %s is unavailable", Repository),
-		}
-	case status >= http.StatusInternalServerError:
-		return &Error{
-			Class:      ErrorClassTransient,
-			StatusCode: status,
-			Err:        fmt.Errorf("GitHub returned status %d for the update check", status),
-		}
+		return fmt.Errorf("the release feed for %s is unavailable", Repository)
 	default:
-		return &Error{
-			Class:      ErrorClassOther,
-			StatusCode: status,
-			Err:        fmt.Errorf("GitHub returned status %d for the update check", status),
-		}
+		return fmt.Errorf("GitHub returned status %d for the update check", status)
 	}
 }
 

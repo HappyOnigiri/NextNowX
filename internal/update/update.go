@@ -196,7 +196,7 @@ func applyResult(tag, output string) (domain.UpdateApply, error) {
 	if domain.CanonicalVersion(match[1]) != tag {
 		return domain.UpdateApply{}, fmt.Errorf("the installer reported %s instead of %s", match[1], tag)
 	}
-	return domain.UpdateApply{Version: tag, InstalledPath: strings.TrimSpace(match[2]), Output: output}, nil
+	return domain.UpdateApply{Version: tag, InstalledPath: strings.TrimSpace(match[2])}, nil
 }
 
 // summarize はインストーラーの出力の末尾だけを残す。失敗の理由は最後の行にあり、
