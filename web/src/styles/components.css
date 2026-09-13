@@ -41,7 +41,7 @@
 }
 
 /* 処理中はアイコン自身を回して、押せない見た目だけに頼らず進行中を示す。
-   reduced-motion では止め、状態はラベルと aria-busy が伝える。 */
+   ラベルは変えない。reduced-motion では止め、状態は aria-busy が伝える。 */
 .icon-button-busy svg {
   animation: spin 1s linear infinite;
 }

@@ -61,10 +61,10 @@ export const shell = {
     },
     serverSettings: {
       loading: "Loading server settings…",
-      syncTitle: "Automatic GitHub updates",
+      syncTitle: "Automatic GitHub status refresh",
       syncInterval: "Interval in seconds",
       syncHint:
-        "Minimum 600 seconds. Updates run while the CLI or WebUI is active.",
+        "Minimum 600 seconds. The refresh runs while the CLI or WebUI is active.",
       syncInvalid: "The interval must be a whole number of 600 or more.",
       hostsTitle: "GitHub hosts",
       addHost: "Register a host",
@@ -168,7 +168,7 @@ export const shell = {
     },
     serverSettings: {
       loading: "サーバー設定を読み込んでいます…",
-      syncTitle: "GitHubの自動更新",
+      syncTitle: "GitHub ステータスの自動更新",
       syncInterval: "間隔（秒）",
       syncHint: "最小600秒。CLIまたはWebUIの利用中に更新します。",
       syncInvalid: "間隔は600以上の整数で指定してください。",
