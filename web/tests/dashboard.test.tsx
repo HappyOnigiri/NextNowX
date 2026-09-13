@@ -95,9 +95,7 @@ describe("Dashboard", () => {
     expect(screen.queryByText("Unassigned")).not.toBeInTheDocument();
     expect(screen.getAllByText("not started")).toHaveLength(2);
     expect(screen.getByText("Conflicts")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Sync GitHub" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Refresh" })).toBeInTheDocument();
     // pull request がある task は直接リンクするため、feature を開かずに
     // レビューへ辿り着ける。
     const pullRequest = screen.getByRole("link", { name: /acme\/prx #42/ });

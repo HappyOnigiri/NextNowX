@@ -423,7 +423,7 @@ describe("FeatureWorkspace", () => {
         ),
     ).toEqual([
       "References",
-      "Sync GitHub",
+      "Refresh",
       "Copy batch prompt",
       "Add task",
       "Edit feature",
@@ -449,7 +449,7 @@ describe("FeatureWorkspace", () => {
     expect(
       screen.queryByRole("button", { name: "Add reference" }),
     ).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Sync GitHub" }));
+    fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
     expect(mutationAt(0).mutate).toHaveBeenCalledWith("feature-1");
     // batch プロンプトはヘッダーから開き、ワークスペースが表示中の feature を
     // 読む。
@@ -552,7 +552,7 @@ describe("FeatureWorkspace", () => {
     workspaceMocks.snapshot.data = populatedSnapshot();
     mutationAt(0).isPending = true;
     rerender(<FeatureWorkspace />);
-    const syncing = screen.getByRole("button", { name: "Syncing…" });
+    const syncing = screen.getByRole("button", { name: "Refresh" });
     expect(syncing).toBeDisabled();
     expect(syncing).toHaveClass("icon-button-busy");
     expect(syncing).toHaveAttribute("aria-busy", "true");
@@ -570,7 +570,7 @@ describe("FeatureWorkspace", () => {
     expect(screen.getByText("Archived · read-only")).toBeInTheDocument();
     expect(screen.getByText("Mock read-only graph")).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Sync GitHub" }),
+      screen.queryByRole("button", { name: "Refresh" }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Mock create task" }),
@@ -636,14 +636,14 @@ describe("FeatureWorkspace", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "This feature is read-only because Delivery platform is archived. Activate the project to edit or sync it.",
+        "This feature is read-only because Delivery platform is archived. Activate the project to edit or refresh it.",
       ),
     ).toBeInTheDocument();
     expect(screen.getByText("Open project")).toBeInTheDocument();
     expect(screen.getByText("Delivery platform")).toBeInTheDocument();
     expect(screen.getByText("Mock read-only graph")).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Sync GitHub" }),
+      screen.queryByRole("button", { name: "Refresh" }),
     ).not.toBeInTheDocument();
   });
 
