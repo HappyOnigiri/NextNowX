@@ -99,12 +99,10 @@ Tasks:
    - ` + "`prx graph {{feature_id}}`" + `
 2. 各 task をそれぞれ専用の SubAgent に渡す。1 つの SubAgent に 1 つの task だけを渡し、
    同じ SubAgent に 2 つの task を渡さない。
-   渡す前に SubAgent ごとの作業ツリーを用意する。リポジトリの外のパスに
-   ` + "`git worktree add --detach PATH`" + ` で作り、その SubAgent の報告を受けたら削除する。
-   作業ツリーを共有した SubAgent は、互いの書きかけの編集をコミットしてしまう。
+   各 SubAgent はそれぞれ新規の git worktree で作業する。checkout を共有した SubAgent は、
+   互いの書きかけの編集をコミットしてしまう。
    各 SubAgent は指示を自分からではなく PRX から受け取る。
    - 渡された task について ` + "`prx prompt TASK_ID`" + ` を実行し、表示されたプロンプトに従う。
-   - 渡された作業ツリーの中だけで作業し、他の checkout には触れない。
    - 変更した内容と、プロンプトが扱っていなかった点を報告する。
    graph 上で独立している task は並行して進めてよい。
    この一覧の別の task に依存する task は、その task が終わってから実装し、

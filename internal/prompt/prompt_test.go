@@ -206,7 +206,7 @@ func TestDefaultBatchTemplatesGiveEverySubAgentItsOwnWorktree(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !strings.Contains(body, "git worktree add --detach") {
+		if !strings.Contains(body, "git worktree") {
 			t.Fatalf("the %s batch prompt does not isolate each SubAgent: %q", language, body)
 		}
 	}
