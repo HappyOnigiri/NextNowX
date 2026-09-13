@@ -156,12 +156,14 @@ func (s *state) applySetupDaemon(
 			return runstate.State{}, false, err
 		}
 		if action == setupSkip {
+			_, _ = fmt.Fprintln(session.out, setupSettledMessage(status))
 			return status.State, false, nil
 		}
 		state, err := s.installSetupDaemon(ctx, session)
 		return state, false, err
 	}
 	if status.Running {
+		_, _ = fmt.Fprintln(session.out, setupSettledMessage(status))
 		return status.State, false, nil
 	}
 	action, err := selectSetupAction(ctx, session, tui.Selection{
@@ -177,10 +179,26 @@ func (s *state) applySetupDaemon(
 		return runstate.State{}, false, err
 	}
 	if action == setupSkip {
+		_, _ = fmt.Fprintln(session.out, setupSettledMessage(status))
 		return runstate.State{}, false, nil
 	}
 	state, err := s.startSetupDaemon(ctx, session)
 	return state, false, err
+}
+
+// setupSettledMessage は何も変えずに終わる経路で残す 1 行を作る。稼働中でも待ち受け先を
+// 読めないことがあるので、URL が無いときは待ち受け先に触れない。
+func setupSettledMessage(status daemon.Status) string {
+	switch {
+	case status.PlistStatus == launchd.PlistStale:
+		return "Kept the existing LaunchAgent. Run prx daemon install to update it."
+	case !status.Running:
+		return "Left the PRX server stopped. Run prx daemon start when you need it."
+	case status.AddressUnknown || status.State.URL == "":
+		return "PRX is already set up and running."
+	default:
+		return fmt.Sprintf("PRX is already set up and listening on %s.", status.State.URL)
+	}
 }
 
 func (s *state) installSetupDaemon(ctx context.Context, session setupSession) (runstate.State, error) {
