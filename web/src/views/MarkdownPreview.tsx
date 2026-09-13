@@ -160,7 +160,8 @@ function MarkdownBody({
   );
 }
 
-function MarkdownContent({ content }: { content: string }) {
+// リリースノートも同じ描画を使う。リンクの開き方やプラグインの方針を 2 か所に持たない。
+export function MarkdownContent({ content }: { content: string }) {
   return (
     <ReactMarkdown
       components={{

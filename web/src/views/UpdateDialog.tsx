@@ -2,12 +2,12 @@ import { useMutation } from "@tanstack/react-query";
 import { BellOff, Download, X } from "lucide-react";
 import { useEffect, useId, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import ReactMarkdown from "react-markdown";
 import { applyUpdate, skipUpdateVersion } from "../api";
 import type { UpdateRelease, UpdateStatus } from "../gen/prx/v1/prx_pb";
 import { useUpdateStatusInvalidation } from "../hooks";
 import { formatError } from "../i18n/domain";
 import { IconButton } from "./IconButton";
+import { MarkdownContent } from "./MarkdownPreview";
 import { useCloseOnEscape } from "./useCloseOnEscape";
 
 interface UpdateDialogProps {
@@ -148,17 +148,7 @@ function ReleaseNotes({ release }: { release: UpdateRelease }) {
       </h3>
       <div className="markdown-content">
         {release.body ? (
-          <ReactMarkdown
-            components={{
-              a: ({ children, ...props }) => (
-                <a {...props} target="_blank" rel="noreferrer">
-                  {children}
-                </a>
-              ),
-            }}
-          >
-            {release.body}
-          </ReactMarkdown>
+          <MarkdownContent content={release.body} />
         ) : (
           <p>{t("update.emptyNotes")}</p>
         )}
