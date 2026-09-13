@@ -43,6 +43,7 @@ project の識別子は置換語彙にないので、`prx feature` で所属 pro
 
 WebUI は、feature と選択した task に対して batch テンプレートを明示的に要求する。
 組み込みテンプレートは各 task を個別の SubAgent に委譲し、その SubAgent は batch 本文に複製された task の文面ではなく `prx prompt TASK_ID` から指示を得る。
+各 SubAgent はそれぞれ新規の worktree で作業する。テンプレートは独立した task の並行実装を許すので、checkout を共有した SubAgent が HEAD と index を取り合い、互いの書きかけの編集をコミットしてしまうためである。
 
 選択したすべての task が指定した feature に属し、未解決の blocker がすべて blocked な task と一緒に含まれていなければ、レンダリングは失敗する。
 受け取ったエージェントは blocker を先に実装し、依存する pull request をその上に積む。

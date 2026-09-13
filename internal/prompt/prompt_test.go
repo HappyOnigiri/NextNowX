@@ -197,6 +197,21 @@ func TestRenderBatchFillsAnOmittedTemplateWithItsDefault(t *testing.T) {
 	}
 }
 
+// batch テンプレートは独立したタスクの並行実装を許すので、SubAgent ごとに
+// 作業ツリーを分ける指示が消えると、同じ checkout を取り合って互いの
+// 書きかけの編集をコミットする。どちらの言語でも残っていなければならない。
+func TestDefaultBatchTemplatesGiveEverySubAgentItsOwnWorktree(t *testing.T) {
+	for _, language := range []prompt.Language{prompt.LanguageEnglish, prompt.LanguageJapanese} {
+		body, err := prompt.RenderBatch("F-3", batchTasks(), prompt.Templates{}, language)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(body, "git worktree") {
+			t.Fatalf("the %s batch prompt does not isolate each SubAgent: %q", language, body)
+		}
+	}
+}
+
 // batch の語彙はタスクの語彙とは別物。batch は複数タスクを対象にするため、
 // タスク用プレースホルダを置いても展開元がない。
 func TestNormalizeRejectsABatchTemplateOutsideItsOwnVocabulary(t *testing.T) {
