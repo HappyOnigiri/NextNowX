@@ -30,6 +30,7 @@ import {
   readGraphZoom,
   writeGraphZoom,
 } from "../i18n/settings";
+import { holdRefresh } from "../refresh-gate";
 import {
   emptyHiddenDependencies,
   type HiddenDependencies,
@@ -149,13 +150,24 @@ function useDependencyConnections(
     },
     [addDependency, pending, readOnly],
   );
+  // 掴んでいる間はスナップショットの取り直しを止める。描き直しは進行中の接続を
+  // その場で捨ててしまう。
+  const connectionHold = useRef<(() => void) | undefined>(undefined);
+  const releaseConnectionHold = useCallback(() => {
+    connectionHold.current?.();
+    connectionHold.current = undefined;
+  }, []);
   const onConnectStart = useCallback(() => {
-    if (!readOnly) setConnecting(true);
+    if (readOnly) return;
+    connectionHold.current ??= holdRefresh();
+    setConnecting(true);
   }, [readOnly]);
+  useEffect(() => releaseConnectionHold, [releaseConnectionHold]);
   // 空白へのドロップは、その依存の相手がまだ居ないという意思表示として扱い、
   // 依存付きのタスク作成へつなぐ。
   const onConnectEnd = useCallback(
     (event: MouseEvent | TouchEvent, connectionState: FinalConnectionState) => {
+      releaseConnectionHold();
       setConnecting(false);
       if (readOnly || pending || reconnecting.current) return;
       if (connectionState.isValid === true || connectionState.toNode) return;
@@ -169,7 +181,7 @@ function useDependencyConnections(
         direction: handleType === "source" ? "blockedBy" : "blocks",
       });
     },
-    [flow, onCreateTask, pending, readOnly],
+    [flow, onCreateTask, pending, readOnly, releaseConnectionHold],
   );
   const onEdgesDelete = useCallback<OnEdgesDelete<DependencyFlowEdge>>(
     (edges) => {

@@ -19,6 +19,7 @@ import (
 	"github.com/HappyOnigiri/PRX/internal/config"
 	"github.com/HappyOnigiri/PRX/internal/domain"
 	"github.com/HappyOnigiri/PRX/internal/launchd"
+	"github.com/HappyOnigiri/PRX/internal/revision"
 	"github.com/HappyOnigiri/PRX/internal/rpc"
 	"github.com/HappyOnigiri/PRX/internal/runstate"
 	"github.com/HappyOnigiri/PRX/internal/webui"
@@ -35,6 +36,13 @@ const (
 // executableCheckInterval はバイナリ置換を検査する間隔。置換は人の操作に伴うので、
 // 検出が数十秒遅れても実害はない。
 const executableCheckInterval = 30 * time.Second
+
+// dataVersionPollInterval はローカルデータベースの変更を検査する間隔。PRAGMA
+// data_version は WAL のヘッダを読むだけで fsync もページ読み出しも伴わない。
+const dataVersionPollInterval = time.Second
+
+// serveShutdownTimeout は進行中のリクエストへ与える猶予。
+const serveShutdownTimeout = 5 * time.Second
 
 // serveFailureExitDelay は launchd 管理の serve が失敗して終わるまでの待ち時間。
 // plist の ThrottleInterval は restart を速くするため 1 秒なので、失敗を繰り返す
@@ -74,6 +82,12 @@ type serveEndpointRecorder interface {
 // どのデータベースを見ているサーバーかを判断できるようにする。
 type serveDatabaseReporter interface {
 	DatabasePath() string
+}
+
+// serveRevisionReader はローカルデータベースの変更検知に使う値を返す。
+// serveDatabaseReporter と同じく、CLI が app を import しないための境界。
+type serveRevisionReader interface {
+	DataVersion(ctx context.Context) (int64, error)
 }
 
 type listenFunc func(ctx context.Context, network, address string) (net.Listener, error)
@@ -134,10 +148,13 @@ func (s *state) runServe(cmd *cobra.Command, address string) error {
 	if err := s.recordRunState(listener.Addr().String(), startedAt); err != nil {
 		return err
 	}
-	rpcPath, rpcHandler := rpc.New(s.service)
+	watcher, watcherDone := s.startRevisionWatcher(cmd.Context())
+	rpcPath, rpcHandler := rpc.NewWithOptions(s.service, rpc.Options{Revisions: revisionSubscriber(watcher)})
 	mux := http.NewServeMux()
 	mux.Handle(rpcPath, rpcHandler)
 	mux.Handle("/", webui.Handler(prx.Version(), s.demo))
+	// WriteTimeout と IdleTimeout は設定しない。設定すると WatchRevision の全ストリームが
+	// その間隔で無言に切れる。docs/design/webui.md を参照。
 	server := &http.Server{
 		Addr:              listener.Addr().String(),
 		Handler:           localOnly(listener.Addr(), mux),
@@ -147,20 +164,72 @@ func (s *state) runServe(cmd *cobra.Command, address string) error {
 		_, _ = fmt.Fprintln(s.errOut, "PRX demo mode uses temporary data that resets on restart.")
 	}
 	_, _ = fmt.Fprintf(s.errOut, "PRX listening on http://%s\n", listener.Addr())
+	shutdownDone := make(chan struct{})
 	go func() {
+		defer close(shutdownDone)
 		<-cmd.Context().Done()
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = server.Shutdown(ctx)
+		s.shutdownServe(server)
 	}()
 	if s.runLock != nil {
 		go s.watchExecutable(cmd.Context(), launchd.New())
 	}
 	err = server.Serve(listener)
-	if errors.Is(err, http.ErrServerClosed) {
+	// Serve は Shutdown の開始と同時に戻る。待たずに返すと closeService の
+	// store.Close がハンドラや watcher の実行中に走る。
+	if !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+	<-shutdownDone
+	<-watcherDone
+	return nil
+}
+
+// shutdownServe は猶予つきで停止し、期限を超えたら残りの接続を切る。死んだ TCP への
+// フラッシュでブロックしたストリームは、これがないと永久に閉じない。
+func (s *state) shutdownServe(server *http.Server) {
+	ctx, cancel := context.WithTimeout(context.Background(), serveShutdownTimeout)
+	defer cancel()
+	if err := server.Shutdown(ctx); err != nil {
+		_ = server.Close()
+	}
+}
+
+// startRevisionWatcher はローカルデータベースの変更監視を始める。監視できない構成では
+// nil を返し、WatchRevision は heartbeat だけを流す。
+func (s *state) startRevisionWatcher(ctx context.Context) (*revision.Watcher, <-chan struct{}) {
+	done := make(chan struct{})
+	reader, ok := s.service.(serveRevisionReader)
+	if !ok {
+		close(done)
+		return nil, done
+	}
+	// 読み取り失敗を無言にすると、WebUI の自動更新だけが理由不明で止まる。
+	var warned bool
+	watcher := revision.NewWatcher(reader, dataVersionPollInterval, func(err error) {
+		if warned {
+			return
+		}
+		warned = true
+		_, _ = fmt.Fprintf(
+			s.errOut,
+			"PRX cannot watch the database for changes, so the WebUI will not refresh by itself: %v\n",
+			err,
+		)
+	})
+	go func() {
+		defer close(done)
+		watcher.Run(ctx)
+	}()
+	return watcher, done
+}
+
+// revisionSubscriber は nil の watcher を nil のインタフェースへ写す。*revision.Watcher の
+// nil をそのまま渡すと、非 nil のインタフェース値になって購読で panic する。
+func revisionSubscriber(watcher *revision.Watcher) rpc.RevisionSubscriber {
+	if watcher == nil {
 		return nil
 	}
-	return err
+	return watcher.Revisions()
 }
 
 // serveListenPlan は起動形態から bind 先を決める。--addr は設定を無視するアドホックな

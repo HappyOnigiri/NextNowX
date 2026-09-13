@@ -25,6 +25,7 @@ const shellMocks = vi.hoisted(() => ({
     checking: false,
     error: null,
   })),
+  revisionStream: vi.fn(() => ({ connected: true, stale: false })),
 }));
 
 const snapshot = makeSnapshot({
@@ -93,6 +94,7 @@ vi.mock("../src/hooks", () => ({
   }),
   useSnapshot: () => ({ data: snapshot, isError: false }),
   useAutoSync: (enabled: boolean) => shellMocks.autoSync(enabled),
+  useRevisionStream: () => shellMocks.revisionStream(),
   useDomainMutation: () => shellMocks.mutation,
   useConfig: () => ({ data: { hosts: [], authMethods: [] }, isPending: false }),
   useConfigMutation: () => shellMocks.mutation,
@@ -111,12 +113,43 @@ describe("AppShell", () => {
     await setDisplayLanguage("en");
     shellMocks.navigate.mockClear();
     shellMocks.autoSync.mockClear();
+    shellMocks.revisionStream.mockClear();
+    shellMocks.revisionStream.mockReturnValue({
+      connected: true,
+      stale: false,
+    });
     shellMocks.mutation.mutateAsync.mockReset();
     shellMocks.mutation.mutateAsync.mockResolvedValue({
       feature: makeFeature({ id: "created" }),
     });
     shellMocks.mutation.isPending = false;
     shellMocks.mutation.error = null;
+  });
+
+  // 単発の切断では出さない。表示は 30 秒以上つながっていないときだけで、
+  // それまでは従来どおりフォーカス復帰の再取得に任せる。
+  it("shows the stopped automatic updates notice only while the stream stays down", () => {
+    shellMocks.revisionStream.mockReturnValue({
+      connected: false,
+      stale: false,
+    });
+    const { rerender } = render(
+      <AppShell>
+        <p>Workspace</p>
+      </AppShell>,
+    );
+    expect(document.querySelector(".rail-foot")).not.toBeInTheDocument();
+
+    shellMocks.revisionStream.mockReturnValue({
+      connected: false,
+      stale: true,
+    });
+    rerender(
+      <AppShell>
+        <p>Workspace</p>
+      </AppShell>,
+    );
+    expect(screen.getByText("Automatic updates stopped")).toBeInTheDocument();
   });
 
   it("shows the project tree and changes display settings from Settings", async () => {

@@ -246,7 +246,10 @@ describe("domain query hooks", () => {
       "snapshot",
       "github-config",
       "github-sync-status",
+      "revision-stream",
     ]);
+    // 購読は shell が開くので、context のない debug 表示では未開始になる。
+    expect(result.current[3]?.state).toBe("not started");
     expect(result.current[0]?.state).toBe("success, idle");
     expect(result.current[1]?.state).toBe("not requested");
     expect(hookMocks.getSnapshot).not.toHaveBeenCalled();

@@ -200,6 +200,25 @@ func TestDebugReportsPartialSectionsForALimitedRepository(t *testing.T) {
 	}
 }
 
+// DataVersion は任意のインタフェースなので、小さな fake repository を持つテストを
+// そのまま保てるよう、未実装のときは利用不可を返す。
+func TestDataVersionIsForwardedOnlyWhenTheRepositoryReportsIt(t *testing.T) {
+	ctx := context.Background()
+	if _, err := app.New(&debugRepository{}, nil).DataVersion(ctx); !errors.Is(
+		err, app.ErrDataVersionUnsupported,
+	) {
+		t.Fatalf("expected ErrDataVersionUnsupported, got %v", err)
+	}
+	service, _, _ := newDebugService(t)
+	version, err := service.DataVersion(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if version == 0 {
+		t.Fatal("the repository reported no data version")
+	}
+}
+
 func hasDebugProblem(report domain.DebugReport, code domain.DebugProblemCode) bool {
 	for _, problem := range report.Problems {
 		if problem.Code == code {

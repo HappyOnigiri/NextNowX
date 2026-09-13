@@ -14,13 +14,22 @@ import {
   writeDemoNoticeDismissed,
 } from "./demo";
 import type { Feature, Project } from "./gen/prx/v1/prx_pb";
-import { useAutoSync, useDisplayLanguage, useSnapshot } from "./hooks";
+import {
+  useAutoSync,
+  useDisplayLanguage,
+  useRevisionStream,
+  useSnapshot,
+} from "./hooks";
 import {
   readRailCollapsed,
   readRailWidth,
   writeRailCollapsed,
 } from "./i18n/settings";
 import { projectsByArchive } from "./project";
+import {
+  RevisionStreamContext,
+  useRevisionStreamStatus,
+} from "./revision-status";
 import { AutoSyncStatusContext } from "./sync-status";
 import { IconButton } from "./views/IconButton";
 import { ProjectTree } from "./views/ProjectTree";
@@ -31,10 +40,14 @@ const railId = "prx-rail";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const autoSync = useAutoSync(true);
+  // 購読はタブに 1 本だけなので、shell がここで開いて context で配る。
+  const revisionStream = useRevisionStream();
   useDisplayLanguage();
   return (
     <AutoSyncStatusContext.Provider value={autoSync}>
-      <AppShellLayout>{children}</AppShellLayout>
+      <RevisionStreamContext.Provider value={revisionStream}>
+        <AppShellLayout>{children}</AppShellLayout>
+      </RevisionStreamContext.Provider>
     </AutoSyncStatusContext.Provider>
   );
 }
@@ -119,14 +132,7 @@ function AppShellLayout({ children }: { children: ReactNode }) {
             setShowSettings(true);
           }}
         />
-        {snapshot.isError && (
-          <div className="rail-foot">
-            <span className="rail-health">
-              <span className="health bad" />
-              {t("nav.serverUnavailable")}
-            </span>
-          </div>
-        )}
+        <RailHealth serverUnavailable={snapshot.isError} />
         <RailResizer
           railId={railId}
           width={railWidth}
@@ -156,6 +162,30 @@ function AppShellLayout({ children }: { children: ReactNode }) {
             setShowSettings(false);
           }}
         />
+      )}
+    </div>
+  );
+}
+
+// RailHealth は足元の状態表示をまとめる。自動更新の停止は切断が
+// disconnectedNoticeMs 以上続いたときだけ出す。単発の切断では出さない。
+function RailHealth({ serverUnavailable }: { serverUnavailable: boolean }) {
+  const { t } = useTranslation();
+  const { stale } = useRevisionStreamStatus();
+  if (!serverUnavailable && !stale) return null;
+  return (
+    <div className="rail-foot">
+      {serverUnavailable && (
+        <span className="rail-health">
+          <span className="health bad" />
+          {t("nav.serverUnavailable")}
+        </span>
+      )}
+      {stale && (
+        <span className="rail-health">
+          <span className="health bad" />
+          {t("nav.liveUpdatesStopped")}
+        </span>
       )}
     </div>
   );
