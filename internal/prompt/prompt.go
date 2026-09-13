@@ -80,8 +80,11 @@ Run ` + "`prx --help`" + ` and ` + "`prx <command> --help`" + ` for its exact su
 PRX runs on this machine only, so nobody reading the repository can see it.
 Keep it out of what the repository carries: no code comment, commit message, or pull request
 may mention PRX, its identifiers, or its commands.
-Nobody is watching this run, so do not ask questions. Where the material leaves something undecided,
-take the option you can defend and write it into the plan as a stated assumption.
+Resolve what you can on your own: investigate whatever the repository, its conventions, or the
+attached material can answer, and ask the user only about the decisions that would change the shape
+of the design and that no investigation settles. Wait for that answer before you build the plan
+around it. Leave local implementation choices to the implementation step, and write everything else
+into the plan as a stated assumption.
 
 1. Mark the task as being designed before anything else.
    - ` + "`prx task update {{task_id}} --status designing`" + `
