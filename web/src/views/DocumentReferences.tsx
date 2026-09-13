@@ -9,6 +9,7 @@ import { IconButton } from "./IconButton";
 import { MutationError } from "./MutationError";
 import { DocumentRow, MarkdownEditForm } from "./TaskInspectorReferences";
 import type { TaskNodeDocument } from "./TaskNode";
+import { useDocumentDeletion } from "./useDocumentDeletion";
 
 // パネルと編集の流れはドキュメントの所属先に依存しないので、親はそのまま
 // 追加ダイアログへ渡す。
@@ -26,9 +27,9 @@ export function DocumentReferences({
   readOnly = false,
 }: DocumentReferencesProps) {
   const { t } = useTranslation();
-  const deleteDocument = useDomainMutation(mutations.deleteDocument);
   const updateDocument = useDomainMutation(mutations.updateDocument);
   const getDocument = useDomainMutation(mutations.getDocument);
+  const deletion = useDocumentDeletion();
   const [open, setOpen] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [addTrigger, setAddTrigger] = useState<HTMLElement | null>(null);
@@ -98,17 +99,17 @@ export function DocumentReferences({
           documents={ordered}
           editing={editing}
           readOnly={readOnly}
-          errors={[
-            deleteDocument.error,
-            updateDocument.error,
-            getDocument.error,
-          ]}
+          errors={[updateDocument.error, getDocument.error]}
           onPreview={(selected) => {
             setOpen(false);
             onPreview(selected);
           }}
-          onDelete={(id) => {
-            deleteDocument.mutate(id);
+          onDelete={(target) => {
+            // 確認ダイアログはパネルの外に出す。パネルを開いたままにすると、
+            // 外側の pointerdown で閉じたときにダイアログごと消える。
+            setOpen(false);
+            setEditing(null);
+            deletion.request(target);
           }}
           onEdit={editMarkdown}
           onUpdate={(document, content) => {
@@ -138,6 +139,7 @@ export function DocumentReferences({
           }}
         />
       )}
+      {deletion.dialog}
     </div>
   );
 }
@@ -163,7 +165,7 @@ function DocumentReferencesPanel({
   readOnly: boolean;
   errors: (Error | null)[];
   onPreview: (document: TaskNodeDocument) => void;
-  onDelete: (id: string) => void;
+  onDelete: (document: TaskNodeDocument) => void;
   onEdit: (document: TaskNodeDocument) => void;
   onUpdate: (document: TaskNodeDocument, content: string) => void;
   onCancelEdit: () => void;

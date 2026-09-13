@@ -478,9 +478,15 @@ test("creates and edits a feature DAG while preserving state", async ({
     .locator("section")
     .filter({ has: page.getByRole("heading", { name: "References" }) });
   await expect(reference.locator(".document-chip")).toHaveCount(2);
-  await expect(reference.getByRole("button", { name: /Delete/ })).toHaveCount(
-    0,
-  );
+  // 資料の削除は確認を挟む。取り消したときに資料が残ることまで見る。
+  await reference
+    .getByRole("button", { name: "Delete Release runbook" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Delete Release runbook?" })
+    .getByRole("button", { name: "Cancel" })
+    .click();
+  await expect(reference.locator(".document-chip")).toHaveCount(2);
   await inspector
     .locator("select[name=status]")
     .selectOption({ label: "In progress" });
