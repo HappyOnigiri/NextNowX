@@ -11,11 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/HappyOnigiri/PRX/internal/daemon"
 	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/launchd"
 	"github.com/HappyOnigiri/PRX/internal/release"
-	"github.com/HappyOnigiri/PRX/internal/runstate"
 )
 
 type updateHarness struct {
@@ -282,36 +279,4 @@ func TestOpenUpdateTerminalFallsBackToTheControllingTerminal(t *testing.T) {
 		t.Fatalf("input=%v ok=%t", input, ok)
 	}
 	closeInput()
-}
-
-// 稼働している常駐だけが置き換えを自分で検知する。停止中に再起動を促す意味はない。
-func TestUpdateRestartRequiredFollowsTheDaemon(t *testing.T) {
-	tests := []struct {
-		name   string
-		status daemon.Status
-		want   bool
-	}{
-		{name: "no server running", status: daemon.Status{Supported: true, Installed: true}},
-		{
-			name:   "managed daemon",
-			status: daemon.Status{Supported: true, Installed: true, Running: true},
-		},
-		{
-			name:   "unmanaged serve",
-			status: daemon.Status{Supported: true, Running: true, State: runstate.State{Version: "0.3.0"}},
-			want:   true,
-		},
-		{
-			name:   "unsupported platform",
-			status: daemon.Status{Running: true, PlistStatus: launchd.PlistUnknown},
-			want:   true,
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			if got := updateRestartRequired(test.status); got != test.want {
-				t.Fatalf("restart=%t, want %t", got, test.want)
-			}
-		})
-	}
 }

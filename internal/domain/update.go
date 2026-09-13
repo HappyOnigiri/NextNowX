@@ -128,6 +128,13 @@ func NewerReleases(current string, candidates []ReleaseNote) []ReleaseNote {
 	return result
 }
 
+// UpdateRestartRequired は置き換えの後に利用者自身の再起動が要るかを決める。
+// launchd 配下の常駐だけが置き換えを自分で検知するので、それ以外で稼働している
+// サーバーにだけ再起動を伝える。稼働していなければ伝えることはない。
+func UpdateRestartRequired(supported, installed, running bool) bool {
+	return running && (!supported || !installed)
+}
+
 // ShouldNotifyUpdate はスキップの意味を「そのバージョン以下を案内しない」と定める。
 // より新しいタグが出れば案内は自動的に戻る。
 func ShouldNotifyUpdate(latest, skipped string) bool {

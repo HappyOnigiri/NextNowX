@@ -111,7 +111,7 @@ func (s *Service) ApplyUpdate(ctx context.Context, version string) (domain.Updat
 	return domain.UpdateResult{
 		Version:         applied.Version,
 		InstalledPath:   applied.InstalledPath,
-		RestartRequired: !s.daemonManagesRestart(ctx),
+		RestartRequired: s.updateRestartRequired(ctx),
 	}, nil
 }
 
@@ -182,12 +182,12 @@ func (s *Service) skippedUpdateVersion() string {
 	return settings.Update.SkippedVersion
 }
 
-// daemonManagesRestart は launchd 配下の常駐が自分で置き換えを検知できるかを返す。
-// 常駐外の `prx serve` は古いまま動き続けるので、利用者に再起動を伝える必要がある。
-func (s *Service) daemonManagesRestart(ctx context.Context) bool {
+// updateRestartRequired は CLI と同じ規則で再起動の要否を決める。常駐を観測できない
+// 配線では、この RPC に届いている以上サーバーは動いているので、再起動を伝える。
+func (s *Service) updateRestartRequired(ctx context.Context) bool {
 	if s.daemonInspector == nil {
-		return false
+		return true
 	}
 	status := s.daemonInspector(ctx)
-	return status.Supported && status.Installed && status.Running
+	return domain.UpdateRestartRequired(status.Supported, status.Installed, status.Running)
 }

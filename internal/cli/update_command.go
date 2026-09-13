@@ -182,10 +182,9 @@ func (s *state) applyUpdate(ctx context.Context, status domain.UpdateStatus) err
 	return s.write(response, renderUpdateApplied(result))
 }
 
-// updateRestartRequired は launchd 配下の常駐だけが置き換えを自分で検知することを前提に、
-// 利用者の操作が要るかを決める。稼働していないサーバーに再起動の案内は要らない。
+// updateRestartRequired は daemon の観測を domain の規則へ渡すだけの薄い口。
 func updateRestartRequired(status daemon.Status) bool {
-	return status.Running && (!status.Supported || !status.Installed)
+	return domain.UpdateRestartRequired(status.Supported, status.Installed, status.Running)
 }
 
 func updateResponseOf(status domain.UpdateStatus) updateResponse {

@@ -161,3 +161,25 @@ func TestNewUpdateStatusHidesEverythingWhenDisabled(t *testing.T) {
 func versionAt(minor int) string {
 	return "v0." + strconv.Itoa(minor) + ".0"
 }
+
+// 稼働している常駐だけが置き換えを自分で検知する。停止中に再起動を促す意味はない。
+func TestUpdateRestartRequiredFollowsTheDaemon(t *testing.T) {
+	tests := []struct {
+		name                          string
+		supported, installed, running bool
+		want                          bool
+	}{
+		{name: "no server running", supported: true, installed: true},
+		{name: "managed daemon", supported: true, installed: true, running: true},
+		{name: "unmanaged serve", supported: true, running: true, want: true},
+		{name: "unsupported platform", running: true, want: true},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := domain.UpdateRestartRequired(test.supported, test.installed, test.running)
+			if got != test.want {
+				t.Fatalf("restart=%t, want %t", got, test.want)
+			}
+		})
+	}
+}
