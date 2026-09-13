@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   cleanup,
   fireEvent,
@@ -5,6 +6,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import type { PropsWithChildren } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   BlockedReasonCode,
@@ -17,35 +19,74 @@ import {
 import { TaskInspector } from "../src/views/TaskInspector";
 import { makeDocument, makePullRequest, makeTask } from "./factories";
 
-// インスペクタが 1 回の描画で使う mutation の数。制御された入力は打つたびに
-// 再描画するので、この数で割って同じ順番の mutation を返す。
-const mutationsPerRender = 7;
+// 資料の編集ダイアログはファイル選択に react-query をそのまま使うので、
+// インスペクタの描画にも Provider を添える。
+function Wrapper({ children }: PropsWithChildren) {
+  const queryClient = new QueryClient({
+    defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
+  });
+  return (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+}
 
-const inspectorMocks = vi.hoisted(() => ({
-  hookIndex: 0,
-  api: {
-    updateTask: vi.fn(),
-    deleteTask: vi.fn(),
-    attachPR: vi.fn(),
-    detachPR: vi.fn(),
-    addDocument: vi.fn(),
-    deleteDocument: vi.fn(),
-    getDocument: vi.fn(),
-    updateDocument: vi.fn(),
-  },
-  mutations: Array.from({ length: 7 }, () => ({
-    mutate: vi.fn(),
-    mutateAsync: vi.fn().mockResolvedValue({}),
-    isPending: false,
-    error: null as Error | null,
-  })),
+type ApiName =
+  | "updateTask"
+  | "deleteTask"
+  | "attachPR"
+  | "detachPR"
+  | "addDocument"
+  | "deleteDocument"
+  | "getDocument"
+  | "updateDocument";
+
+const inspectorMocks = vi.hoisted(() => {
+  const names: string[] = [
+    "updateTask",
+    "deleteTask",
+    "attachPR",
+    "detachPR",
+    "addDocument",
+    "deleteDocument",
+    "getDocument",
+    "updateDocument",
+  ];
+  const api: Record<string, ReturnType<typeof vi.fn>> = {};
+  const mutations: Record<
+    string,
+    {
+      mutate: ReturnType<typeof vi.fn>;
+      mutateAsync: ReturnType<typeof vi.fn>;
+      isPending: boolean;
+      error: Error | null;
+    }
+  > = {};
+  for (const name of names) {
+    api[name] = vi.fn();
+    mutations[name] = {
+      mutate: vi.fn(),
+      mutateAsync: vi.fn().mockResolvedValue({}),
+      isPending: false,
+      error: null,
+    };
+  }
+  return { api, mutations, names, selectLocalFile: vi.fn() };
+});
+
+const apiNames = inspectorMocks.names as ApiName[];
+
+vi.mock("../src/api", () => ({
+  mutations: inspectorMocks.api,
+  selectLocalFile: inspectorMocks.selectLocalFile,
 }));
-
-vi.mock("../src/api", () => ({ mutations: inspectorMocks.api }));
 vi.mock("../src/hooks", () => ({
   useDomainMutation: (mutationFn: (input: unknown) => unknown) => {
-    const mutation =
-      inspectorMocks.mutations[inspectorMocks.hookIndex++ % mutationsPerRender];
+    // attachPR だけは呼び出し側が引数を組み替える無名関数を渡すので、
+    // api の関数と一致しないものはそこへ寄せる。
+    const name =
+      apiNames.find((entry) => inspectorMocks.api[entry] === mutationFn) ??
+      "attachPR";
+    const mutation = inspectorMocks.mutations[name];
     if (!mutation) throw new Error("mutation mock missing");
     mutation.mutate.mockImplementation(
       (input: unknown, options?: { onSuccess?: (data: unknown) => void }) => {
@@ -60,9 +101,15 @@ vi.mock("../src/hooks", () => ({
   },
 }));
 
-function mutationAt(index: number) {
-  const mutation = inspectorMocks.mutations[index];
-  if (!mutation) throw new Error(`mutation mock missing at ${index}`);
+function apiFor(name: ApiName) {
+  const fn = inspectorMocks.api[name];
+  if (!fn) throw new Error(`api mock missing for ${name}`);
+  return fn;
+}
+
+function mutationFor(name: ApiName) {
+  const mutation = inspectorMocks.mutations[name];
+  if (!mutation) throw new Error(`mutation mock missing for ${name}`);
   return mutation;
 }
 
@@ -73,8 +120,8 @@ describe("TaskInspector", () => {
   });
 
   beforeEach(() => {
-    inspectorMocks.hookIndex = 0;
-    for (const mutation of inspectorMocks.mutations) {
+    for (const name of apiNames) inspectorMocks.api[name]?.mockReset();
+    for (const mutation of Object.values(inspectorMocks.mutations)) {
       mutation.mutate.mockReset();
       mutation.mutateAsync.mockReset();
       mutation.mutateAsync.mockResolvedValue({});
@@ -135,6 +182,7 @@ describe("TaskInspector", () => {
         onPreview={onPreview}
         onClose={onClose}
       />,
+      { wrapper: Wrapper },
     );
 
     const taskIdButton = screen.getByRole("button", { name: "Copy Task ID" });
@@ -195,7 +243,7 @@ describe("TaskInspector", () => {
       target: { value: "Carol" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Save task" }));
-    expect(mutationAt(1).mutate).toHaveBeenCalledWith({
+    expect(mutationFor("updateTask").mutate).toHaveBeenCalledWith({
       id: task.id,
       title: "Updated task",
       scope: "Updated scope",
@@ -204,38 +252,41 @@ describe("TaskInspector", () => {
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Detach" }));
-    expect(mutationAt(3).mutate).toHaveBeenCalledWith(task.id);
+    expect(mutationFor("detachPR").mutate).toHaveBeenCalledWith(task.id);
 
     fireEvent.click(
       screen.getByRole("button", { name: "Delivery plandocs/delivery.md" }),
     );
     expect(onPreview).toHaveBeenCalledWith(markdown);
-    inspectorMocks.api.getDocument.mockResolvedValue({
+    apiFor("getDocument").mockResolvedValue({
+      document: inline,
       content: "# Old\n\n- first\n- second",
     });
     fireEvent.click(screen.getByRole("button", { name: "Edit Inline plan" }));
-    expect(
-      await screen.findByRole("textbox", { name: "Edit Inline plan" }),
-    ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Cancel edit" }));
-    expect(
-      screen.queryByRole("textbox", { name: "Edit Inline plan" }),
-    ).not.toBeInTheDocument();
+    const editDialog = await screen.findByRole("dialog", {
+      name: "Edit task reference",
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(editDialog).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Edit Inline plan" }));
-    const markdownEditor = await screen.findByRole("textbox", {
-      name: "Edit Inline plan",
-    });
+    await screen.findByRole("dialog", { name: "Edit task reference" });
+    const markdownEditor = screen.getByLabelText("Markdown content");
     expect(markdownEditor).toHaveValue("# Old\n\n- first\n- second");
     fireEvent.change(markdownEditor, {
       target: { value: "# New\n\n- first\n- second" },
     });
-    const markdownEditForm = markdownEditor.closest("form");
-    if (!markdownEditForm) throw new Error("markdown edit form missing");
-    fireEvent.submit(markdownEditForm);
-    expect(inspectorMocks.api.updateDocument).toHaveBeenCalledWith({
-      id: "document-inline",
-      source: { case: "markdown", value: "# New\n\n- first\n- second" },
+    fireEvent.change(screen.getByLabelText("Reference title (optional)"), {
+      target: { value: "Inline plan v2" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => {
+      expect(mutationFor("updateDocument").mutateAsync).toHaveBeenCalledWith({
+        id: "document-inline",
+        title: "Inline plan v2",
+        source: { case: "markdown", value: "# New\n\n- first\n- second" },
+        isImplementationPlan: true,
+      });
     });
 
     vi.spyOn(window, "confirm").mockReturnValue(true);
@@ -245,7 +296,7 @@ describe("TaskInspector", () => {
     await waitFor(() => {
       expect(onClose).toHaveBeenCalledOnce();
     });
-    expect(mutationAt(0).mutateAsync).toHaveBeenCalledWith(task.id);
+    expect(mutationFor("deleteTask").mutateAsync).toHaveBeenCalledWith(task.id);
   });
 
   it("attaches a pull request when none is linked and closes explicitly", () => {
@@ -259,6 +310,7 @@ describe("TaskInspector", () => {
         onPreview={vi.fn()}
         onClose={vi.fn()}
       />,
+      { wrapper: Wrapper },
     );
 
     fireEvent.change(
@@ -268,7 +320,7 @@ describe("TaskInspector", () => {
       },
     );
     fireEvent.click(screen.getByRole("button", { name: "Attach" }));
-    expect(mutationAt(2).mutate).toHaveBeenCalledWith({
+    expect(mutationFor("attachPR").mutate).toHaveBeenCalledWith({
       taskId: task.id,
       url: "https://github.com/acme/prx/pull/99",
     });
@@ -290,6 +342,7 @@ describe("TaskInspector", () => {
         onPreview={vi.fn()}
         onClose={onClose}
       />,
+      { wrapper: Wrapper },
     );
 
     expect(screen.getByRole("button", { name: "Save task" })).toBeDisabled();
@@ -335,15 +388,17 @@ describe("TaskInspector", () => {
         onClose={vi.fn()}
       />
     );
-    mutationAt(5).error = new Error("read failed");
-    render(inspector);
+    mutationFor("getDocument").error = new Error("read failed");
+    render(inspector, { wrapper: Wrapper });
 
     expect(screen.getByRole("alert")).toHaveTextContent("read failed");
   });
 
   it("does not close when task deletion fails", async () => {
     const onClose = vi.fn();
-    mutationAt(0).mutateAsync.mockRejectedValueOnce(new Error("delete failed"));
+    mutationFor("deleteTask").mutateAsync.mockRejectedValueOnce(
+      new Error("delete failed"),
+    );
     render(
       <TaskInspector
         task={makeTask()}
@@ -353,6 +408,7 @@ describe("TaskInspector", () => {
         onPreview={vi.fn()}
         onClose={onClose}
       />,
+      { wrapper: Wrapper },
     );
     vi.spyOn(window, "confirm").mockReturnValue(true);
 
@@ -360,7 +416,7 @@ describe("TaskInspector", () => {
       screen.getByRole("button", { name: "Delete task and references" }),
     );
     await waitFor(() => {
-      expect(mutationAt(0).mutateAsync).toHaveBeenCalledOnce();
+      expect(mutationFor("deleteTask").mutateAsync).toHaveBeenCalledOnce();
     });
     expect(onClose).not.toHaveBeenCalled();
   });
@@ -388,6 +444,7 @@ describe("TaskInspector", () => {
         onClose={vi.fn()}
         readOnly
       />,
+      { wrapper: Wrapper },
     );
 
     expect(screen.getByText("Archived task · read-only")).toBeInTheDocument();
@@ -417,7 +474,7 @@ describe("TaskInspector", () => {
   });
 
   it("confirms before deleting a reference from the inspector", () => {
-    inspectorMocks.api.deleteDocument.mockClear();
+    apiFor("deleteDocument").mockClear();
     const task = makeTask();
     const markdown = makeDocument({
       id: "document-md",
@@ -435,6 +492,7 @@ describe("TaskInspector", () => {
         onPreview={vi.fn()}
         onClose={vi.fn()}
       />,
+      { wrapper: Wrapper },
     );
 
     fireEvent.click(
@@ -444,15 +502,13 @@ describe("TaskInspector", () => {
       screen.getByRole("dialog", { name: "Delete Delivery plan?" }),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    expect(inspectorMocks.api.deleteDocument).not.toHaveBeenCalled();
+    expect(apiFor("deleteDocument")).not.toHaveBeenCalled();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 
     fireEvent.click(
       screen.getByRole("button", { name: "Delete Delivery plan" }),
     );
     fireEvent.click(screen.getByRole("button", { name: "Delete reference" }));
-    expect(inspectorMocks.api.deleteDocument).toHaveBeenCalledWith(
-      "document-md",
-    );
+    expect(apiFor("deleteDocument")).toHaveBeenCalledWith("document-md");
   });
 });

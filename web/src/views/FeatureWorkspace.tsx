@@ -24,7 +24,6 @@ import {
   readHideCompletedTasks,
   writeHideCompletedTasks,
 } from "../i18n/settings";
-import { AddDocumentDialog } from "./AddDocumentDialog";
 import { BatchPromptDialog } from "./BatchPromptDialog";
 import {
   emptyHiddenDependencies,
@@ -34,6 +33,7 @@ import {
 import { CopyableIdentifier } from "./CopyableIdentifier";
 import { CreateTaskDialog } from "./CreateTaskDialog";
 import type { PendingDependency } from "./dependencyGraph";
+import { DocumentDialog } from "./DocumentDialog";
 import { DocumentReferences } from "./DocumentReferences";
 import { EditFeatureDialog } from "./EditFeatureDialog";
 import { EntityIcon } from "./EntityIcon";
@@ -534,7 +534,8 @@ function WorkspaceOverlays({ props }: { props: WorkspaceContentProps }) {
         />
       )}
       {props.documentTarget && (
-        <AddDocumentDialog
+        <DocumentDialog
+          mode="add"
           taskId={props.documentTarget.taskId}
           trigger={props.documentTarget.trigger}
           onClose={props.onCloseDocumentDialog}

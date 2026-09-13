@@ -166,8 +166,8 @@ vi.mock("../src/views/FeatureGraph", () => ({
     </div>
   ),
 }));
-vi.mock("../src/views/AddDocumentDialog", () => ({
-  AddDocumentDialog: ({
+vi.mock("../src/views/DocumentDialog", () => ({
+  DocumentDialog: ({
     taskId,
     onClose,
   }: {

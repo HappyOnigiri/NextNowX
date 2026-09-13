@@ -25,6 +25,32 @@ vi.mock("../src/api", () => ({
   selectLocalFile: apiMocks.selectLocalFile,
 }));
 
+const referenceDocuments = [
+  makeDocument({
+    id: "url-doc",
+    featureId: "feature-1",
+    taskId: "",
+    title: "Runbook",
+    locator: "https://example.com/runbook",
+  }),
+  makeDocument({
+    id: "local-doc",
+    featureId: "feature-1",
+    taskId: "",
+    kind: DocumentKind.LOCAL_FILE,
+    title: "Architecture notes",
+    locator: "docs/architecture.md",
+  }),
+  makeDocument({
+    id: "markdown-doc",
+    featureId: "feature-1",
+    taskId: "",
+    kind: DocumentKind.MARKDOWN,
+    title: "Decision log",
+    locator: "",
+  }),
+];
+
 function renderReferences(
   props: Partial<ComponentProps<typeof DocumentReferences>> = {},
 ) {
@@ -43,31 +69,7 @@ function renderReferences(
   const result = render(
     <DocumentReferences
       parent={{ featureId: "feature-1" }}
-      documents={[
-        makeDocument({
-          id: "url-doc",
-          featureId: "feature-1",
-          taskId: "",
-          title: "Runbook",
-          locator: "https://example.com/runbook",
-        }),
-        makeDocument({
-          id: "local-doc",
-          featureId: "feature-1",
-          taskId: "",
-          kind: DocumentKind.LOCAL_FILE,
-          title: "Architecture notes",
-          locator: "docs/architecture.md",
-        }),
-        makeDocument({
-          id: "markdown-doc",
-          featureId: "feature-1",
-          taskId: "",
-          kind: DocumentKind.MARKDOWN,
-          title: "Decision log",
-          locator: "",
-        }),
-      ]}
+      documents={referenceDocuments}
       onPreview={onPreview}
       {...props}
     />,
@@ -80,9 +82,14 @@ describe("DocumentReferences", () => {
   beforeEach(() => {
     apiMocks.addDocument.mockReset().mockResolvedValue({});
     apiMocks.deleteDocument.mockReset().mockResolvedValue({});
-    apiMocks.getDocument
-      .mockReset()
-      .mockResolvedValue({ content: "# Decision" });
+    // GetDocument は本文と一緒に親を含む document を返す。編集ダイアログは
+    // それを見て見出しと実装プラン欄を出し分ける。
+    apiMocks.getDocument.mockReset().mockImplementation((id: string) =>
+      Promise.resolve({
+        document: referenceDocuments.find((entry) => entry.id === id),
+        content: "# Decision",
+      }),
+    );
     apiMocks.updateDocument.mockReset().mockResolvedValue({});
     apiMocks.selectLocalFile
       .mockReset()
@@ -235,7 +242,7 @@ describe("DocumentReferences", () => {
     expect(close).toHaveFocus();
   });
 
-  it("supports Markdown editing and deletion without changing the task UI", async () => {
+  it("edits any reference in the shared modal and confirms deletion", async () => {
     renderReferences();
     fireEvent.click(screen.getByRole("button", { name: "References" }));
     fireEvent.click(screen.getByRole("button", { name: "Edit Decision log" }));
@@ -246,29 +253,37 @@ describe("DocumentReferences", () => {
         expect.anything(),
       );
     });
-    await screen.findByRole("textbox", {
-      name: "Edit Decision log",
+    const editDialog = await screen.findByRole("dialog", {
+      name: "Edit feature reference",
     });
-    fireEvent.click(screen.getByRole("button", { name: "Cancel edit" }));
-    expect(
-      screen.queryByRole("textbox", { name: "Edit Decision log" }),
-    ).toBeNull();
+    // 編集ダイアログを出すときはパネルを閉じる。
+    expect(screen.queryByRole("region", { name: "References" })).toBeNull();
+    expect(screen.getByLabelText("Markdown content")).toHaveValue("# Decision");
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(editDialog).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "References" }));
     fireEvent.click(screen.getByRole("button", { name: "Edit Decision log" }));
-    const reopenedEditor = await screen.findByRole("textbox", {
-      name: "Edit Decision log",
+    await screen.findByRole("dialog", { name: "Edit feature reference" });
+    fireEvent.change(screen.getByLabelText("Reference title (optional)"), {
+      target: { value: "Decision record" },
     });
-    fireEvent.change(reopenedEditor, { target: { value: "# Revised" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save reference" }));
+    fireEvent.change(screen.getByLabelText("Markdown content"), {
+      target: { value: "# Revised" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => {
       expect(apiMocks.updateDocument).toHaveBeenCalledWith(
         {
           id: "markdown-doc",
+          title: "Decision record",
           source: { case: "markdown", value: "# Revised" },
         },
         expect.anything(),
       );
     });
 
+    fireEvent.click(screen.getByRole("button", { name: "References" }));
     fireEvent.click(
       screen.getByRole("button", { name: "Delete Architecture notes" }),
     );
@@ -293,6 +308,34 @@ describe("DocumentReferences", () => {
         expect.anything(),
       );
     });
+  });
+
+  it("opens the modal for URL and local-file references too", async () => {
+    renderReferences();
+    fireEvent.click(screen.getByRole("button", { name: "References" }));
+    fireEvent.click(screen.getByRole("button", { name: "Edit Runbook" }));
+    await screen.findByRole("dialog", { name: "Edit feature reference" });
+    expect(screen.getByLabelText("Document URL")).toHaveValue(
+      "https://example.com/runbook",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "References" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Edit Architecture notes" }),
+    );
+    await screen.findByRole("dialog", { name: "Edit feature reference" });
+    expect(screen.getByLabelText("File path")).toHaveValue(
+      "docs/architecture.md",
+    );
+  });
+
+  it("reports a failed reference read", async () => {
+    apiMocks.getDocument.mockRejectedValueOnce(new Error("read failed"));
+    renderReferences();
+    fireEvent.click(screen.getByRole("button", { name: "References" }));
+    fireEvent.click(screen.getByRole("button", { name: "Edit Decision log" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("read failed");
   });
 
   it("keeps archived references viewable while hiding every mutation", () => {
