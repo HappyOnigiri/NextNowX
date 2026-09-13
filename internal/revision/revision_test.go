@@ -211,6 +211,9 @@ func TestCancelStopsDeliveryAndIsIdempotent(t *testing.T) {
 	_, updates, cancel := watcher.Revisions().Subscribe()
 	cancel()
 	cancel()
+	// 購読者が 0 になると読み取りを止めるので、監視を続けさせる購読を 1 つ残す。
+	_, _, keep := watcher.Revisions().Subscribe()
+	t.Cleanup(keep)
 	reader.set(2, nil)
 	reader.awaitReads(t, 3)
 	select {
@@ -222,11 +225,33 @@ func TestCancelStopsDeliveryAndIsIdempotent(t *testing.T) {
 	}
 }
 
+// 常駐するサーバーは、ブラウザを 1 枚も開いていない時間帯でも毎秒起きて読んで
+// いた。読んだ値を使う相手はいないので、すべて捨てられる。
+func TestWatcherStopsReadingWhileNobodyIsSubscribed(t *testing.T) {
+	reader := newFakeReader(2)
+	watcher := startWatcher(t, reader, func(error) {})
+	select {
+	case <-reader.reads:
+		t.Fatal("the watcher read the data version without a subscriber")
+	case <-time.After(50 * time.Millisecond):
+	}
+
+	// 購読が戻れば監視も戻る。読み直した値を基準に、その後の変化を検知する。
+	_, updates, cancel := watcher.Revisions().Subscribe()
+	t.Cleanup(cancel)
+	reader.awaitReads(t, 2)
+	reader.set(3, nil)
+	awaitRevision(t, updates, 2)
+}
+
 // 読み取りが失敗しているあいだは変更を検知できない。購読側がそれを知れないと、
 // 更新が止まったまま接続だけが健全に見える。
 func TestWatcherReportsWhetherItIsWatching(t *testing.T) {
 	reader := newFakeReader(3)
 	watcher := startWatcher(t, reader, func(error) {})
+	_, _, cancel := watcher.Revisions().Subscribe()
+	t.Cleanup(cancel)
+	reader.awaitReads(t, 1)
 	if !watcher.Revisions().Watching() {
 		t.Fatal("the watcher reports that it is not watching after a successful read")
 	}
@@ -245,10 +270,10 @@ func TestWatcherHoldsTheRevisionWhenTheBaselineReadFailed(t *testing.T) {
 	reader := newFakeReader(9)
 	reader.set(9, errors.New("the database cannot be read"))
 	watcher := startWatcher(t, reader, func(error) {})
-	reader.set(9, nil)
-	reader.awaitReads(t, 3)
 	current, updates, cancel := watcher.Revisions().Subscribe()
 	t.Cleanup(cancel)
+	reader.set(9, nil)
+	reader.awaitReads(t, 3)
 	if current != 1 {
 		t.Fatalf("the revision is %d, want 1", current)
 	}

@@ -35,6 +35,13 @@ func (b *Broadcaster) Watching() bool {
 	return b.watching
 }
 
+// hasSubscribers は配る相手がいるかを返す。いない間に読んだ値は誰も使わない。
+func (b *Broadcaster) hasSubscribers() bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return len(b.subscribers) > 0
+}
+
 func (b *Broadcaster) setWatching(value bool) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -132,6 +139,13 @@ func (w *Watcher) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+		}
+		if !w.broadcaster.hasSubscribers() {
+			// 常駐するので、誰も見ていない間は毎秒起こさない。読まない間の状態は
+			// 分からないため、次の購読で読み直して基準値から取り直す。
+			w.broadcaster.setWatching(true)
+			ok = false
+			continue
 		}
 		current, read := w.read(ctx)
 		w.broadcaster.setWatching(read)
