@@ -27,11 +27,42 @@ interface LayoutRequest extends GraphLayoutOptions {
   attempt: number;
 }
 
-// ノードの寸法は全件で固定する。中身に合わせて高さを変えると、ELK はその
-// ノードの周囲まで座標を動かし、ステータスが変わるだけでグラフが動く。
-// docs/design/webui.md を参照。
+// ノードの寸法はフィーチャー内で揃える。中身に合わせて 1 件ずつ高さを変える
+// と、ELK はそのノードの周囲まで座標を動かし、ステータスが変わるだけでグラフ
+// が動く。docs/design/webui.md を参照。
 const nodeWidth = 284;
-const nodeHeight = 332;
+// ヘッダ・ステータス行・タイトル・担当者に、ブロックラベルが 2 行目へ折り返す
+// ぶんを足した高さ。ラベルの数は同期で増減するので常に 2 行ぶんを確保する。
+const nodeBaseHeight = 196;
+const assetRowHeight = 34;
+// これより多いアセットはノードの中でスクロールさせる。
+const maxAssetRows = 4;
+
+// 高さはフィーチャーで最も嵩むタスクに合わせる。全件を最大寸法にすると、
+// アセットの少ないフィーチャーで必要以上に大きなカードになる。
+function nodeHeightFor({
+  tasks,
+  pullRequests,
+  documentsByTask,
+  readOnly,
+}: {
+  tasks: Task[];
+  pullRequests: Map<string, PullRequest>;
+  documentsByTask: Map<string, TaskNodeDocument[]>;
+  readOnly: boolean;
+}) {
+  const assets = Math.max(
+    0,
+    ...tasks.map(
+      (task) =>
+        (documentsByTask.get(task.id)?.length ?? 0) +
+        (pullRequests.has(task.id) ? 1 : 0),
+    ),
+  );
+  // 参照の追加ボタンは読み取り専用でなければどのノードにも並ぶ。
+  const rows = Math.min(assets + (readOnly ? 0 : 1), maxAssetRows);
+  return nodeBaseHeight + rows * assetRowHeight;
+}
 
 // タスク ID は T-<連番> なので、素の文字列比較では T-10 が T-9 より前に来る。
 // ロケールを固定し、実行環境で並びが変わらないようにする。
@@ -66,6 +97,12 @@ function buildRawNodes({
   readOnly = false,
 }: GraphLayoutOptions) {
   const omitOwner = hasSingleOwner(pullRequests);
+  const nodeHeight = nodeHeightFor({
+    tasks,
+    pullRequests,
+    documentsByTask,
+    readOnly,
+  });
   // tasks はインスペクタや件数表示と同じ配列なので、複製してから並べ替える。
   return [...tasks]
     .sort((left, right) => taskIdOrder.compare(left.id, right.id))

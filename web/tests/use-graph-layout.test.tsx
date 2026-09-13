@@ -309,7 +309,7 @@ describe("useGraphLayout", () => {
     });
   });
 
-  it("gives every node the same size whatever it carries", async () => {
+  it("gives every node the same size whatever its status", async () => {
     layoutMocks.layout.mockResolvedValue({ children: [] });
     const labels = [
       [],
@@ -364,11 +364,13 @@ describe("useGraphLayout", () => {
       children: { width: number; height: number }[];
     };
     expect(layoutInput.children).toHaveLength(5);
+    // 高さは最も嵩む task-3 の 3 アセットに揃う。ブロックラベルの数は寸法に
+    // 反映しない。
     for (const child of layoutInput.children)
-      expect(child).toMatchObject({ width: 284, height: 332 });
+      expect(child).toMatchObject({ width: 284, height: 196 + 3 * 34 });
 
-    // 本丸の回帰ガード。ステータスも添え物も変わった同じタスク集合が、ELK へ
-    // まったく同じ入力として届く。
+    // 本丸の回帰ガード。ステータスが変わった同じタスク集合が、ELK へまったく
+    // 同じ入力として届く。
     rerender({
       ...options,
       tasks: options.tasks.map((task, index) =>
@@ -378,12 +380,6 @@ describe("useGraphLayout", () => {
           displayState: TaskDisplayState.IN_REVIEW,
         }),
       ),
-      pullRequests: new Map([
-        ["task-1", makePullRequest({ taskId: "task-1" })],
-        ["task-4", makePullRequest({ taskId: "task-4" })],
-      ]),
-      documentsByTask: new Map([["task-5", [makeDocument()]]]),
-      readOnly: false,
     });
     await waitFor(() => {
       expect(layoutMocks.layout).toHaveBeenCalledTimes(2);
@@ -396,6 +392,67 @@ describe("useGraphLayout", () => {
     expect(second.edges).toEqual(
       (layoutMocks.layout.mock.calls[0]?.[0] as { edges: unknown }).edges,
     );
+  });
+
+  it("sizes nodes for the heaviest task in the feature", async () => {
+    layoutMocks.layout.mockResolvedValue({ children: [] });
+
+    async function layoutHeight(options: Parameters<typeof useGraphLayout>[0]) {
+      layoutMocks.layout.mockClear();
+      const { unmount } = renderHook(() => useGraphLayout(options));
+      await waitFor(() => {
+        expect(layoutMocks.layout).toHaveBeenCalledOnce();
+      });
+      const input = layoutMocks.layout.mock.calls[0]?.[0] as {
+        children: { height: number }[];
+      };
+      unmount();
+      return input.children.map((child) => child.height);
+    }
+
+    const tasks = [makeTask({ id: "task-1" }), makeTask({ id: "task-2" })];
+    const bare = {
+      tasks,
+      dependencies: [],
+      pullRequests: new Map(),
+      documentsByTask: new Map(),
+      onEditTask: vi.fn(),
+      onPreviewDocument: vi.fn(),
+      readOnly: true,
+    };
+
+    // 何も提げていないフィーチャーはアセットの行を取らない。
+    expect(await layoutHeight(bare)).toEqual([196, 196]);
+    // 読み取り専用でなければ参照の追加ボタンがどのノードにも並ぶ。
+    expect(await layoutHeight({ ...bare, readOnly: false })).toEqual([
+      230, 230,
+    ]);
+    // 最も嵩むタスクに全ノードが揃う。
+    expect(
+      await layoutHeight({
+        ...bare,
+        pullRequests: new Map([
+          ["task-2", makePullRequest({ taskId: "task-2" })],
+        ]),
+        documentsByTask: new Map([
+          ["task-2", [makeDocument({ id: "document-1" })]],
+        ]),
+      }),
+    ).toEqual([264, 264]);
+    // 4 行を超えるアセットはノードの中でスクロールするので、高さは頭打ちになる。
+    expect(
+      await layoutHeight({
+        ...bare,
+        documentsByTask: new Map([
+          [
+            "task-2",
+            Array.from({ length: 9 }, (_, index) =>
+              makeDocument({ id: `document-${String(index)}` }),
+            ),
+          ],
+        ]),
+      }),
+    ).toEqual([332, 332]);
   });
 
   it("orders nodes and edges by task id without disturbing the caller", async () => {

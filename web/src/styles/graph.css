@@ -133,8 +133,8 @@
    nothing about it is worth reading, and then it lies flush with the canvas.
    See docs/design/webui.md. */
 
-/* 寸法の正本は useGraphLayout の定数で、ここはその枠に従う。カードだけを
-   小さくすると、枠基準で置いたエッジの端点がカードの外に残る。 */
+/* 寸法の正本は useGraphLayout で、ここはその枠に従う。カードだけを小さく
+   すると、枠基準で置いたエッジの端点がカードの外に残る。 */
 .task-node {
   width: 284px;
   height: 100%;
