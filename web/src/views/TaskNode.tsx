@@ -336,7 +336,6 @@ function NodeAssetList({ data }: { data: TaskNodeData }) {
                   document.locator ||
                   t("inspector.referenceFallback")}
               </b>
-              <Eye aria-hidden="true" focusable="false" size={14} />
             </button>
           ),
         )}

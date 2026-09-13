@@ -1,4 +1,4 @@
-import { Check, Eye, Pencil, Trash2, X } from "lucide-react";
+import { Check, Pencil, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { mutations } from "../api";
@@ -178,7 +178,6 @@ export function DocumentRow({
               {document.locator || documentKindLabel(document.kind, t)}
             </small>
           </span>
-          <Eye aria-hidden="true" focusable="false" size={14} />
         </button>
       )}
       {(canEdit || canDelete) && (
