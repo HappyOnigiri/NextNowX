@@ -148,7 +148,11 @@ func (s *state) runServe(cmd *cobra.Command, address string) error {
 	if err := s.recordRunState(listener.Addr().String(), startedAt); err != nil {
 		return err
 	}
-	watcher, watcherDone := s.startRevisionWatcher(cmd.Context())
+	// serve の停止はコマンドの ctx だけでなく Serve の失敗でも起こる。どちらも
+	// 同じ経路に集めて、ハンドラと watcher の終了を待ってから返す。
+	serveCtx, stopServing := context.WithCancel(cmd.Context())
+	defer stopServing()
+	watcher, watcherDone := s.startRevisionWatcher(serveCtx)
 	rpcPath, rpcHandler := rpc.NewWithOptions(s.service, rpc.Options{Revisions: revisionSubscriber(watcher)})
 	mux := http.NewServeMux()
 	mux.Handle(rpcPath, rpcHandler)
@@ -167,7 +171,7 @@ func (s *state) runServe(cmd *cobra.Command, address string) error {
 	shutdownDone := make(chan struct{})
 	go func() {
 		defer close(shutdownDone)
-		<-cmd.Context().Done()
+		<-serveCtx.Done()
 		s.shutdownServe(server)
 	}()
 	if s.runLock != nil {
@@ -176,11 +180,12 @@ func (s *state) runServe(cmd *cobra.Command, address string) error {
 	err = server.Serve(listener)
 	// Serve は Shutdown の開始と同時に戻る。待たずに返すと closeService の
 	// store.Close がハンドラや watcher の実行中に走る。
+	stopServing()
+	<-shutdownDone
+	<-watcherDone
 	if !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
-	<-shutdownDone
-	<-watcherDone
 	return nil
 }
 
