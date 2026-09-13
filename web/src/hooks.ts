@@ -17,13 +17,13 @@ import type { QueryDiagnostic } from "./debug-text";
 import { setDisplayLanguage } from "./i18n";
 import { isSupportedLanguage } from "./i18n/settings";
 import { runWhenIdle } from "./refresh-gate";
+import { startSharedRevisionStream } from "./revision-share";
 import {
   disconnectedNoticeMs,
   localWriteRevisionWindowMs,
   RevisionStreamContext,
   type RevisionStreamStatus,
 } from "./revision-status";
-import { startRevisionStream } from "./revision-stream";
 
 const snapshotKey = ["snapshot"] as const;
 const configKey = ["github-config"] as const;
@@ -149,7 +149,7 @@ export function useAutoSync(enabled = true) {
 
 // useRevisionStream はローカルデータベースの変更を購読し、届くたびにサーバー側の
 // 状態を写した query を捨てる。CLI や別タブの書き込みもこれで反映される。
-// AppShell から 1 回だけ呼ぶ。1 タブにつきストリームは 1 本だけにする。
+// AppShell から 1 回だけ呼ぶ。ストリームはブラウザプロファイル全体で 1 本に絞る。
 export function useRevisionStream(): RevisionStreamStatus {
   const queryClient = useQueryClient();
   const [connected, setConnected] = useState(false);
@@ -166,7 +166,7 @@ export function useRevisionStream(): RevisionStreamStatus {
       });
     };
     let notice: ReturnType<typeof setTimeout> | undefined;
-    const stop = startRevisionStream({
+    const stop = startSharedRevisionStream({
       // 接続のたびに無条件で捨てる。切断中の変更は、これで 1 回の再取得に畳まれる。
       onConnect: () => {
         if (notice !== undefined) clearTimeout(notice);
