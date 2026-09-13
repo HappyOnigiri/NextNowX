@@ -122,6 +122,15 @@ func TestApplyFailsWhenTheInstallerCannotBeDownloaded(t *testing.T) {
 	}
 }
 
+// 切り詰めたスクリプトを実行すると、取得の破損が無関係な失敗として現れる。
+func TestApplyFailsOnAnOversizedInstaller(t *testing.T) {
+	applier := newTestApplier(t, strings.Repeat("#", maxScriptBytes+1), nil)
+	_, err := applier.Apply(context.Background(), "v0.4.0")
+	if err == nil || !strings.Contains(err.Error(), "larger than") {
+		t.Fatalf("error=%v", err)
+	}
+}
+
 func TestApplyFailsOnAnEmptyInstaller(t *testing.T) {
 	applier := newTestApplier(t, "", nil)
 	if _, err := applier.Apply(context.Background(), "v0.4.0"); err == nil {

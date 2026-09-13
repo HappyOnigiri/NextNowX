@@ -122,12 +122,17 @@ func (a *Applier) download(ctx context.Context, tag string) ([]byte, error) {
 	if response.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("download installer for %s: GitHub returned status %d", tag, response.StatusCode)
 	}
-	body, err := io.ReadAll(io.LimitReader(response.Body, maxScriptBytes))
+	body, err := io.ReadAll(io.LimitReader(response.Body, maxScriptBytes+1))
 	if err != nil {
 		return nil, fmt.Errorf("download installer for %s: %w", tag, err)
 	}
 	if len(body) == 0 {
 		return nil, fmt.Errorf("the installer for %s is empty", tag)
+	}
+	// 切り詰めた内容をそのまま実行しない。上限で黙って切ると、取得の破損が
+	// 「置き換えの報告が無い」という無関係な失敗として現れる。
+	if len(body) > maxScriptBytes {
+		return nil, fmt.Errorf("the installer for %s is larger than %d bytes", tag, maxScriptBytes)
 	}
 	return body, nil
 }
