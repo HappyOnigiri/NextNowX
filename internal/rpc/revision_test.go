@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -41,11 +42,16 @@ type stubSubscriber struct {
 	current  uint64
 	updates  chan uint64
 	canceled chan struct{}
+	watching atomic.Bool
 }
 
 func newStubSubscriber(current uint64) *stubSubscriber {
-	return &stubSubscriber{current: current, updates: make(chan uint64, 1), canceled: make(chan struct{}, 1)}
+	subscriber := &stubSubscriber{current: current, updates: make(chan uint64, 1), canceled: make(chan struct{}, 1)}
+	subscriber.watching.Store(true)
+	return subscriber
 }
+
+func (s *stubSubscriber) Watching() bool { return s.watching.Load() }
 
 func (s *stubSubscriber) Subscribe() (uint64, <-chan uint64, func()) {
 	return s.current, s.updates, func() {
@@ -160,6 +166,45 @@ func TestWatchRevisionWithoutASubscriberOnlyHeartbeats(t *testing.T) {
 		if got := receiveRevision(t, stream); got != 1 {
 			t.Fatalf("the revision is %d, want 1", got)
 		}
+	}
+}
+
+// 監視が止まっているあいだ heartbeat を送ると、変更が届かないまま接続だけが健全に
+// 見える。クライアントが更新の停止を表示できるよう、エラーで終える。
+func TestWatchRevisionFailsWhileTheDatabaseIsNotWatched(t *testing.T) {
+	subscriber := newStubSubscriber(4)
+	subscriber.watching.Store(false)
+	client := newRevisionClient(t, subscriber, 10*time.Millisecond)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	stream, err := client.WatchRevision(ctx, connect.NewRequest(&prxv1.WatchRevisionRequest{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = stream.Close() })
+	if stream.Receive() {
+		t.Fatalf("the stream sent revision %d, want an error", stream.Msg().GetRevision())
+	}
+	if got := connect.CodeOf(stream.Err()); got != connect.CodeUnavailable {
+		t.Fatalf("the stream failed with %v, want %v", got, connect.CodeUnavailable)
+	}
+}
+
+// 監視が止まったら、開いたままのストリームも次の heartbeat で終える。
+func TestWatchRevisionEndsWhenWatchingStops(t *testing.T) {
+	subscriber := newStubSubscriber(2)
+	client := newRevisionClient(t, subscriber, 10*time.Millisecond)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	stream := openRevisionStream(t, ctx, client)
+	if got := receiveRevision(t, stream); got != 2 {
+		t.Fatalf("the first revision is %d, want 2", got)
+	}
+	subscriber.watching.Store(false)
+	for stream.Receive() {
+	}
+	if got := connect.CodeOf(stream.Err()); got != connect.CodeUnavailable {
+		t.Fatalf("the stream failed with %v, want %v", got, connect.CodeUnavailable)
 	}
 }
 

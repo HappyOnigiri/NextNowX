@@ -221,3 +221,37 @@ func TestCancelStopsDeliveryAndIsIdempotent(t *testing.T) {
 	default:
 	}
 }
+
+// 読み取りが失敗しているあいだは変更を検知できない。購読側がそれを知れないと、
+// 更新が止まったまま接続だけが健全に見える。
+func TestWatcherReportsWhetherItIsWatching(t *testing.T) {
+	reader := newFakeReader(3)
+	watcher := startWatcher(t, reader, func(error) {})
+	if !watcher.Revisions().Watching() {
+		t.Fatal("the watcher reports that it is not watching after a successful read")
+	}
+	reader.set(3, errors.New("the database cannot be read"))
+	reader.awaitReads(t, 2)
+	waitFor(t, func() bool { return !watcher.Revisions().Watching() })
+
+	reader.set(4, nil)
+	reader.awaitReads(t, 2)
+	waitFor(t, func() bool { return watcher.Revisions().Watching() })
+}
+
+// waitFor は条件が成立するまで短い間隔で確かめる。読み取りと状態の更新は監視の
+// goroutine が行うので、読み取りの完了だけでは同期できない。
+func waitFor(t *testing.T, condition func() bool) {
+	t.Helper()
+	deadline := time.After(5 * time.Second)
+	for {
+		if condition() {
+			return
+		}
+		select {
+		case <-deadline:
+			t.Fatal("the watcher never reached the expected watching state")
+		case <-time.After(time.Millisecond):
+		}
+	}
+}

@@ -25,6 +25,8 @@ type LocalFilePicker interface {
 // これがアプリケーション境界ではなくサーバープロセスの実行時事情だからである。
 type RevisionSubscriber interface {
 	Subscribe() (current uint64, updates <-chan uint64, cancel func())
+	// Watching は変更を検知できている間だけ true を返す。
+	Watching() bool
 }
 
 // Options は serve の配線だけが与える実行時の差し替え点。

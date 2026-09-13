@@ -22,6 +22,9 @@ func (h *Handler) WatchRevision(
 		return connect.NewError(connect.CodeResourceExhausted, errors.New("too many revision streams are open"))
 	}
 	defer h.openStreams.Add(-1)
+	if !h.watchingRevisions() {
+		return errNotWatching()
+	}
 	current, updates, cancel := h.subscribeRevisions()
 	defer cancel()
 	if err := sendRevision(stream, current); err != nil {
@@ -37,6 +40,18 @@ func (h *Handler) subscribeRevisions() (uint64, <-chan uint64, func()) {
 		return 1, nil, func() {}
 	}
 	return h.revisions.Subscribe()
+}
+
+// watchingRevisions は変更を検知できているかを返す。購読できない構成は監視の失敗と
+// 区別する。前者は heartbeat だけの縮退で、後者は更新が止まっていることの通知である。
+func (h *Handler) watchingRevisions() bool {
+	return h.revisions == nil || h.revisions.Watching()
+}
+
+// errNotWatching は更新が止まっていることをクライアントへ伝える。heartbeat を送り
+// 続けると、変更が届かないまま接続だけが健全に見える。
+func errNotWatching() error {
+	return connect.NewError(connect.CodeUnavailable, errors.New("the database is not being watched for changes"))
 }
 
 func (h *Handler) streamRevisions(
@@ -58,6 +73,9 @@ func (h *Handler) streamRevisions(
 			}
 			current = value
 		case <-ticker.C:
+			if !h.watchingRevisions() {
+				return errNotWatching()
+			}
 		}
 		if err := sendRevision(stream, current); err != nil {
 			return err

@@ -18,12 +18,27 @@ type Broadcaster struct {
 	mu          sync.Mutex
 	current     uint64
 	closed      bool
+	watching    bool
 	subscribers map[int]chan uint64
 	nextID      int
 }
 
 func newBroadcaster() *Broadcaster {
-	return &Broadcaster{current: 1, subscribers: map[int]chan uint64{}}
+	return &Broadcaster{current: 1, watching: true, subscribers: map[int]chan uint64{}}
+}
+
+// Watching は直近の読み取りが成功しているかを返す。false のあいだ変更は検知でき
+// ないので、購読を生かしたままにするとクライアントは更新の停止に気づけない。
+func (b *Broadcaster) Watching() bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.watching
+}
+
+func (b *Broadcaster) setWatching(value bool) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.watching = value
 }
 
 // Subscribe は現在のリビジョンと更新チャネルを返す。チャネルは cap 1 の
@@ -108,6 +123,7 @@ func (w *Watcher) Revisions() *Broadcaster { return w.broadcaster }
 func (w *Watcher) Run(ctx context.Context) {
 	defer w.broadcaster.Close()
 	baseline, ok := w.read(ctx)
+	w.broadcaster.setWatching(ok)
 	ticker := time.NewTicker(w.interval)
 	defer ticker.Stop()
 	revision := uint64(1)
@@ -118,6 +134,7 @@ func (w *Watcher) Run(ctx context.Context) {
 		case <-ticker.C:
 		}
 		current, read := w.read(ctx)
+		w.broadcaster.setWatching(read)
 		if !read {
 			continue
 		}
