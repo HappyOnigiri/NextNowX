@@ -105,9 +105,18 @@ test("keeps controls usable at a narrow viewport", async ({ page }) => {
     "aria-hidden",
     "true",
   );
-  await expect(page.getByRole("button", { name: "Refresh" })).toBeHidden();
-  await expect(page.getByRole("button", { name: "Edit feature" })).toBeHidden();
-  const referencesButton = page.getByRole("button", { name: "References" });
+  // ノードにも「Refresh」を含むアクセシブルな名前の PR フラグが現れるので、
+  // 隠れているかを見る対象はツールバーに限る。
+  const workspaceActions = page.locator(".workspace-actions");
+  await expect(
+    workspaceActions.getByRole("button", { name: "Refresh" }),
+  ).toBeHidden();
+  await expect(
+    workspaceActions.getByRole("button", { name: "Edit feature" }),
+  ).toBeHidden();
+  const referencesButton = workspaceActions.getByRole("button", {
+    name: "References",
+  });
   await expect(referencesButton).toBeVisible();
   await referencesButton.click();
   const referencesPanel = page.getByRole("region", { name: "References" });
