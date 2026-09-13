@@ -66,14 +66,14 @@ describe("IconButton", () => {
 
   it("marks a busy button so the icon animates and assistive tech hears it", () => {
     const { rerender } = render(
-      <IconButton icon={RefreshCw} label="Sync GitHub" busy />,
+      <IconButton icon={RefreshCw} label="Refresh" busy />,
     );
 
-    const button = screen.getByRole("button", { name: "Sync GitHub" });
+    const button = screen.getByRole("button", { name: "Refresh" });
     expect(button).toHaveClass("icon-button-busy");
     expect(button).toHaveAttribute("aria-busy", "true");
 
-    rerender(<IconButton icon={RefreshCw} label="Sync GitHub" />);
+    rerender(<IconButton icon={RefreshCw} label="Refresh" />);
     expect(button).not.toHaveClass("icon-button-busy");
     expect(button).not.toHaveAttribute("aria-busy");
   });

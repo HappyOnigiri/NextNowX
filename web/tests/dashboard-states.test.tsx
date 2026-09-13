@@ -223,7 +223,7 @@ describe("Dashboard states", () => {
     dashboardMocks.state.data = makeSnapshot();
     renderDashboard();
 
-    fireEvent.click(screen.getByRole("button", { name: "Sync GitHub" }));
+    fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
     expect(dashboardMocks.sync.mutate).toHaveBeenCalledOnce();
     expect(dashboardMocks.sync.mutate).toHaveBeenCalledWith(undefined);
     expect(dashboardMocks.api.sync).toHaveBeenCalledOnce();
@@ -236,7 +236,7 @@ describe("Dashboard states", () => {
     dashboardMocks.sync.isPending = true;
     const { rerender } = renderDashboard();
 
-    const syncing = screen.getByRole("button", { name: "Syncing GitHub…" });
+    const syncing = screen.getByRole("button", { name: "Refreshing…" });
     expect(syncing).toBeDisabled();
     expect(syncing).toHaveClass("icon-button-busy");
     expect(syncing).toHaveAttribute("aria-busy", "true");
@@ -251,7 +251,7 @@ describe("Dashboard states", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "GitHub is unavailable",
     );
-    const idle = screen.getByRole("button", { name: "Sync GitHub" });
+    const idle = screen.getByRole("button", { name: "Refresh" });
     expect(idle).toBeEnabled();
     expect(idle).not.toHaveClass("icon-button-busy");
   });
@@ -309,7 +309,7 @@ describe("Dashboard states", () => {
     dashboardMocks.state.data = makeSnapshot();
     renderDashboard({ ...autoSyncStatus, checking: true });
 
-    const syncing = screen.getByRole("button", { name: "Syncing GitHub…" });
+    const syncing = screen.getByRole("button", { name: "Refreshing…" });
     expect(syncing).toBeDisabled();
     expect(syncing).toHaveAttribute("aria-busy", "true");
   });

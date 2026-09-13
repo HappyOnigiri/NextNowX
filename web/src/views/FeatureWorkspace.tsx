@@ -391,8 +391,8 @@ function FeatureWorkspaceHead({
             icon={RefreshCw}
             label={
               props.syncPending
-                ? t("workspace.syncing")
-                : t("workspace.syncGithub")
+                ? t("workspace.refreshing")
+                : t("workspace.refresh")
             }
             variant="secondary"
             busy={props.syncPending}

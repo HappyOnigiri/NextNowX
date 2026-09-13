@@ -50,7 +50,7 @@ test("keeps controls usable at a narrow viewport", async ({ page }) => {
   await expect(page.locator(".page-head .dashboard-sync")).toBeVisible();
   await expect(page.locator(".rail .dashboard-sync")).toHaveCount(0);
   const dashboardSyncButton = page.getByRole("button", {
-    name: "Sync GitHub",
+    name: "Refresh",
   });
   await expect(dashboardSyncButton).toBeVisible();
   const dashboardSyncBounds = await dashboardSyncButton.boundingBox();
@@ -105,7 +105,7 @@ test("keeps controls usable at a narrow viewport", async ({ page }) => {
     "aria-hidden",
     "true",
   );
-  await expect(page.getByRole("button", { name: "Sync GitHub" })).toBeHidden();
+  await expect(page.getByRole("button", { name: "Refresh" })).toBeHidden();
   await expect(page.getByRole("button", { name: "Edit feature" })).toBeHidden();
   const referencesButton = page.getByRole("button", { name: "References" });
   await expect(referencesButton).toBeVisible();
