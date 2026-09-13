@@ -128,6 +128,9 @@ func (a *Applier) runInstaller(ctx context.Context, scriptPath string) (string, 
 	command := exec.CommandContext(ctx, "bash", scriptPath)
 	command.Env = installerEnvironment()
 	command.Stdin = nil
+	// 標準入力を閉じるだけでは install.sh が呼ぶ `prx setup` が /dev/tty を開けてしまい、
+	// 誰も答えない問いかけを上限時間まで待つ。制御端末ごと渡さない。
+	command.SysProcAttr = installerProcessAttributes()
 	var output bytes.Buffer
 	command.Stdout = &output
 	command.Stderr = &output
