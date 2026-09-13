@@ -42,6 +42,15 @@ const (
 // 配置先は行末まで取る。HOME に空白を含む環境でも報告を取りこぼさないためである。
 var installedPattern = regexp.MustCompile(`(?m)^Installed prx (\S+) to (.+)$`)
 
+// forwardedEnvironment は install.sh の中の curl が外へ出るために要る設定。
+// Go 側の取得が通るのにスクリプトの取得だけが落ちる状態を避けるため、
+// プロキシと CA の指定だけを許可リストで引き継ぐ。
+var forwardedEnvironment = []string{
+	"HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY",
+	"http_proxy", "https_proxy", "all_proxy", "no_proxy",
+	"SSL_CERT_FILE", "SSL_CERT_DIR", "CURL_CA_BUNDLE",
+}
+
 // Applier は 1 つのリリースへ更新する実行器。
 type Applier struct {
 	baseURL string
@@ -154,6 +163,11 @@ func installerEnvironment() []string {
 	environment := []string{"PATH=" + path, "HOME=" + home}
 	if value := os.Getenv("TMPDIR"); value != "" {
 		environment = append(environment, "TMPDIR="+value)
+	}
+	for _, name := range forwardedEnvironment {
+		if value := os.Getenv(name); value != "" {
+			environment = append(environment, name+"="+value)
+		}
 	}
 	return environment
 }

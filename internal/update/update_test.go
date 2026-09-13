@@ -143,6 +143,25 @@ func TestInstallerEnvironmentAlwaysCarriesPathAndHome(t *testing.T) {
 	}
 }
 
+// プロキシ必須の環境では、スクリプトの中の curl も同じ設定を要る。
+func TestInstallerEnvironmentForwardsProxySettings(t *testing.T) {
+	t.Setenv("HTTPS_PROXY", "http://proxy.example:3128")
+	t.Setenv("NO_PROXY", "localhost")
+	t.Setenv("SSL_CERT_FILE", "/etc/ssl/company.pem")
+	t.Setenv("GITHUB_TOKEN", "secret")
+	joined := strings.Join(installerEnvironment(), "\n")
+	for _, want := range []string{
+		"HTTPS_PROXY=http://proxy.example:3128", "NO_PROXY=localhost", "SSL_CERT_FILE=/etc/ssl/company.pem",
+	} {
+		if !strings.Contains(joined, want) {
+			t.Fatalf("environment=%q want %q", joined, want)
+		}
+	}
+	if strings.Contains(joined, "GITHUB_TOKEN") {
+		t.Fatalf("an unrelated secret reached the installer: %q", joined)
+	}
+}
+
 // 既定の実行器は bash を起動する。端末を持たせないことが、インストーラーの
 // セットアップ TUI が応答を待ち続ける事態を防ぐ。
 func TestRunInstallerExecutesTheStagedScript(t *testing.T) {
