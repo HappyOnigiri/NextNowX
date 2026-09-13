@@ -115,3 +115,10 @@ type Task struct {
 	UpdatedAt string `json:"updated_at"`
 	PublicID  string `json:"public_id"`
 }
+
+type UpdateCheckState struct {
+	Singleton       int64         `json:"singleton"`
+	LastCheckedUnix sql.NullInt64 `json:"last_checked_unix"`
+	CheckError      string        `json:"check_error"`
+	Releases        string        `json:"releases"`
+}

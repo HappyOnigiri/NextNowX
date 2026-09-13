@@ -42,6 +42,7 @@ PRX は、タスクと GitHub プルリクエストの依存グラフを扱う�
 | `docs/design/domain.md` | 表示状態の導出、ステータスの意味、依存関係、プロジェクトの所属 |
 | `docs/design/archive.md` | アーカイブ済みのプロジェクトやフィーチャー、およびそれらが禁止する書き込み |
 | `docs/design/persistence.md` | ストレージ、設定ファイルと設定の置き場所、デモモード、ドキュメント、実装計画 |
+| `docs/design/updates.md` | 新しいリリースの確認、`prx update`、WebUI の案内、更新の実行 |
 | `docs/design/github-sync.md` | プルリクエストの同一性、同期の範囲、スケジューリング、失敗時の扱い |
 | `docs/design/github-credentials.md` | 認証情報の解決、フォールバック、シークレットの扱い |
 | `docs/design/security.md` | ローカルの信頼境界、サーバーの公開範囲、ローカルファイルへのアクセス |

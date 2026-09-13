@@ -1,3 +1,4 @@
+import { create } from "@bufbuild/protobuf";
 import {
   cleanup,
   fireEvent,
@@ -7,7 +8,11 @@ import {
 } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { FeatureStatus } from "../src/gen/prx/v1/prx_pb";
+import {
+  FeatureStatus,
+  UpdateStatusSchema,
+  type UpdateStatus,
+} from "../src/gen/prx/v1/prx_pb";
 import { setDisplayLanguage } from "../src/i18n";
 import { AppShell } from "../src/shell";
 import { makeFeature, makeProject, makeSnapshot } from "./factories";
@@ -26,6 +31,9 @@ const shellMocks = vi.hoisted(() => ({
     error: null,
   })),
   revisionStream: vi.fn(() => ({ connected: true, stale: false })),
+  updateStatus: vi.fn<() => { data: UpdateStatus | undefined }>(() => ({
+    data: undefined,
+  })),
 }));
 
 const snapshot = makeSnapshot({
@@ -98,6 +106,23 @@ vi.mock("../src/hooks", () => ({
   useDomainMutation: () => shellMocks.mutation,
   useConfig: () => ({ data: { hosts: [], authMethods: [] }, isPending: false }),
   useConfigMutation: () => shellMocks.mutation,
+  useUpdateStatus: () => shellMocks.updateStatus(),
+}));
+// モーダルの中身は update-dialog.test.tsx が受け持つ。ここでは案内から開くことだけを見る。
+vi.mock("../src/views/UpdateDialog", () => ({
+  UpdateDialog: ({
+    status,
+    onClose,
+  }: {
+    status: { latestVersion: string };
+    onClose: () => void;
+  }) => (
+    <div role="dialog" aria-label={`PRX ${status.latestVersion} is available`}>
+      <button type="button" onClick={onClose}>
+        Close update
+      </button>
+    </div>
+  ),
 }));
 
 describe("AppShell", () => {
@@ -118,6 +143,8 @@ describe("AppShell", () => {
       connected: true,
       stale: false,
     });
+    shellMocks.updateStatus.mockClear();
+    shellMocks.updateStatus.mockReturnValue({ data: undefined });
     shellMocks.mutation.mutateAsync.mockReset();
     shellMocks.mutation.mutateAsync.mockResolvedValue({
       feature: makeFeature({ id: "created" }),
@@ -150,6 +177,42 @@ describe("AppShell", () => {
       </AppShell>,
     );
     expect(screen.getByText("Automatic updates stopped")).toBeInTheDocument();
+  });
+
+  // 案内は should_notify のときだけ出し、押すとリリース本文のモーダルが開く。
+  it("shows the update notice only when the server asks for it", () => {
+    const { rerender } = render(
+      <AppShell>
+        <p>Workspace</p>
+      </AppShell>,
+    );
+    expect(
+      screen.queryByRole("button", { name: "Update to v0.5.0" }),
+    ).not.toBeInTheDocument();
+
+    shellMocks.updateStatus.mockReturnValue({
+      data: create(UpdateStatusSchema, {
+        enabled: true,
+        currentVersion: "0.3.0",
+        updateAvailable: true,
+        shouldNotify: true,
+        latestVersion: "v0.5.0",
+        releases: [{ version: "v0.5.0" }],
+      }),
+    });
+    rerender(
+      <AppShell>
+        <p>Workspace</p>
+      </AppShell>,
+    );
+    const notice = screen.getByRole("button", { name: "Update to v0.5.0" });
+    fireEvent.click(notice);
+    expect(
+      screen.getByRole("dialog", { name: "PRX v0.5.0 is available" }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Close update" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("shows the project tree and changes display settings from Settings", async () => {

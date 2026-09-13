@@ -23,7 +23,7 @@ A prebuilt binary is published for Apple Silicon.
 curl -fsSL https://github.com/HappyOnigiri/PRX/releases/latest/download/install.sh | bash
 ```
 
-Run the same command again to update.
+Run the same command again to update, or run `prx update` to check for a newer release and install it. The WebUI offers the same update when one is available.
 
 ### Linux / WSL2
 

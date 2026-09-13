@@ -30,6 +30,25 @@ func (q *Queries) AcquireGitHubAutoSync(ctx context.Context, arg AcquireGitHubAu
 	return result.RowsAffected()
 }
 
+const acquireUpdateCheck = `-- name: AcquireUpdateCheck :execrows
+UPDATE update_check_state
+SET last_checked_unix=?
+WHERE singleton=1 AND (last_checked_unix IS NULL OR last_checked_unix<=?)
+`
+
+type AcquireUpdateCheckParams struct {
+	LastCheckedUnix   sql.NullInt64 `json:"last_checked_unix"`
+	LastCheckedUnix_2 sql.NullInt64 `json:"last_checked_unix_2"`
+}
+
+func (q *Queries) AcquireUpdateCheck(ctx context.Context, arg AcquireUpdateCheckParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, acquireUpdateCheck, arg.LastCheckedUnix, arg.LastCheckedUnix_2)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const addDependency = `-- name: AddDependency :one
 INSERT INTO dependencies (blocker_task_id, blocked_task_id, created_at) VALUES (?, ?, ?) RETURNING blocker_task_id, blocked_task_id, created_at
 `
@@ -73,6 +92,23 @@ func (q *Queries) CompleteGitHubSync(ctx context.Context, arg CompleteGitHubSync
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const completeUpdateCheck = `-- name: CompleteUpdateCheck :exec
+UPDATE update_check_state
+SET last_checked_unix=?, check_error=?, releases=?
+WHERE singleton=1
+`
+
+type CompleteUpdateCheckParams struct {
+	LastCheckedUnix sql.NullInt64 `json:"last_checked_unix"`
+	CheckError      string        `json:"check_error"`
+	Releases        string        `json:"releases"`
+}
+
+func (q *Queries) CompleteUpdateCheck(ctx context.Context, arg CompleteUpdateCheckParams) error {
+	_, err := q.db.ExecContext(ctx, completeUpdateCheck, arg.LastCheckedUnix, arg.CheckError, arg.Releases)
+	return err
 }
 
 const countProjectReferences = `-- name: CountProjectReferences :one
@@ -692,6 +728,22 @@ func (q *Queries) GetTaskByPublicID(ctx context.Context, publicID string) (Task,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.PublicID,
+	)
+	return i, err
+}
+
+const getUpdateCheckState = `-- name: GetUpdateCheckState :one
+SELECT singleton, last_checked_unix, check_error, releases FROM update_check_state WHERE singleton=1
+`
+
+func (q *Queries) GetUpdateCheckState(ctx context.Context) (UpdateCheckState, error) {
+	row := q.db.QueryRowContext(ctx, getUpdateCheckState)
+	var i UpdateCheckState
+	err := row.Scan(
+		&i.Singleton,
+		&i.LastCheckedUnix,
+		&i.CheckError,
+		&i.Releases,
 	)
 	return i, err
 }

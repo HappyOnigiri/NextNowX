@@ -23,7 +23,7 @@
 curl -fsSL https://github.com/HappyOnigiri/PRX/releases/latest/download/install.sh | bash
 ```
 
-更新也使用同一条命令。
+更新也使用同一条命令。也可以运行 `prx update` 检查并安装更新。有新版本时，WebUI 中同样可以更新。
 
 ### Linux / WSL2
 

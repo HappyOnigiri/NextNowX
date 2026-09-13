@@ -1771,6 +1771,12 @@ func TestBlackBoxJSONResponsesCoverEveryResponseCommand(t *testing.T) {
 		"succeeded",
 		"failed",
 	)
+	assertDirectObject(
+		t,
+		runDB("update"),
+		"enabled", "disabled_reason", "current_version", "update_available", "releases",
+		"applied", "restart_required",
+	)
 	assertDirectObjectKeys(t, runDB("validate"), "valid")
 	assertDirectObjectKeys(
 		t,
@@ -1802,6 +1808,47 @@ func TestBlackBoxJSONResponsesCoverEveryResponseCommand(t *testing.T) {
 	// checkout の feature はまだ project に属しているので、cascade は失敗させずに
 	// project ごと削除する形になる。
 	assertDirectObjectKeys(t, runDB("project", "delete", projectID, "--cascade"), "deleted")
+}
+
+// 開発ビルドの `prx update` は確認も更新も行わず、ストレージにも触れない。
+// 実配布物でないビルドが配布元へ出ないことを、実バイナリで押さえる。
+func TestBlackBoxUpdateIsDisabledForDevelopmentBuildsAndOpensNoStorage(t *testing.T) {
+	binary := buildCLI(t)
+	root := t.TempDir()
+	missingDB := filepath.Join(root, "missing", "prx.db")
+	missingConfig := filepath.Join(root, "missing", "config.yaml")
+
+	text := executeCLI(t, binary, "", "--db", missingDB, "--config", missingConfig, "update")
+	if text.exit != 0 || !strings.Contains(text.stdout, "Updates are disabled for development builds.") {
+		t.Fatalf("stdout=%q stderr=%q exit=%d", text.stdout, text.stderr, text.exit)
+	}
+
+	result := executeCLI(t, binary, "", "--db", missingDB, "--config", missingConfig, "--json", "update")
+	if result.exit != 0 {
+		t.Fatalf("stdout=%q stderr=%q exit=%d", result.stdout, result.stderr, result.exit)
+	}
+	response := decodeObject(t, []byte(result.stdout), result.stdout)
+	assertDirectObjectKeys(
+		t,
+		response,
+		"enabled", "disabled_reason", "current_version", "update_available", "releases",
+		"applied", "restart_required",
+	)
+	if string(response["enabled"]) != "false" || string(response["disabled_reason"]) != `"development_build"` {
+		t.Fatalf("response=%s", result.stdout)
+	}
+	if string(response["releases"]) != "[]" {
+		t.Fatalf("releases=%s", response["releases"])
+	}
+	if _, err := os.Stat(missingDB); !os.IsNotExist(err) {
+		t.Fatalf("prx update created a database: %v", err)
+	}
+
+	// 実行の依頼は、できないことが終了ステータスでも分かる必要がある。
+	applied := executeCLI(t, binary, "", "--db", missingDB, "--config", missingConfig, "--json", "update", "--apply")
+	if applied.exit == 0 || !strings.Contains(applied.stderr, `"code":"update_unavailable"`) {
+		t.Fatalf("stdout=%q stderr=%q exit=%d", applied.stdout, applied.stderr, applied.exit)
+	}
 }
 
 func TestBlackBoxSchemaVersionDoesNotOpenStorage(t *testing.T) {

@@ -756,6 +756,65 @@ func (s *Store) CompleteGitHubSync(
 	return affected == 1, err
 }
 
+// UpdateCheckState は最後に行った更新確認の結果を返す。保存済みの一覧が読めない
+// ときは空として扱い、確認そのものを失敗させない。
+func (s *Store) UpdateCheckState(ctx context.Context) (domain.UpdateCheckState, error) {
+	value, err := db.New(s.db).GetUpdateCheckState(ctx)
+	if err != nil {
+		return domain.UpdateCheckState{}, err
+	}
+	return domain.UpdateCheckState{
+		LastCheckedAt: unixTime(value.LastCheckedUnix),
+		Error:         value.CheckError,
+		Releases:      decodeReleaseNotes(value.Releases),
+	}, nil
+}
+
+// AcquireUpdateCheck は間引きの判定と実行権の付与を 1 つの UPDATE で行う。
+// 複数のタブや CLI が同時に来ても、確認に出るのは 1 つだけになる。
+func (s *Store) AcquireUpdateCheck(ctx context.Context, checkedAt time.Time, dueBeforeUnix int64) (bool, error) {
+	affected, err := db.New(s.db).AcquireUpdateCheck(ctx, db.AcquireUpdateCheckParams{
+		LastCheckedUnix:   sql.NullInt64{Int64: checkedAt.UTC().Unix(), Valid: true},
+		LastCheckedUnix_2: sql.NullInt64{Int64: dueBeforeUnix, Valid: true},
+	})
+	return affected == 1, err
+}
+
+func (s *Store) CompleteUpdateCheck(
+	ctx context.Context,
+	checkedAt time.Time,
+	releases []domain.ReleaseNote,
+	checkError string,
+) error {
+	encoded, err := json.Marshal(nonNilReleases(releases))
+	if err != nil {
+		return fmt.Errorf("encode release notes: %w", err)
+	}
+	return db.New(s.db).CompleteUpdateCheck(ctx, db.CompleteUpdateCheckParams{
+		LastCheckedUnix: sql.NullInt64{Int64: checkedAt.UTC().Unix(), Valid: true},
+		CheckError:      checkError,
+		Releases:        string(encoded),
+	})
+}
+
+func decodeReleaseNotes(value string) []domain.ReleaseNote {
+	if strings.TrimSpace(value) == "" {
+		return nil
+	}
+	var result []domain.ReleaseNote
+	if err := json.Unmarshal([]byte(value), &result); err != nil {
+		return nil
+	}
+	return result
+}
+
+func nonNilReleases(values []domain.ReleaseNote) []domain.ReleaseNote {
+	if values == nil {
+		return []domain.ReleaseNote{}
+	}
+	return values
+}
+
 func unixTime(value sql.NullInt64) *time.Time {
 	if !value.Valid {
 		return nil

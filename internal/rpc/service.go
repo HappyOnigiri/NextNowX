@@ -60,5 +60,8 @@ type Service interface {
 	Sync(ctx context.Context, featureID, taskID string) (int, int, error)
 	SyncIfDue(ctx context.Context) (bool, domain.GitHubSyncStatus, error)
 	SyncStatus(ctx context.Context) (domain.GitHubSyncStatus, error)
+	GetUpdateStatus(ctx context.Context) (domain.UpdateStatus, error)
+	SkipUpdateVersion(ctx context.Context, version string) (domain.UpdateStatus, error)
+	ApplyUpdate(ctx context.Context, version string) (domain.UpdateResult, error)
 	Validate(ctx context.Context) []string
 }

@@ -146,6 +146,19 @@ UPDATE github_sync_state
 SET last_completed_unix=?, succeeded=?, failed=?, run_error=?
 WHERE singleton=1 AND run_id=?;
 
+-- name: GetUpdateCheckState :one
+SELECT * FROM update_check_state WHERE singleton=1;
+
+-- name: AcquireUpdateCheck :execrows
+UPDATE update_check_state
+SET last_checked_unix=?
+WHERE singleton=1 AND (last_checked_unix IS NULL OR last_checked_unix<=?);
+
+-- name: CompleteUpdateCheck :exec
+UPDATE update_check_state
+SET last_checked_unix=?, check_error=?, releases=?
+WHERE singleton=1;
+
 -- name: DeletePullRequest :execrows
 DELETE FROM pull_requests WHERE task_id=?;
 

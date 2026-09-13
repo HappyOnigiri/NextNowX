@@ -265,6 +265,12 @@ enum DomainErrorCode {
   DOMAIN_ERROR_CODE_ARCHIVED_READ_ONLY = 29;
   // DOMAIN_ERROR_CODE_INVALID_PROMPT_TEMPLATE は project か feature の上書きテンプレートが不正であることを表す。
   DOMAIN_ERROR_CODE_INVALID_PROMPT_TEMPLATE = 30;
+  // DOMAIN_ERROR_CODE_UPDATE_UNAVAILABLE は開発ビルドや demo で更新が無効であることを表す。
+  DOMAIN_ERROR_CODE_UPDATE_UNAVAILABLE = 31;
+  // DOMAIN_ERROR_CODE_UPDATE_CHECK_FAILED は配布元のリリースを確認できなかったことを表す。
+  DOMAIN_ERROR_CODE_UPDATE_CHECK_FAILED = 32;
+  // DOMAIN_ERROR_CODE_UPDATE_FAILED は更新の実行が失敗したことを表す。
+  DOMAIN_ERROR_CODE_UPDATE_FAILED = 33;
 }
 
 // GitHubAuthMethodType は GitHub のトークンの取得方法を表す。
@@ -1279,6 +1285,90 @@ message SyncGitHubIfDueResponse {
   GitHubSyncStatus status = 2;
 }
 
+// UpdateDisabledReason は更新の確認も適用も行わない理由。
+enum UpdateDisabledReason {
+  // UPDATE_DISABLED_REASON_UNSPECIFIED は機能が有効であることを表す。
+  UPDATE_DISABLED_REASON_UNSPECIFIED = 0;
+  // UPDATE_DISABLED_REASON_DEVELOPMENT_BUILD は開発ビルドを表す。
+  UPDATE_DISABLED_REASON_DEVELOPMENT_BUILD = 1;
+  // UPDATE_DISABLED_REASON_DEMO は demo 実行を表す。
+  UPDATE_DISABLED_REASON_DEMO = 2;
+}
+
+// UpdateRelease は 1 件のリリースと、その本文。
+message UpdateRelease {
+  // version は GitHub のタグ名。
+  string version = 1;
+  // published_at は RFC 3339 UTC 形式の公開時刻。不明なら空。
+  string published_at = 2;
+  // body は Release の本文で、Markdown として描画する。
+  string body = 3;
+  // url は Release ページの URL。
+  string url = 4;
+}
+
+// UpdateStatus は更新の案内を出すかどうかの判断材料をまとめる。
+message UpdateStatus {
+  // enabled は機能が有効かどうか。開発ビルドと demo では false になる。
+  bool enabled = 1;
+  // disabled_reason は enabled が false のときの理由。
+  UpdateDisabledReason disabled_reason = 2;
+  // current_version は実行中のビルドのバージョン。
+  string current_version = 3;
+  // update_available は現在より新しいリリースがあることを表す。
+  bool update_available = 4;
+  // should_notify は案内を出すべきかどうか。スキップ済みなら false。
+  bool should_notify = 5;
+  // latest_version は最も新しいリリースのタグ名。
+  string latest_version = 6;
+  // releases は現在より新しいリリースを新しい順に並べる。
+  repeated UpdateRelease releases = 7;
+  // last_checked_at は RFC 3339 UTC 形式の、最後に確認した時刻。
+  optional string last_checked_at = 8;
+  // last_error は直近の確認が失敗した理由。
+  string last_error = 9;
+  // skipped_version は案内しないと選ばれたバージョン。
+  string skipped_version = 10;
+}
+
+// GetUpdateStatusRequest は更新の状況を要求する。間引きが切れていれば確認も行う。
+message GetUpdateStatusRequest {}
+
+// GetUpdateStatusResponse は更新の状況を返す。
+message GetUpdateStatusResponse {
+  // status は有効性・現在の版・案内の要否・リリース一覧を含む。
+  UpdateStatus status = 1;
+}
+
+// SkipUpdateVersionRequest は指定したバージョン以下を案内しないよう求める。
+message SkipUpdateVersionRequest {
+  // version はスキップするタグ名。空にすると指定を消す。
+  string version = 1;
+}
+
+// SkipUpdateVersionResponse は更新後の状況を返す。
+message SkipUpdateVersionResponse {
+  // status はスキップを反映した状況。
+  UpdateStatus status = 1;
+}
+
+// ApplyUpdateRequest は指定したリリースへの更新をサーバーに求める。
+message ApplyUpdateRequest {
+  // version は適用するタグ名。現在より新しいリリースでなければならない。
+  string version = 1;
+}
+
+// ApplyUpdateResponse は適用した更新の結果を返す。
+message ApplyUpdateResponse {
+  // version は実際に配置されたリリースのタグ名。
+  string version = 1;
+  // installed_path はインストーラーが報告した配置先。
+  string installed_path = 2;
+  // restart_required は利用者が自分でサーバーを起動し直す必要があるかどうか。
+  // launchd 配下の常駐は置き換えを自分で検知するので false になる。
+  bool restart_required = 3;
+}
+
 // ValidateRequest はデータベースの整合性検証を要求する。
 message ValidateRequest {}
 
@@ -1658,6 +1748,12 @@ service PRXService {
   rpc GetGitHubSyncStatus(GetGitHubSyncStatusRequest) returns (GetGitHubSyncStatusResponse);
   // SyncGitHubIfDue は期限が来たときだけ自動更新を確保して実行する。
   rpc SyncGitHubIfDue(SyncGitHubIfDueRequest) returns (SyncGitHubIfDueResponse);
+  // GetUpdateStatus は更新の状況を返し、間引きが切れていればその場で確認する。
+  rpc GetUpdateStatus(GetUpdateStatusRequest) returns (GetUpdateStatusResponse);
+  // SkipUpdateVersion は指定したバージョン以下を案内しないよう設定へ記録する。
+  rpc SkipUpdateVersion(SkipUpdateVersionRequest) returns (SkipUpdateVersionResponse);
+  // ApplyUpdate は指定したリリースのインストーラーを実行して更新する。
+  rpc ApplyUpdate(ApplyUpdateRequest) returns (ApplyUpdateResponse);
   // Validate はデータベースの整合性を調べ、検出したエラーを返す。
   rpc Validate(ValidateRequest) returns (ValidateResponse);
   // GetDebugReport は同期を開始せずに診断レポートを返す。

@@ -14,6 +14,8 @@ import {
   useQueryDiagnostics,
   useSnapshot,
   useSnapshotRefresh,
+  useUpdateStatus,
+  useUpdateStatusInvalidation,
 } from "../src/hooks";
 import i18n from "../src/i18n";
 import { readWebUISettings } from "../src/i18n/settings";
@@ -26,6 +28,7 @@ const hookMocks = vi.hoisted(() => ({
   getSyncStatus: vi.fn(),
   syncIfDue: vi.fn(),
   getPromptTemplates: vi.fn(),
+  getUpdateStatus: vi.fn(),
 }));
 
 vi.mock("../src/api", () => ({
@@ -35,6 +38,7 @@ vi.mock("../src/api", () => ({
   getSyncStatus: hookMocks.getSyncStatus,
   syncIfDue: hookMocks.syncIfDue,
   getPromptTemplates: hookMocks.getPromptTemplates,
+  getUpdateStatus: hookMocks.getUpdateStatus,
 }));
 
 function createWrapper(queryClient: QueryClient) {
@@ -93,6 +97,52 @@ describe("domain query hooks", () => {
       expect(hookMocks.syncIfDue.mock.calls.length).toBeGreaterThan(1);
     });
     unmount();
+  });
+
+  // 間引きはサーバーが持つので、クライアントはタブが前面へ戻るたびに読み直してよい。
+  it("reloads the update status when the tab comes back", async () => {
+    const status = {
+      enabled: true,
+      shouldNotify: true,
+      latestVersion: "v0.5.0",
+    };
+    hookMocks.getUpdateStatus.mockResolvedValue(status);
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const { result, unmount } = renderHook(() => useUpdateStatus(true), {
+      wrapper: createWrapper(queryClient),
+    });
+    await waitFor(() => {
+      expect(result.current.data).toBe(status);
+    });
+    window.dispatchEvent(new Event("focus"));
+    await waitFor(() => {
+      expect(hookMocks.getUpdateStatus.mock.calls.length).toBeGreaterThan(1);
+    });
+    unmount();
+  });
+
+  it("does not read the update status when it is disabled", () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    renderHook(() => useUpdateStatus(false), {
+      wrapper: createWrapper(queryClient),
+    });
+    expect(hookMocks.getUpdateStatus).not.toHaveBeenCalled();
+  });
+
+  it("drops the cached update status after a skip or an install", async () => {
+    const queryClient = new QueryClient();
+    const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(() => useUpdateStatusInvalidation(), {
+      wrapper: createWrapper(queryClient),
+    });
+    await result.current();
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["update-status"],
+    });
   });
 
   it("invalidates the snapshot after a successful domain mutation", async () => {

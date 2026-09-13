@@ -98,6 +98,14 @@ const (
 	// PRXServiceSyncGitHubIfDueProcedure is the fully-qualified name of the PRXService's
 	// SyncGitHubIfDue RPC.
 	PRXServiceSyncGitHubIfDueProcedure = "/prx.v1.PRXService/SyncGitHubIfDue"
+	// PRXServiceGetUpdateStatusProcedure is the fully-qualified name of the PRXService's
+	// GetUpdateStatus RPC.
+	PRXServiceGetUpdateStatusProcedure = "/prx.v1.PRXService/GetUpdateStatus"
+	// PRXServiceSkipUpdateVersionProcedure is the fully-qualified name of the PRXService's
+	// SkipUpdateVersion RPC.
+	PRXServiceSkipUpdateVersionProcedure = "/prx.v1.PRXService/SkipUpdateVersion"
+	// PRXServiceApplyUpdateProcedure is the fully-qualified name of the PRXService's ApplyUpdate RPC.
+	PRXServiceApplyUpdateProcedure = "/prx.v1.PRXService/ApplyUpdate"
 	// PRXServiceValidateProcedure is the fully-qualified name of the PRXService's Validate RPC.
 	PRXServiceValidateProcedure = "/prx.v1.PRXService/Validate"
 	// PRXServiceGetDebugReportProcedure is the fully-qualified name of the PRXService's GetDebugReport
@@ -200,6 +208,12 @@ type PRXServiceClient interface {
 	GetGitHubSyncStatus(context.Context, *connect.Request[v1.GetGitHubSyncStatusRequest]) (*connect.Response[v1.GetGitHubSyncStatusResponse], error)
 	// SyncGitHubIfDue は期限が来たときだけ自動更新を確保して実行する。
 	SyncGitHubIfDue(context.Context, *connect.Request[v1.SyncGitHubIfDueRequest]) (*connect.Response[v1.SyncGitHubIfDueResponse], error)
+	// GetUpdateStatus は更新の状況を返し、間引きが切れていればその場で確認する。
+	GetUpdateStatus(context.Context, *connect.Request[v1.GetUpdateStatusRequest]) (*connect.Response[v1.GetUpdateStatusResponse], error)
+	// SkipUpdateVersion は指定したバージョン以下を案内しないよう設定へ記録する。
+	SkipUpdateVersion(context.Context, *connect.Request[v1.SkipUpdateVersionRequest]) (*connect.Response[v1.SkipUpdateVersionResponse], error)
+	// ApplyUpdate は指定したリリースのインストーラーを実行して更新する。
+	ApplyUpdate(context.Context, *connect.Request[v1.ApplyUpdateRequest]) (*connect.Response[v1.ApplyUpdateResponse], error)
 	// Validate はデータベースの整合性を調べ、検出したエラーを返す。
 	Validate(context.Context, *connect.Request[v1.ValidateRequest]) (*connect.Response[v1.ValidateResponse], error)
 	// GetDebugReport は同期を開始せずに診断レポートを返す。
@@ -391,6 +405,24 @@ func NewPRXServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(pRXServiceMethods.ByName("SyncGitHubIfDue")),
 			connect.WithClientOptions(opts...),
 		),
+		getUpdateStatus: connect.NewClient[v1.GetUpdateStatusRequest, v1.GetUpdateStatusResponse](
+			httpClient,
+			baseURL+PRXServiceGetUpdateStatusProcedure,
+			connect.WithSchema(pRXServiceMethods.ByName("GetUpdateStatus")),
+			connect.WithClientOptions(opts...),
+		),
+		skipUpdateVersion: connect.NewClient[v1.SkipUpdateVersionRequest, v1.SkipUpdateVersionResponse](
+			httpClient,
+			baseURL+PRXServiceSkipUpdateVersionProcedure,
+			connect.WithSchema(pRXServiceMethods.ByName("SkipUpdateVersion")),
+			connect.WithClientOptions(opts...),
+		),
+		applyUpdate: connect.NewClient[v1.ApplyUpdateRequest, v1.ApplyUpdateResponse](
+			httpClient,
+			baseURL+PRXServiceApplyUpdateProcedure,
+			connect.WithSchema(pRXServiceMethods.ByName("ApplyUpdate")),
+			connect.WithClientOptions(opts...),
+		),
 		validate: connect.NewClient[v1.ValidateRequest, v1.ValidateResponse](
 			httpClient,
 			baseURL+PRXServiceValidateProcedure,
@@ -522,6 +554,9 @@ type pRXServiceClient struct {
 	sync                     *connect.Client[v1.SyncRequest, v1.SyncResponse]
 	getGitHubSyncStatus      *connect.Client[v1.GetGitHubSyncStatusRequest, v1.GetGitHubSyncStatusResponse]
 	syncGitHubIfDue          *connect.Client[v1.SyncGitHubIfDueRequest, v1.SyncGitHubIfDueResponse]
+	getUpdateStatus          *connect.Client[v1.GetUpdateStatusRequest, v1.GetUpdateStatusResponse]
+	skipUpdateVersion        *connect.Client[v1.SkipUpdateVersionRequest, v1.SkipUpdateVersionResponse]
+	applyUpdate              *connect.Client[v1.ApplyUpdateRequest, v1.ApplyUpdateResponse]
 	validate                 *connect.Client[v1.ValidateRequest, v1.ValidateResponse]
 	getDebugReport           *connect.Client[v1.GetDebugReportRequest, v1.GetDebugReportResponse]
 	getConfig                *connect.Client[v1.GetConfigRequest, v1.GetConfigResponse]
@@ -661,6 +696,21 @@ func (c *pRXServiceClient) SyncGitHubIfDue(ctx context.Context, req *connect.Req
 	return c.syncGitHubIfDue.CallUnary(ctx, req)
 }
 
+// GetUpdateStatus calls prx.v1.PRXService.GetUpdateStatus.
+func (c *pRXServiceClient) GetUpdateStatus(ctx context.Context, req *connect.Request[v1.GetUpdateStatusRequest]) (*connect.Response[v1.GetUpdateStatusResponse], error) {
+	return c.getUpdateStatus.CallUnary(ctx, req)
+}
+
+// SkipUpdateVersion calls prx.v1.PRXService.SkipUpdateVersion.
+func (c *pRXServiceClient) SkipUpdateVersion(ctx context.Context, req *connect.Request[v1.SkipUpdateVersionRequest]) (*connect.Response[v1.SkipUpdateVersionResponse], error) {
+	return c.skipUpdateVersion.CallUnary(ctx, req)
+}
+
+// ApplyUpdate calls prx.v1.PRXService.ApplyUpdate.
+func (c *pRXServiceClient) ApplyUpdate(ctx context.Context, req *connect.Request[v1.ApplyUpdateRequest]) (*connect.Response[v1.ApplyUpdateResponse], error) {
+	return c.applyUpdate.CallUnary(ctx, req)
+}
+
 // Validate calls prx.v1.PRXService.Validate.
 func (c *pRXServiceClient) Validate(ctx context.Context, req *connect.Request[v1.ValidateRequest]) (*connect.Response[v1.ValidateResponse], error) {
 	return c.validate.CallUnary(ctx, req)
@@ -797,6 +847,12 @@ type PRXServiceHandler interface {
 	GetGitHubSyncStatus(context.Context, *connect.Request[v1.GetGitHubSyncStatusRequest]) (*connect.Response[v1.GetGitHubSyncStatusResponse], error)
 	// SyncGitHubIfDue は期限が来たときだけ自動更新を確保して実行する。
 	SyncGitHubIfDue(context.Context, *connect.Request[v1.SyncGitHubIfDueRequest]) (*connect.Response[v1.SyncGitHubIfDueResponse], error)
+	// GetUpdateStatus は更新の状況を返し、間引きが切れていればその場で確認する。
+	GetUpdateStatus(context.Context, *connect.Request[v1.GetUpdateStatusRequest]) (*connect.Response[v1.GetUpdateStatusResponse], error)
+	// SkipUpdateVersion は指定したバージョン以下を案内しないよう設定へ記録する。
+	SkipUpdateVersion(context.Context, *connect.Request[v1.SkipUpdateVersionRequest]) (*connect.Response[v1.SkipUpdateVersionResponse], error)
+	// ApplyUpdate は指定したリリースのインストーラーを実行して更新する。
+	ApplyUpdate(context.Context, *connect.Request[v1.ApplyUpdateRequest]) (*connect.Response[v1.ApplyUpdateResponse], error)
 	// Validate はデータベースの整合性を調べ、検出したエラーを返す。
 	Validate(context.Context, *connect.Request[v1.ValidateRequest]) (*connect.Response[v1.ValidateResponse], error)
 	// GetDebugReport は同期を開始せずに診断レポートを返す。
@@ -984,6 +1040,24 @@ func NewPRXServiceHandler(svc PRXServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(pRXServiceMethods.ByName("SyncGitHubIfDue")),
 		connect.WithHandlerOptions(opts...),
 	)
+	pRXServiceGetUpdateStatusHandler := connect.NewUnaryHandler(
+		PRXServiceGetUpdateStatusProcedure,
+		svc.GetUpdateStatus,
+		connect.WithSchema(pRXServiceMethods.ByName("GetUpdateStatus")),
+		connect.WithHandlerOptions(opts...),
+	)
+	pRXServiceSkipUpdateVersionHandler := connect.NewUnaryHandler(
+		PRXServiceSkipUpdateVersionProcedure,
+		svc.SkipUpdateVersion,
+		connect.WithSchema(pRXServiceMethods.ByName("SkipUpdateVersion")),
+		connect.WithHandlerOptions(opts...),
+	)
+	pRXServiceApplyUpdateHandler := connect.NewUnaryHandler(
+		PRXServiceApplyUpdateProcedure,
+		svc.ApplyUpdate,
+		connect.WithSchema(pRXServiceMethods.ByName("ApplyUpdate")),
+		connect.WithHandlerOptions(opts...),
+	)
 	pRXServiceValidateHandler := connect.NewUnaryHandler(
 		PRXServiceValidateProcedure,
 		svc.Validate,
@@ -1136,6 +1210,12 @@ func NewPRXServiceHandler(svc PRXServiceHandler, opts ...connect.HandlerOption) 
 			pRXServiceGetGitHubSyncStatusHandler.ServeHTTP(w, r)
 		case PRXServiceSyncGitHubIfDueProcedure:
 			pRXServiceSyncGitHubIfDueHandler.ServeHTTP(w, r)
+		case PRXServiceGetUpdateStatusProcedure:
+			pRXServiceGetUpdateStatusHandler.ServeHTTP(w, r)
+		case PRXServiceSkipUpdateVersionProcedure:
+			pRXServiceSkipUpdateVersionHandler.ServeHTTP(w, r)
+		case PRXServiceApplyUpdateProcedure:
+			pRXServiceApplyUpdateHandler.ServeHTTP(w, r)
 		case PRXServiceValidateProcedure:
 			pRXServiceValidateHandler.ServeHTTP(w, r)
 		case PRXServiceGetDebugReportProcedure:
@@ -1273,6 +1353,18 @@ func (UnimplementedPRXServiceHandler) GetGitHubSyncStatus(context.Context, *conn
 
 func (UnimplementedPRXServiceHandler) SyncGitHubIfDue(context.Context, *connect.Request[v1.SyncGitHubIfDueRequest]) (*connect.Response[v1.SyncGitHubIfDueResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("prx.v1.PRXService.SyncGitHubIfDue is not implemented"))
+}
+
+func (UnimplementedPRXServiceHandler) GetUpdateStatus(context.Context, *connect.Request[v1.GetUpdateStatusRequest]) (*connect.Response[v1.GetUpdateStatusResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("prx.v1.PRXService.GetUpdateStatus is not implemented"))
+}
+
+func (UnimplementedPRXServiceHandler) SkipUpdateVersion(context.Context, *connect.Request[v1.SkipUpdateVersionRequest]) (*connect.Response[v1.SkipUpdateVersionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("prx.v1.PRXService.SkipUpdateVersion is not implemented"))
+}
+
+func (UnimplementedPRXServiceHandler) ApplyUpdate(context.Context, *connect.Request[v1.ApplyUpdateRequest]) (*connect.Response[v1.ApplyUpdateResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("prx.v1.PRXService.ApplyUpdate is not implemented"))
 }
 
 func (UnimplementedPRXServiceHandler) Validate(context.Context, *connect.Request[v1.ValidateRequest]) (*connect.Response[v1.ValidateResponse], error) {

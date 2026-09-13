@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  applyUpdate,
   configMutations,
   getBatchPrompt,
   getConfig,
@@ -8,10 +9,12 @@ import {
   getSnapshot,
   getSyncStatus,
   getTaskPrompt,
+  getUpdateStatus,
   mutations,
   promptMutations,
   readDocumentContent,
   selectLocalFile,
+  skipUpdateVersion,
   syncIfDue,
   watchRevision,
 } from "../src/api";
@@ -58,6 +61,9 @@ const apiMocks = vi.hoisted(() => {
     updatePromptTemplates: vi.fn(),
     getTaskPrompt: vi.fn(),
     getBatchPrompt: vi.fn(),
+    getUpdateStatus: vi.fn(),
+    skipUpdateVersion: vi.fn(),
+    applyUpdate: vi.fn(),
     watchRevision: vi.fn(),
   };
   return {
@@ -164,6 +170,25 @@ describe("RPC API wrappers", () => {
       status,
     });
     await expect(syncIfDue()).resolves.toEqual({ ran: false, status });
+  });
+
+  it("reads the update status, skips a version, and applies one", async () => {
+    const status = { enabled: true, latestVersion: "v0.5.0" };
+    apiMocks.client.getUpdateStatus.mockResolvedValueOnce({ status });
+    await expect(getUpdateStatus()).resolves.toBe(status);
+    apiMocks.client.getUpdateStatus.mockResolvedValueOnce({});
+    await expect(getUpdateStatus()).rejects.toThrow("empty update status");
+
+    apiMocks.client.skipUpdateVersion.mockResolvedValueOnce({ status });
+    await expect(skipUpdateVersion("v0.5.0")).resolves.toBe(status);
+    apiMocks.client.skipUpdateVersion.mockResolvedValueOnce({});
+    await expect(skipUpdateVersion("v0.5.0")).rejects.toThrow(
+      "empty update status",
+    );
+
+    const applied = { version: "v0.5.0", restartRequired: false };
+    apiMocks.client.applyUpdate.mockResolvedValueOnce(applied);
+    await expect(applyUpdate("v0.5.0")).resolves.toBe(applied);
   });
 
   it("wraps prompt template reads, writes, and one task prompt", async () => {

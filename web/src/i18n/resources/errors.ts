@@ -33,6 +33,9 @@ export const errors = {
       invalidTitle: "Enter a title.",
       notFound: "The requested item was not found.",
       referencesExist: "Remove dependent references before deleting this item.",
+      updateUnavailable: "Updates are unavailable. {{message}}",
+      updateCheckFailed: "The update check failed. {{message}}",
+      updateFailed: "The update failed. {{message}}",
     },
   },
   ja: {
@@ -70,6 +73,9 @@ export const errors = {
       invalidTitle: "タイトルを入力してください。",
       notFound: "指定された項目が見つかりません。",
       referencesExist: "先に関連する参照を削除してください。",
+      updateUnavailable: "更新を利用できません。{{message}}",
+      updateCheckFailed: "更新の確認に失敗しました。{{message}}",
+      updateFailed: "更新に失敗しました。{{message}}",
     },
   },
 } as const;
