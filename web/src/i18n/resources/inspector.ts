@@ -14,6 +14,10 @@ export const inspector = {
       noReferences: "No references.",
       referenceFallback: "reference",
       deleteReference: "Delete {{title}}",
+      deleteReferenceTitle: "Delete {{title}}?",
+      deleteReferenceDescription:
+        "The reference and its content are removed. This cannot be undone.",
+      confirmDeleteReference: "Delete reference",
       editReference: "Edit {{title}}",
       saveReference: "Save reference",
       cancelReferenceEdit: "Cancel edit",
@@ -54,6 +58,10 @@ export const inspector = {
       noReferences: "参照資料はありません。",
       referenceFallback: "参照資料",
       deleteReference: "{{title}} を削除",
+      deleteReferenceTitle: "{{title}} を削除しますか？",
+      deleteReferenceDescription:
+        "参照資料とその内容を削除します。元に戻せません。",
+      confirmDeleteReference: "参照資料を削除",
       editReference: "{{title}} を編集",
       saveReference: "参照資料を保存",
       cancelReferenceEdit: "編集を取り消す",

@@ -19,7 +19,7 @@ import { makeDocument, makePullRequest, makeTask } from "./factories";
 
 // インスペクタが 1 回の描画で使う mutation の数。制御された入力は打つたびに
 // 再描画するので、この数で割って同じ順番の mutation を返す。
-const mutationsPerRender = 6;
+const mutationsPerRender = 7;
 
 const inspectorMocks = vi.hoisted(() => ({
   hookIndex: 0,
@@ -33,7 +33,7 @@ const inspectorMocks = vi.hoisted(() => ({
     getDocument: vi.fn(),
     updateDocument: vi.fn(),
   },
-  mutations: Array.from({ length: 6 }, () => ({
+  mutations: Array.from({ length: 7 }, () => ({
     mutate: vi.fn(),
     mutateAsync: vi.fn().mockResolvedValue({}),
     isPending: false,
@@ -164,8 +164,8 @@ describe("TaskInspector", () => {
       "https://example.com/runbook",
     );
     expect(
-      screen.queryByRole("button", { name: "Delete Runbook" }),
-    ).not.toBeInTheDocument();
+      screen.getByRole("button", { name: "Delete Runbook" }),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Add reference" }),
     ).not.toBeInTheDocument();
@@ -411,5 +411,48 @@ describe("TaskInspector", () => {
     expect(
       screen.queryByRole("button", { name: "Delete task and references" }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Delete Decision log" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("confirms before deleting a reference from the inspector", () => {
+    inspectorMocks.api.deleteDocument.mockClear();
+    const task = makeTask();
+    const markdown = makeDocument({
+      id: "document-md",
+      taskId: task.id,
+      kind: DocumentKind.LOCAL_FILE,
+      title: "Delivery plan",
+      locator: "docs/delivery.md",
+    });
+    render(
+      <TaskInspector
+        task={task}
+        tasks={[task]}
+        pullRequest={undefined}
+        documents={[markdown]}
+        onPreview={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Delete Delivery plan" }),
+    );
+    expect(
+      screen.getByRole("dialog", { name: "Delete Delivery plan?" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(inspectorMocks.api.deleteDocument).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Delete Delivery plan" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Delete reference" }));
+    expect(inspectorMocks.api.deleteDocument).toHaveBeenCalledWith(
+      "document-md",
+    );
   });
 });

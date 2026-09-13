@@ -9,6 +9,7 @@ import { documentKindLabel } from "../i18n/domain";
 import { IconButton } from "./IconButton";
 import { MutationError } from "./MutationError";
 import { type TaskNodeDocument } from "./TaskNode";
+import { useDocumentDeletion } from "./useDocumentDeletion";
 
 interface ReferencesSectionProps {
   documents: TaskNodeDocument[];
@@ -26,6 +27,7 @@ export function ReferencesSection({
   const { t } = useTranslation();
   const updateDocument = useDomainMutation(mutations.updateDocument);
   const getDocument = useDomainMutation(mutations.getDocument);
+  const deletion = useDocumentDeletion();
   const [editing, setEditing] = useState<{
     id: string;
     content: string;
@@ -71,9 +73,14 @@ export function ReferencesSection({
             key={document.id}
             document={document}
             onPreview={onPreview}
+            onDelete={(target) => {
+              // 編集中のフォームと確認ダイアログを重ねない。
+              setEditing(null);
+              deletion.request(target);
+            }}
             onEdit={editMarkdown}
             canEdit={!readOnly}
-            canDelete={false}
+            canDelete={!readOnly}
           />
         ),
       )}
@@ -86,6 +93,7 @@ export function ReferencesSection({
           <MutationError error={getDocument.error} />
         </>
       )}
+      {deletion.dialog}
     </section>
   );
 }
@@ -148,7 +156,7 @@ export function DocumentRow({
 }: {
   document: TaskNodeDocument;
   onPreview: (document: TaskNodeDocument) => void;
-  onDelete?: (id: string) => void;
+  onDelete?: (document: TaskNodeDocument) => void;
   onEdit: (document: TaskNodeDocument) => void;
   canEdit: boolean;
   canDelete: boolean;
@@ -205,7 +213,7 @@ export function DocumentRow({
               size="compact"
               iconOnly
               onClick={() => {
-                onDelete?.(document.id);
+                onDelete?.(document);
               }}
             />
           )}

@@ -272,6 +272,21 @@ describe("DocumentReferences", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Delete Architecture notes" }),
     );
+    expect(
+      await screen.findByRole("dialog", {
+        name: "Delete Architecture notes?",
+      }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(apiMocks.deleteDocument).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "References" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Delete Architecture notes" }),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Delete reference" }),
+    );
     await waitFor(() => {
       expect(apiMocks.deleteDocument).toHaveBeenCalledWith(
         "local-doc",
