@@ -51,6 +51,7 @@ test("keeps controls usable at a narrow viewport", async ({ page }) => {
   await expect(page.locator(".rail .dashboard-sync")).toHaveCount(0);
   const dashboardSyncButton = page.getByRole("button", {
     name: "Refresh",
+    exact: true,
   });
   await expect(dashboardSyncButton).toBeVisible();
   const dashboardSyncBounds = await dashboardSyncButton.boundingBox();
@@ -109,7 +110,7 @@ test("keeps controls usable at a narrow viewport", async ({ page }) => {
   // 隠れているかを見る対象はツールバーに限る。
   const workspaceActions = page.locator(".workspace-actions");
   await expect(
-    workspaceActions.getByRole("button", { name: "Refresh" }),
+    workspaceActions.getByRole("button", { name: "Refresh", exact: true }),
   ).toBeHidden();
   await expect(
     workspaceActions.getByRole("button", { name: "Edit feature" }),

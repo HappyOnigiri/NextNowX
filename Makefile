@@ -5,7 +5,7 @@ RELEASE_DIR ?= artifacts/release
 VERSION := $(shell node -p "require('./package.json').version")
 GO_COVERAGE_MIN ?= 68.8
 GO_COVERAGE_PACKAGES := ./internal/domain ./internal/github ./internal/rpc ./internal/store
-GO_COVERAGE_ZERO_PACKAGES := ./internal/app ./internal/browser ./internal/launchd ./internal/runstate \
+GO_COVERAGE_ZERO_PACKAGES := ./internal/app ./internal/browser ./internal/launchd ./internal/revision ./internal/runstate \
     $(GO_COVERAGE_PACKAGES)
 GOLANGCI_LINT_VERSION := $(shell awk '$$1 == "golangci-lint" { print $$2 }' .tool-versions)
 GOLANGCI_LINT := bin/golangci-lint

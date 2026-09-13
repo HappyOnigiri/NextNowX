@@ -43,6 +43,7 @@ import {
   UpdatePromptTemplatesRequestSchema,
   UpdateTaskRequestSchema,
   ValidateConfigRequestSchema,
+  WatchRevisionRequestSchema,
   type DebugReport,
   type FeatureStatus,
   type GetBatchPromptResponse,
@@ -53,6 +54,7 @@ import {
   type PromptTemplates,
   type Snapshot,
   type TaskStatus,
+  type WatchRevisionResponse,
 } from "./gen/prx/v1/prx_pb";
 
 const transport = createConnectTransport({ baseUrl: window.location.origin });
@@ -353,4 +355,12 @@ export async function readDocumentContent(id: string): Promise<string> {
 
 export async function selectLocalFile() {
   return client.selectLocalFile(create(SelectLocalFileRequestSchema));
+}
+
+// watchRevision はローカルデータベースのリビジョンを流す購読を開く。呼び出し側は
+// signal の abort だけで購読を終える。
+export function watchRevision(
+  signal: AbortSignal,
+): AsyncIterable<WatchRevisionResponse> {
+  return client.watchRevision(create(WatchRevisionRequestSchema), { signal });
 }

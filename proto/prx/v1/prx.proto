@@ -588,6 +588,16 @@ message GetSnapshotResponse {
   Snapshot snapshot = 1;
 }
 
+// WatchRevisionRequest はローカルデータベースのリビジョンの購読を要求する。
+message WatchRevisionRequest {}
+
+// WatchRevisionResponse は購読中のリビジョンを 1 つ運ぶ。
+message WatchRevisionResponse {
+  // revision はこのサーバープロセス内でのみ単調増加し、再起動で 1 に戻る。
+  // 同じ値の再送は heartbeat を意味する。
+  uint64 revision = 1;
+}
+
 // CreateProjectRequest は project に必要な値と説明的な値を持つ。
 message CreateProjectRequest {
   reserved 1;
@@ -1601,6 +1611,9 @@ message GetDebugReportResponse {
 service PRXService {
   // GetSnapshot は現在の正規化データと導出キューを返す。
   rpc GetSnapshot(GetSnapshotRequest) returns (GetSnapshotResponse);
+  // WatchRevision はローカルデータベースのリビジョンを流し続ける。開いた直後と、
+  // 値が変わったときと、生存確認のときに送る。
+  rpc WatchRevision(WatchRevisionRequest) returns (stream WatchRevisionResponse);
   // CreateProject は project を新規作成する。
   rpc CreateProject(CreateProjectRequest) returns (CreateProjectResponse);
   // UpdateProject はリクエストにあるフィールドを既存の project に適用し、アーカイブも含む。

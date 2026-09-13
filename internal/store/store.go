@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -27,6 +28,17 @@ type Store struct {
 	// 診断で報告できるよう保持する。
 	path string
 	now  func() time.Time
+	// dataVersion は PRAGMA data_version 専用の接続を守る。接続ごとの値なので
+	// プールから借り直すと検知が成立しない。docs/design/persistence.md を参照。
+	dataVersion dataVersionState
+}
+
+// dataVersionState は専用接続とその利用可否を保持する。
+type dataVersionState struct {
+	mu          sync.Mutex
+	conn        *sql.Conn
+	closed      bool
+	unavailable bool
 }
 
 const (
@@ -70,7 +82,8 @@ func Open(ctx context.Context, path string) (*Store, error) {
 	}
 	// SQLite は :memory: への接続ごとに専用のデータベースを与えるため、プールの
 	// 2 本目の接続は空でマイグレーション未適用のものに繋がってしまう。
-	if path == ":memory:" {
+	singleConnection := path == ":memory:"
+	if singleConnection {
 		database.SetMaxOpenConns(1)
 		database.SetMaxIdleConns(1)
 	} else {
@@ -78,6 +91,8 @@ func Open(ctx context.Context, path string) (*Store, error) {
 		database.SetMaxIdleConns(4)
 	}
 	store := &Store{db: database, path: path, now: func() time.Time { return time.Now().UTC() }}
+	// 専用接続を 1 本握ると、上限 1 本のプールでは以降の全クエリが待ち続ける。
+	store.dataVersion.unavailable = singleConnection
 	if err := store.migrate(ctx); err != nil {
 		_ = database.Close()
 		return nil, err
@@ -85,8 +100,14 @@ func Open(ctx context.Context, path string) (*Store, error) {
 	return store, nil
 }
 
-func (s *Store) Close() error { return s.db.Close() }
-func (s *Store) DB() *sql.DB  { return s.db }
+// Close は専用接続をプールより先に閉じる。sql.DB.Close は利用中の *sql.Conn を
+// 待たずに返るため、順序を逆にすると demo の一時ディレクトリ削除と競合する。
+func (s *Store) Close() error {
+	err := s.closeDataVersion()
+	return errors.Join(err, s.db.Close())
+}
+
+func (s *Store) DB() *sql.DB { return s.db }
 
 func (s *Store) migrate(ctx context.Context) error {
 	if _, err := s.db.ExecContext(
