@@ -9,7 +9,7 @@ describe("PullRequestFlags", () => {
       name: "Stale: this pull request may no longer match its state on GitHub.",
     });
     const syncError = screen.getByRole("button", {
-      name: "GitHub sync error: offline",
+      name: "GitHub status refresh error: offline",
     });
     expect(document.querySelector(".pr-flag-tip")).toBeNull();
 

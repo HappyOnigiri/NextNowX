@@ -110,7 +110,9 @@ describe("TaskSearch view", () => {
     expect(screen.getByText("open")).toBeInTheDocument();
     // pull request 自身の異常はアイコンで示し、理由は tooltip と名前が持つ。
     expect(
-      screen.getByRole("button", { name: "GitHub sync error: offline" }),
+      screen.getByRole("button", {
+        name: "GitHub status refresh error: offline",
+      }),
     ).toHaveClass("pr-flag", "is-sync-error");
   });
 

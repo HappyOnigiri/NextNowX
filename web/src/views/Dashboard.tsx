@@ -168,7 +168,7 @@ function SyncStatus() {
     <div className="dashboard-sync">
       <IconButton
         icon={RefreshCw}
-        label={pending ? t("dashboard.syncingNow") : t("dashboard.syncNow")}
+        label={t("dashboard.refresh")}
         variant="secondary"
         busy={pending}
         disabled={pending}
