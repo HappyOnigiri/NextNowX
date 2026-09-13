@@ -2,13 +2,22 @@ import { describe, expect, it } from "vitest";
 import { TaskDisplayState } from "../src/gen/prx/v1/prx_pb";
 import {
   emptyHiddenDependencies,
-  hideFinishedTasks,
-} from "../src/views/completedTasks";
+  hideTasks,
+  isFinishedTask,
+} from "../src/views/visibleGraph";
 import { makeDependency, makeTask } from "./factories";
 
 const notStarted = TaskDisplayState.NOT_STARTED;
 
-describe("hideFinishedTasks", () => {
+// 完了済みの非表示は述語 1 つ分の違いなので、既存の挙動はこの薄い包みで確かめる。
+function hideFinishedTasks(
+  tasks: Parameters<typeof hideTasks>[0],
+  dependencies: Parameters<typeof hideTasks>[1],
+) {
+  return hideTasks(tasks, dependencies, isFinishedTask);
+}
+
+describe("hideTasks", () => {
   it("keeps the given arrays when nothing is finished", () => {
     const tasks = [makeTask({ id: "task-1", displayState: notStarted })];
     const dependencies = [makeDependency()];
@@ -125,6 +134,36 @@ describe("hideFinishedTasks", () => {
       blocked: [],
     });
     expect(visible.hiddenDependencies.has("d")).toBe(false);
+  });
+
+  it("merges two hiding reasons into one chain of hidden blockers", () => {
+    const visible = hideTasks(
+      [
+        makeTask({
+          id: "a",
+          title: "Design schema",
+          displayState: TaskDisplayState.COMPLETED,
+        }),
+        makeTask({
+          id: "b",
+          title: "Migrate schema",
+          displayState: notStarted,
+        }),
+        makeTask({ id: "c", title: "Ship API", displayState: notStarted }),
+      ],
+      [
+        makeDependency({ blockerTaskId: "a", blockedTaskId: "b" }),
+        makeDependency({ blockerTaskId: "b", blockedTaskId: "c" }),
+      ],
+      // 完了済みと検索の不一致を 1 つの述語に束ねても、間に挟まった連鎖は
+      // 残ったノード 1 つにまとめて代表される。
+      (task) => isFinishedTask(task) || task.id === "b",
+    );
+    expect(visible.tasks.map((task) => task.id)).toEqual(["c"]);
+    expect(visible.hiddenDependencies.get("c")).toEqual({
+      blockers: ["Migrate schema", "Design schema"],
+      blocked: [],
+    });
   });
 
   it("ignores a dependency that names a task outside the feature", () => {

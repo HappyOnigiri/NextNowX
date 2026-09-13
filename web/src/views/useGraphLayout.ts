@@ -4,12 +4,12 @@ import elkWorkerUrl from "elkjs/lib/elk-worker.min.js?url";
 import { useEffect, useMemo, useState } from "react";
 import type { Dependency, PullRequest, Task } from "../gen/prx/v1/prx_pb";
 import { isDependencyBlockedTask, isDormantTask } from "../task-attention";
+import { dependencyEdgeId, type DependencyEdgeRoute } from "./dependencyGraph";
+import { type TaskFlowNode, type TaskNodeDocument } from "./TaskNode";
 import {
   emptyHiddenDependencies,
   type HiddenDependencies,
-} from "./completedTasks";
-import { dependencyEdgeId, type DependencyEdgeRoute } from "./dependencyGraph";
-import { type TaskFlowNode, type TaskNodeDocument } from "./TaskNode";
+} from "./visibleGraph";
 
 interface GraphLayoutOptions {
   tasks: Task[];

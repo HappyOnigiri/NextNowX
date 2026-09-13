@@ -18,7 +18,7 @@ import {
   type ReactFlowInstance,
 } from "@xyflow/react";
 import type { TFunction } from "i18next";
-import { EyeOff, Plus, RotateCcw, TriangleAlert } from "lucide-react";
+import { EyeOff, Plus, RotateCcw, SearchX, TriangleAlert } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { mutations } from "../api";
@@ -30,10 +30,6 @@ import {
   readGraphZoom,
   writeGraphZoom,
 } from "../i18n/settings";
-import {
-  emptyHiddenDependencies,
-  type HiddenDependencies,
-} from "./completedTasks";
 import { ConfirmationDialog } from "./ConfirmationDialog";
 import { DependencyEdge } from "./DependencyEdge";
 import {
@@ -47,6 +43,10 @@ import { IconButton } from "./IconButton";
 import { MutationError } from "./MutationError";
 import { TaskNode, type TaskFlowNode, type TaskNodeDocument } from "./TaskNode";
 import { useGraphLayout } from "./useGraphLayout";
+import {
+  emptyHiddenDependencies,
+  type HiddenDependencies,
+} from "./visibleGraph";
 
 const nodeTypes = { task: TaskNode };
 const edgeTypes = { dependency: DependencyEdge };
@@ -482,6 +482,7 @@ interface FeatureGraphProps {
   documentsByTask: Map<string, TaskNodeDocument[]>;
   hiddenDependencies?: Map<string, HiddenDependencies>;
   hiddenTaskCount?: number;
+  searching?: boolean;
   onEditTask: (taskId: string) => void;
   onPreviewDocument: (document: TaskNodeDocument) => void;
   onAddDocument?: (taskId: string, trigger: HTMLButtonElement) => void;
@@ -496,6 +497,7 @@ export function FeatureGraph({
   documentsByTask,
   hiddenDependencies = emptyHiddenDependencies,
   hiddenTaskCount = 0,
+  searching = false,
   onEditTask,
   onPreviewDocument,
   onAddDocument,
@@ -550,6 +552,7 @@ export function FeatureGraph({
       <GraphCanvas
         tasks={tasks}
         hiddenTaskCount={hiddenTaskCount}
+        searching={searching}
         nodes={nodes}
         edges={edges}
         initialGraphZoom={initialGraphZoom}
@@ -633,6 +636,7 @@ function RemoveDependencyConfirmation({
 interface GraphCanvasProps {
   tasks: Task[];
   hiddenTaskCount: number;
+  searching: boolean;
   nodes: TaskFlowNode[];
   edges: DependencyFlowEdge[];
   initialGraphZoom: number;
@@ -680,6 +684,7 @@ interface GraphCanvasProps {
 function GraphCanvas({
   tasks,
   hiddenTaskCount,
+  searching,
   nodes,
   edges,
   initialGraphZoom,
@@ -767,6 +772,7 @@ function GraphCanvas({
       <GraphState
         taskCount={tasks.length}
         hiddenTaskCount={hiddenTaskCount}
+        searching={searching}
         layoutError={layoutError}
         onCreateTask={onCreateTask}
         onRetryLayout={retryLayout}
@@ -779,6 +785,7 @@ function GraphCanvas({
 function GraphState({
   taskCount,
   hiddenTaskCount,
+  searching,
   layoutError,
   onCreateTask,
   onRetryLayout,
@@ -786,12 +793,25 @@ function GraphState({
 }: {
   taskCount: number;
   hiddenTaskCount: number;
+  searching: boolean;
   layoutError: { message: string | undefined } | undefined;
   onCreateTask: () => void;
   onRetryLayout: () => void;
   readOnly: boolean;
 }) {
   const { t } = useTranslation();
+  // 検索で何も残らなかったときは、完了非表示の説明を出すと理由を取り違える。
+  // 絞り込みが効いている限り、そちらを先に答える。
+  if (taskCount === 0 && searching && !layoutError)
+    return (
+      <div className="graph-empty">
+        <span>
+          <SearchX aria-hidden="true" focusable="false" size={24} />
+        </span>
+        <h2>{t("workspace.graphNoMatchTitle")}</h2>
+        <p>{t("workspace.graphNoMatchDetail")}</p>
+      </div>
+    );
   // 全タスクが完了した feature にもグラフはあり、非表示は読み手が選んだ見え方
   // にすぎない。ここで最初のノードを促すと feature が空だと言うことになり、
   // 本来はトグルで解決する場面にタスク追加ボタンを置いてしまう。

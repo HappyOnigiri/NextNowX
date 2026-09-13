@@ -14,13 +14,13 @@ import {
   type TaskDisplayState,
 } from "../gen/prx/v1/prx_pb";
 import { taskDisplayStateToken } from "../i18n/domain";
-import type { HiddenDependencies } from "./completedTasks";
 import { CopyableIdentifier } from "./CopyableIdentifier";
 import { EntityIcon } from "./EntityIcon";
 import { IconButton } from "./IconButton";
 import { PullRequestFlags } from "./PullRequestFlags";
 import { TaskPromptCopyButton } from "./TaskPromptCopyButton";
 import { TaskBlockLabels, TaskStatusBadge } from "./TaskStateBadges";
+import type { HiddenDependencies } from "./visibleGraph";
 
 export interface TaskNodeDocument {
   id: string;

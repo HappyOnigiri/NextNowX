@@ -7,7 +7,7 @@ import {
 // グラフのフィルタはサーバーの IsTaskFinished と同じ導出状態を読む。これにより
 // マージ済み・クローズ済みの PR で決着したタスクも、ブラウザ側で導出を
 // 作り直すことなく完了として扱える。
-function isFinishedTask(task: Task): boolean {
+export function isFinishedTask(task: Task): boolean {
   return (
     task.displayState === TaskDisplayState.COMPLETED ||
     task.displayState === TaskDisplayState.CLOSED ||
@@ -15,7 +15,7 @@ function isFinishedTask(task: Task): boolean {
   );
 }
 
-// 表示中のタスクが依存する完了済みタスクのタイトルを、依存の向きで分けたもの。
+// 表示中のタスクが依存する非表示タスクのタイトルを、依存の向きで分けたもの。
 // ノードは待っている作業と待たれている作業を示せる。
 export interface HiddenDependencies {
   blockers: string[];
@@ -32,16 +32,18 @@ export interface VisibleGraph {
 // 描画ごとに新しく作るとキャンバスが組み直しになる。
 export const emptyHiddenDependencies = new Map<string, HiddenDependencies>();
 
-// 非表示にすると完了済みタスクはすべて消える。それを経由していた依存は捨てず、
-// 両端の表示中タスクに報告する。docs/design/webui.md を参照。
-export function hideFinishedTasks(
+// 隠す理由は完了済みと検索の不一致があるが、呼び出し側は 1 つの述語に束ねて
+// 渡す。隠したタスクを経由していた依存は捨てず、両端の表示中タスクに報告する。
+// docs/design/webui.md を参照。
+export function hideTasks(
   tasks: Task[],
   dependencies: Dependency[],
+  shouldHide: (task: Task) => boolean,
 ): VisibleGraph {
   // 隠したタスクはタイトルも持たせる。代わりに表示するスタブが、置き換えた
   // 作業の名前を示すため。
   const hidden = new Map(
-    tasks.filter(isFinishedTask).map((task) => [task.id, task.title]),
+    tasks.filter(shouldHide).map((task) => [task.id, task.title]),
   );
   if (hidden.size === 0)
     return { tasks, dependencies, hiddenDependencies: emptyHiddenDependencies };
