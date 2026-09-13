@@ -636,7 +636,7 @@ describe("FeatureWorkspace", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "This feature is read-only because Delivery platform is archived. Activate the project to edit or sync it.",
+        "This feature is read-only because Delivery platform is archived. Activate the project to edit or refresh it.",
       ),
     ).toBeInTheDocument();
     expect(screen.getByText("Open project")).toBeInTheDocument();

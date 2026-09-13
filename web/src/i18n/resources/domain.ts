@@ -10,9 +10,9 @@ export const domain = {
       configPermissionsTooOpen: "The configuration file is readable by others",
       configUnknownFields: "The configuration contains ignored fields",
       noAuthMethodForHost: "A host with pull requests has no credential",
-      githubSyncRunError: "The latest synchronization run failed",
-      githubSyncOverdue: "Automatic synchronization is overdue",
-      githubSyncNeverCompleted: "No synchronization run has ever completed",
+      githubSyncRunError: "The latest GitHub status refresh failed",
+      githubSyncOverdue: "The automatic GitHub status refresh is overdue",
+      githubSyncNeverCompleted: "No GitHub status refresh has ever completed",
       pullRequestsStale: "Some pull requests hold stale state",
       daemonPlistStale: "The LaunchAgent does not match this PRX binary",
       daemonNotRunning: "The LaunchAgent is installed but no server is running",
@@ -84,7 +84,7 @@ export const domain = {
     pullRequestFlag: {
       stale:
         "Stale: this pull request may no longer match its state on GitHub.",
-      syncError: "GitHub sync error",
+      syncError: "GitHub status refresh error",
     },
     blockedReason: {
       dependencyDataIncomplete: "Dependency data is incomplete",
@@ -104,9 +104,10 @@ export const domain = {
       configPermissionsTooOpen: "設定ファイルが他者から読める権限です",
       configUnknownFields: "設定に無視されるフィールドがあります",
       noAuthMethodForHost: "PRのあるホストに認証方法がありません",
-      githubSyncRunError: "直近の同期実行が失敗しました",
-      githubSyncOverdue: "自動同期が予定より遅れています",
-      githubSyncNeverCompleted: "同期が一度も完了していません",
+      githubSyncRunError: "直近の GitHub ステータスの更新が失敗しました",
+      githubSyncOverdue: "GitHub ステータスの自動更新が予定より遅れています",
+      githubSyncNeverCompleted:
+        "GitHub ステータスの更新が一度も完了していません",
       pullRequestsStale: "一部のPRが古い状態のままです",
       daemonPlistStale: "LaunchAgentが現在のPRXと一致しません",
       daemonNotRunning: "LaunchAgentはあるがサーバーが稼働していません",
@@ -178,7 +179,7 @@ export const domain = {
     pullRequestFlag: {
       stale:
         "情報が古い: この pull request は GitHub 上の状態と違うかもしれません。",
-      syncError: "GitHub 同期エラー",
+      syncError: "GitHub ステータスの更新エラー",
     },
     blockedReason: {
       dependencyDataIncomplete: "依存関係のデータが不足しています",

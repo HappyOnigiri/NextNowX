@@ -207,10 +207,9 @@ describe("Dashboard states", () => {
     expect(
       container.querySelector(".queue-sync-error > span"),
     ).toHaveTextContent("1");
-    expect(screen.getByRole("link", { name: /Sync errors/ })).toHaveAttribute(
-      "href",
-      "/tasks?q=github-status%3Aerror",
-    );
+    expect(
+      screen.getByRole("link", { name: /Refresh errors/ }),
+    ).toHaveAttribute("href", "/tasks?q=github-status%3Aerror");
     expect(screen.getByText(/Active graph/)).toBeInTheDocument();
     expect(screen.queryByText(/Archived graph/)).not.toBeInTheDocument();
     expect(screen.queryByText("Archived task")).not.toBeInTheDocument();

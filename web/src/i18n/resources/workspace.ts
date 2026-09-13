@@ -20,10 +20,10 @@ export const workspace = {
       viewTask: "View {{title}} details",
       archivedLabel: "Archived · read-only",
       archivedDetail:
-        "This graph stays available for reference. Restore the feature to edit or sync it.",
+        "This graph stays available for reference. Restore the feature to edit or refresh it.",
       projectArchivedLabel: "Project archived · read-only",
       projectArchivedDetail:
-        "This feature is read-only because {{title}} is archived. Activate the project to edit or sync it.",
+        "This feature is read-only because {{title}} is archived. Activate the project to edit or refresh it.",
       openProject: "Open project",
       archiveFeature: "Archive feature",
       unarchiveFeature: "Unarchive feature",
@@ -102,7 +102,7 @@ export const workspace = {
       confirmArchive: "Archive feature",
       completeTitle: "Complete {{title}}?",
       completeDescription:
-        "{{count}} of its tasks are still unfinished. It will leave Overview and Active circuits and stop being refreshed from GitHub.",
+        "{{count}} of its tasks are still unfinished. It will leave Overview and Active circuits and stop receiving the GitHub status refresh.",
       confirmComplete: "Complete feature",
       deleteTitle: "Delete {{title}}?",
       deleteDescription:
@@ -131,10 +131,10 @@ export const workspace = {
       viewTask: "{{title}} の詳細を表示",
       archivedLabel: "アーカイブ済み・読み取り専用",
       archivedDetail:
-        "このグラフは参照用に保持されています。編集や同期を行うには復元してください。",
+        "このグラフは参照用に保持されています。編集や更新を行うには復元してください。",
       projectArchivedLabel: "プロジェクトがアーカイブ済み・読み取り専用",
       projectArchivedDetail:
-        "{{title}} がアーカイブされているため、このフィーチャーは読み取り専用です。編集や同期を行うにはプロジェクトをアクティブに戻してください。",
+        "{{title}} がアーカイブされているため、このフィーチャーは読み取り専用です。編集や更新を行うにはプロジェクトをアクティブに戻してください。",
       openProject: "プロジェクトを開く",
       archiveFeature: "フィーチャーをアーカイブ",
       unarchiveFeature: "フィーチャーを復元",
@@ -214,7 +214,7 @@ export const workspace = {
       confirmArchive: "アーカイブする",
       completeTitle: "{{title}} を完了にしますか？",
       completeDescription:
-        "未完了のタスクが {{count}} 件あります。概要と進行中のフィーチャーから外れ、GitHub の自動更新の対象からも外れます。",
+        "未完了のタスクが {{count}} 件あります。概要と進行中のフィーチャーから外れ、GitHub ステータスの自動更新の対象からも外れます。",
       confirmComplete: "完了にする",
       deleteTitle: "{{title}} を削除しますか？",
       deleteDescription:
