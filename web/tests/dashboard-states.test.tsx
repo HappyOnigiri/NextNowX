@@ -235,7 +235,7 @@ describe("Dashboard states", () => {
     dashboardMocks.sync.isPending = true;
     const { rerender } = renderDashboard();
 
-    const syncing = screen.getByRole("button", { name: "Refreshing…" });
+    const syncing = screen.getByRole("button", { name: "Refresh" });
     expect(syncing).toBeDisabled();
     expect(syncing).toHaveClass("icon-button-busy");
     expect(syncing).toHaveAttribute("aria-busy", "true");
@@ -308,7 +308,7 @@ describe("Dashboard states", () => {
     dashboardMocks.state.data = makeSnapshot();
     renderDashboard({ ...autoSyncStatus, checking: true });
 
-    const syncing = screen.getByRole("button", { name: "Refreshing…" });
+    const syncing = screen.getByRole("button", { name: "Refresh" });
     expect(syncing).toBeDisabled();
     expect(syncing).toHaveAttribute("aria-busy", "true");
   });

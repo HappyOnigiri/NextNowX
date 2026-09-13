@@ -552,7 +552,7 @@ describe("FeatureWorkspace", () => {
     workspaceMocks.snapshot.data = populatedSnapshot();
     mutationAt(0).isPending = true;
     rerender(<FeatureWorkspace />);
-    const syncing = screen.getByRole("button", { name: "Refreshing…" });
+    const syncing = screen.getByRole("button", { name: "Refresh" });
     expect(syncing).toBeDisabled();
     expect(syncing).toHaveClass("icon-button-busy");
     expect(syncing).toHaveAttribute("aria-busy", "true");

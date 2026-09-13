@@ -389,11 +389,7 @@ function FeatureWorkspaceHead({
         {!readOnly && (
           <IconButton
             icon={RefreshCw}
-            label={
-              props.syncPending
-                ? t("workspace.refreshing")
-                : t("workspace.refresh")
-            }
+            label={t("workspace.refresh")}
             variant="secondary"
             busy={props.syncPending}
             onClick={props.onSync}
