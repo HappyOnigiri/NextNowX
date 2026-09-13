@@ -82,7 +82,7 @@ function ProjectTreeRow({
     <li>
       <div className="nav-tree-row">
         {/* 折りたたみはプロジェクトのグリフ自体が担う。専用の三角を置かない分、
-            行の左端はどのプロジェクトかを示すフォルダから始まる。 */}
+            フォルダの開閉そのもので状態を示す。展開できない行は閉じたまま。 */}
         {row.features.length ? (
           <button
             aria-controls={childrenId}
@@ -93,7 +93,7 @@ function ProjectTreeRow({
             title={label}
             type="button"
           >
-            <EntityIcon kind="project" size={14} />
+            <EntityIcon kind="project" open={expanded} size={14} />
           </button>
         ) : (
           <span className="nav-tree-toggle-spacer">
