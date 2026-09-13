@@ -177,7 +177,10 @@ describe("useRevisionStream", () => {
     await act(async () => {
       await queryClient
         .getMutationCache()
-        .build(queryClient, { mutationFn: () => Promise.resolve("written") })
+        .build(queryClient, {
+          mutationFn: () => Promise.resolve("written"),
+          meta: { domainWrite: true },
+        })
         .execute(undefined);
     });
     act(() => {
@@ -194,6 +197,37 @@ describe("useRevisionStream", () => {
     });
     act(() => {
       stream.send(3);
+    });
+    await waitFor(() => {
+      expect(invalidatedKeys()).toHaveLength(4);
+    });
+  });
+
+  // 60 秒ごとの GitHub 同期の確認はデータベースを書かない。これを書き込みとして
+  // 数えると、そのたびに外からの変更を捨てる窓ができる。
+  it("keeps refreshing while a mutation that does not write the database runs", async () => {
+    const stream = controllableStream();
+    streamMocks.watchRevision.mockImplementation((signal: AbortSignal) =>
+      stream.iterable(signal),
+    );
+    renderHook(() => useRevisionStream(), {
+      wrapper: createWrapper(queryClient),
+    });
+    await stream.connected;
+    act(() => {
+      stream.send(1);
+    });
+    await waitFor(() => {
+      expect(invalidatedKeys()).toHaveLength(2);
+    });
+    await act(async () => {
+      await queryClient
+        .getMutationCache()
+        .build(queryClient, { mutationFn: () => Promise.resolve("checked") })
+        .execute(undefined);
+    });
+    act(() => {
+      stream.send(2);
     });
     await waitFor(() => {
       expect(invalidatedKeys()).toHaveLength(4);

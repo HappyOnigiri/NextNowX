@@ -200,8 +200,11 @@ export function useRevisionStream(): RevisionStreamStatus {
   return { connected, stale };
 }
 
-// watchLocalWrites はこのタブの mutation が最後に走った時刻を追う。サーバーは自分の
+// watchLocalWrites はこのタブの書き込みが最後に走った時刻を追う。サーバーは自分の
 // 書き込みも他人のものと同じく検知するので、これがないと 1 回の変更で 2 回取り直す。
+
+// 数えるのはデータベースを書く mutation だけである。書かないものまで数えると、
+// 60 秒ごとの GitHub 同期の確認が、そのたびに外からの変更を捨てる窓を作る。
 function watchLocalWrites(queryClient: QueryClient) {
   let lastAt = 0;
   // 同じ mutation について複数のイベントが届くので、数ではなく id の集合で数える。
@@ -209,6 +212,7 @@ function watchLocalWrites(queryClient: QueryClient) {
   const unsubscribe = queryClient.getMutationCache().subscribe((event) => {
     const mutation = event.mutation;
     if (!mutation) return;
+    if (mutation.meta?.["domainWrite"] !== true) return;
     if (mutation.state.status === "pending") {
       pending.add(mutation.mutationId);
       return;
@@ -245,12 +249,17 @@ function streamState(stream: RevisionStreamStatus | undefined): string {
   return stream.stale ? "disconnected, stale" : "disconnected";
 }
 
+// domainWrite は、この mutation がローカルデータベースを書き換えることを表す。
+// 設定やテンプレートの書き込みは設定ファイルへ行くので、この印を付けない。
+const domainWriteMeta = { domainWrite: true } as const;
+
 export function useDomainMutation<TVariables, TData>(
   mutationFn: (input: TVariables) => Promise<TData>,
 ) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn,
+    meta: domainWriteMeta,
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: snapshotKey }),
