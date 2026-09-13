@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 type updateEnvironment struct {
 	service     *app.Service
 	configStore *config.Store
+	database    *store.Store
 }
 
 func newUpdateService(t *testing.T, provider app.ReleaseProvider, updater app.Updater) updateEnvironment {
@@ -36,7 +38,7 @@ func newUpdateService(t *testing.T, provider app.ReleaseProvider, updater app.Up
 	}
 	service := app.NewWithConfig(database, nil, configStore)
 	service.SetUpdateSources(provider, updater)
-	return updateEnvironment{service: service, configStore: configStore}
+	return updateEnvironment{service: service, configStore: configStore, database: database}
 }
 
 type countingProvider struct {
@@ -279,5 +281,32 @@ func TestUpdateStatusAcceptsAStaticProvider(t *testing.T) {
 	status, err := environment.service.GetUpdateStatus(context.Background())
 	if err != nil || status.LatestVersion != "v0.4.0" {
 		t.Fatalf("status=%+v err=%v", status, err)
+	}
+}
+
+// 保存する一覧は表示する一覧とそろえる。古い版や上限を超えた分を溜め込まない。
+func TestUpdateStatusStoresOnlyTheReleasesItShows(t *testing.T) {
+	app.StubUpdateBuildVersionForTest(t, "0.3.0")
+	notes := []domain.ReleaseNote{{Version: "v0.2.0"}, {Version: "0.3.0"}}
+	for index := range domain.MaxUpdateReleases + 5 {
+		notes = append(notes, domain.ReleaseNote{Version: "v1." + strconv.Itoa(index) + ".0"})
+	}
+	environment := newUpdateService(t, &countingProvider{releases: notes}, nil)
+	ctx := context.Background()
+
+	if _, err := environment.service.GetUpdateStatus(ctx); err != nil {
+		t.Fatal(err)
+	}
+	state, err := environment.database.UpdateCheckState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(state.Releases) != domain.MaxUpdateReleases {
+		t.Fatalf("stored=%d, want %d", len(state.Releases), domain.MaxUpdateReleases)
+	}
+	for _, note := range state.Releases {
+		if note.Version == "v0.2.0" || note.Version == "0.3.0" {
+			t.Fatalf("a release that is not newer was stored: %+v", state.Releases)
+		}
 	}
 }

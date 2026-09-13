@@ -43,6 +43,9 @@ func (s *Service) GetUpdateStatus(ctx context.Context) (domain.UpdateStatus, err
 		return s.storedUpdateStatus(ctx, repository)
 	}
 	releases, checkErr := s.checkReleases(ctx)
+	// 保存する一覧は表示する一覧とそろえる。上限も新旧の絞り込みもここで掛からないと、
+	// 取得したページ全体の本文がそのまま 1 行に溜まる。
+	releases = domain.NewerReleases(updateBuildVersion(), releases)
 	// 確認できなかったときは直前の結果を残す。オフラインでもモーダルは開ける。
 	previous, previousErr := repository.UpdateCheckState(ctx)
 	runError := ""
