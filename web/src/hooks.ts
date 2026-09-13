@@ -9,6 +9,8 @@ import {
   syncIfDue,
 } from "./api";
 import type { QueryDiagnostic } from "./debug-text";
+import { setDisplayLanguage } from "./i18n";
+import { isSupportedLanguage } from "./i18n/settings";
 
 const snapshotKey = ["snapshot"] as const;
 const configKey = ["github-config"] as const;
@@ -25,6 +27,34 @@ export function useSnapshot() {
 
 export function useConfig() {
   return useQuery({ queryKey: configKey, queryFn: getConfig });
+}
+
+// 表示言語はサーバーが解決した実効言語に従う。設定が auto でも、画面の言語と
+// サーバーが描くプロンプトの言語がずれないようにするためである。
+export function useDisplayLanguage() {
+  const config = useConfig();
+  const effective = config.data?.effectiveLanguage;
+  useEffect(() => {
+    if (!isSupportedLanguage(effective)) return;
+    void setDisplayLanguage(effective);
+  }, [effective]);
+}
+
+// 言語を変えると組み込みテンプレートも変わるので、設定と一緒にテンプレートの
+// キャッシュも捨てる。その場で描画するプロンプトはキャッシュを持たない。
+export function useLanguageMutation<TVariables, TData>(
+  mutationFn: (input: TVariables) => Promise<TData>,
+) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: configKey }),
+        queryClient.invalidateQueries({ queryKey: promptTemplatesKey }),
+      ]);
+    },
+  });
 }
 
 // テンプレートは設定パネルでしか読まないので、shell が保持し続ける query には

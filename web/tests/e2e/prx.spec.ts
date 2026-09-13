@@ -5,6 +5,8 @@ import {
   createFeature,
   e2eBaseURL,
   guardBrowserErrors,
+  openDisplaySettings,
+  saveSettings,
   settleGraph,
   taskNodeId,
 } from "./helpers";
@@ -12,29 +14,6 @@ import {
 test.use({ baseURL: e2eBaseURL });
 
 const browserErrors = guardBrowserErrors();
-
-async function openDisplaySettings(page: Page, language: "en" | "ja" = "en") {
-  const labels =
-    language === "en"
-      ? { button: "Settings", dialog: "Settings", tab: "Display" }
-      : { button: "設定", dialog: "設定", tab: "表示" };
-  await page.getByRole("button", { name: labels.button }).click();
-  await expect(page.getByRole("dialog", { name: labels.dialog })).toBeVisible();
-  await page.getByRole("tab", { name: labels.tab }).click();
-}
-
-// 設定はタブをまたいでフッタの保存 1 つで書き込む。表示の設定も押すまで
-// 適用されない。
-async function saveSettings(page: Page, language: "en" | "ja" = "en") {
-  const labels =
-    language === "en"
-      ? { dialog: "Settings", save: "Save" }
-      : { dialog: "設定", save: "保存" };
-  await page
-    .getByRole("dialog", { name: labels.dialog })
-    .getByRole("button", { name: labels.save })
-    .click();
-}
 
 // デモバナーはビューポートから高さを取るので、ワークスペースがビューポート全体の
 // サイズのままだと、自身の下端であるグラフキャンバスとズーム操作が画面外に出る。
@@ -117,26 +96,6 @@ test("finds a task blocked by failing CI", async ({ page }) => {
   await expect(results).toContainText("Fix failing pipeline");
   await expect(results).toContainText("CI failed");
   await expect(results.locator(".status-badge.block-ci-failed")).toHaveCount(1);
-});
-
-test("switches the display language and restores it from Local Storage", async ({
-  page,
-}) => {
-  await page.goto("/");
-  await openDisplaySettings(page);
-  await page.getByLabel("Display language").selectOption("ja");
-  await expect(page.locator("html")).toHaveAttribute("lang", "en");
-  await saveSettings(page);
-  await expect(
-    page.getByRole("heading", { name: /いま動かせるタスク/ }),
-  ).toBeVisible();
-  await expect(page.locator("html")).toHaveAttribute("lang", "ja");
-  await page.reload();
-  await openDisplaySettings(page, "ja");
-  await expect(page.getByLabel("表示言語")).toHaveValue("ja");
-  await expect(
-    page.getByRole("heading", { name: /いま動かせるタスク/ }),
-  ).toBeVisible();
 });
 
 test("keeps the Settings dialog size while switching tabs", async ({
@@ -827,88 +786,4 @@ test("keeps the user's graph zoom across features and reloads", async ({
     timeout: 25_000,
   });
   await expect.poll(() => graphZoom(page)).toBeCloseTo(savedZoom, 5);
-});
-
-test("keeps controls usable at a narrow viewport", async ({ page }) => {
-  await page.setViewportSize({ width: 320, height: 720 });
-  await page.goto("/");
-  await expect(
-    page.getByRole("heading", { name: /What can move/ }),
-  ).toBeVisible();
-  await expect(page.locator(".page-head .dashboard-sync")).toBeVisible();
-  await expect(page.locator(".rail .dashboard-sync")).toHaveCount(0);
-  const dashboardSyncButton = page.getByRole("button", {
-    name: "Sync GitHub",
-  });
-  await expect(dashboardSyncButton).toBeVisible();
-  const dashboardSyncBounds = await dashboardSyncButton.boundingBox();
-  expect(dashboardSyncBounds).not.toBeNull();
-  if (dashboardSyncBounds)
-    expect(
-      dashboardSyncBounds.x + dashboardSyncBounds.width,
-    ).toBeLessThanOrEqual(320);
-  // この幅では 1 行の rail にツリーを置けないが、Projects リンクは残り、その
-  // ページがツリーの役割を担う。
-  await expect(page.getByRole("link", { name: /Projects/ })).toBeVisible();
-  await expect(page.locator(".rail .nav-tree")).toBeHidden();
-  await expect(page.locator("body")).toHaveJSProperty("scrollWidth", 320);
-  await openDisplaySettings(page);
-  await page.getByLabel("Display language").selectOption("ja");
-  await saveSettings(page);
-  const settingsDialog = page.getByRole("dialog", { name: "設定" });
-  await expect(settingsDialog).toBeVisible();
-  await expect(page.getByRole("tab", { name: "表示" })).toHaveAttribute(
-    "aria-selected",
-    "true",
-  );
-  for (const control of await settingsDialog.getByRole("combobox").all()) {
-    const bounds = await control.boundingBox();
-    expect(bounds).not.toBeNull();
-    if (bounds) {
-      expect(bounds.x).toBeGreaterThanOrEqual(0);
-      expect(bounds.x + bounds.width).toBeLessThanOrEqual(320);
-    }
-  }
-  await expect(page.locator("body")).toHaveJSProperty("scrollWidth", 320);
-  await page.getByLabel("表示言語").selectOption("en");
-  await saveSettings(page, "ja");
-  await page
-    .getByRole("dialog", { name: "Settings" })
-    .getByRole("button", { name: "Close" })
-    .click();
-  // この幅ではツリーが隠れるので、feature へはサイドバーではなく Projects
-  // ページから辿る。
-  await page.getByRole("link", { name: /Projects/ }).click();
-  await page
-    .getByRole("region", { name: "Project list" })
-    .getByText("Delivery platform")
-    .click();
-  await page
-    .getByRole("link", { name: /Delivery control showcase/ })
-    .first()
-    .click();
-  const addTaskButton = page.getByRole("button", { name: "Add task" });
-  await expect(addTaskButton).toBeVisible();
-  await expect(addTaskButton.locator("svg")).toHaveAttribute(
-    "aria-hidden",
-    "true",
-  );
-  await expect(page.getByRole("button", { name: "Sync GitHub" })).toBeHidden();
-  await expect(page.getByRole("button", { name: "Edit feature" })).toBeHidden();
-  const referencesButton = page.getByRole("button", { name: "References" });
-  await expect(referencesButton).toBeVisible();
-  await referencesButton.click();
-  const referencesPanel = page.getByRole("region", { name: "References" });
-  await expect(referencesPanel).toBeVisible();
-  await expect(
-    referencesPanel.getByRole("button", { name: "Add reference", exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.locator(".workspace-actions > .icon-button-danger"),
-  ).toHaveCount(0);
-  const addTaskBounds = await addTaskButton.boundingBox();
-  expect(addTaskBounds).not.toBeNull();
-  if (addTaskBounds) {
-    expect(addTaskBounds.x + addTaskBounds.width).toBeLessThanOrEqual(320);
-  }
 });

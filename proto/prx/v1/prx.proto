@@ -947,6 +947,11 @@ message GitHubConfig {
   repeated GitHubAuthMethod auth_methods = 3;
   // auto_sync_interval_seconds は CLI とサーバーで共有する更新間隔。
   int64 auto_sync_interval_seconds = 4;
+  // language は設定ファイルが持つ生の値で、auto、en、ja のいずれか。
+  string language = 5;
+  // effective_language は auto を環境のロケールで解決した結果の en または ja。
+  // 組み込みプロンプトの言語であり、WebUI の表示言語でもある。
+  string effective_language = 6;
 }
 
 // GetConfigRequest は公開の GitHub 設定を要求する。
@@ -966,6 +971,18 @@ message UpdateGitHubSyncConfigRequest {
 
 // UpdateGitHubSyncConfigResponse は結果の公開設定を返す。
 message UpdateGitHubSyncConfigResponse {
+  // config は更新後の、秘密情報を含まない設定。
+  GitHubConfig config = 1;
+}
+
+// UpdateLanguageConfigRequest は表示とプロンプトが共有する言語を変更する。
+message UpdateLanguageConfigRequest {
+  // language は auto、en、ja のいずれか。auto は環境のロケールから決める。
+  string language = 1;
+}
+
+// UpdateLanguageConfigResponse は結果の公開設定を返す。
+message UpdateLanguageConfigResponse {
   // config は更新後の、秘密情報を含まない設定。
   GitHubConfig config = 1;
 }
@@ -1636,6 +1653,8 @@ service PRXService {
   rpc GetConfig(GetConfigRequest) returns (GetConfigResponse);
   // UpdateGitHubSyncConfig は共有の自動更新間隔を変更する。
   rpc UpdateGitHubSyncConfig(UpdateGitHubSyncConfigRequest) returns (UpdateGitHubSyncConfigResponse);
+  // UpdateLanguageConfig は表示とプロンプトが共有する言語を変更する。
+  rpc UpdateLanguageConfig(UpdateLanguageConfigRequest) returns (UpdateLanguageConfigResponse);
   // AddGitHubHost は host の境界を追加する。
   rpc AddGitHubHost(AddGitHubHostRequest) returns (AddGitHubHostResponse);
   // UpdateGitHubHost は host の境界を更新する。

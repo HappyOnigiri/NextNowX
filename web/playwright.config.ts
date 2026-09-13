@@ -6,8 +6,8 @@ export default defineConfig({
   timeout: 45_000,
   expect: { timeout: 8_000 },
   // テストは一意なタイトルの feature を作る以外はデモグラフを読むだけなので、
-  // 単一の E2E サーバーを worker 間で共有する。例外は共有のプロンプト
-  // テンプレートを書き換える prompts.spec.ts。
+  // 単一の E2E サーバーを worker 間で共有する。例外は共有設定を書き換える
+  // prompts.spec.ts と language.spec.ts で、後者は専用のサーバーを使う。
   fullyParallel: true,
   retries: process.env["CI"] ? 1 : 0,
   reporter: process.env["CI"]
@@ -22,13 +22,24 @@ export default defineConfig({
     video: "retain-on-failure",
     ...devices["Desktop Chrome"],
   },
-  webServer: {
-    command: "../scripts/run-e2e-server.sh",
-    wait: {
-      stderr: new RegExp(
-        "PRX listening on http://127\\.0\\.0\\.1:(?<PRX_E2E_PORT>\\d+)",
-      ),
+  webServer: [
+    {
+      command: "../scripts/run-e2e-server.sh",
+      wait: {
+        stderr: new RegExp(
+          "PRX listening on http://127\\.0\\.0\\.1:(?<PRX_E2E_PORT>\\d+)",
+        ),
+      },
+      timeout: 120_000,
     },
-    timeout: 120_000,
-  },
+    {
+      command: "../scripts/run-e2e-server.sh",
+      wait: {
+        stderr: new RegExp(
+          "PRX listening on http://127\\.0\\.0\\.1:(?<PRX_E2E_LANGUAGE_PORT>\\d+)",
+        ),
+      },
+      timeout: 120_000,
+    },
+  ],
 });

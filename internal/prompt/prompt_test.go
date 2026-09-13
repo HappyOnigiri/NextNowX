@@ -38,7 +38,7 @@ func TestRenderExpandsEveryPlaceholderOfTheSelectedTemplate(t *testing.T) {
 		Design:         "design {{task_id}} {{feature_id}} {{task_title}} {{task_scope}}",
 		Implementation: "implement {{task_id}}",
 	}
-	kind, body, err := prompt.Render(designTask(), templates)
+	kind, body, err := prompt.Render(designTask(), templates, prompt.LanguageEnglish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +54,7 @@ func TestRenderExpandsEveryPlaceholderOfTheSelectedTemplate(t *testing.T) {
 	// 失敗したと読めてしまう。
 	scopeless := designTask()
 	scopeless.Scope = "  "
-	_, body, err = prompt.Render(scopeless, templates)
+	_, body, err = prompt.Render(scopeless, templates, prompt.LanguageEnglish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,7 +64,7 @@ func TestRenderExpandsEveryPlaceholderOfTheSelectedTemplate(t *testing.T) {
 
 	planned := designTask()
 	planned.HasImplementationPlan = true
-	kind, body, err = prompt.Render(planned, templates)
+	kind, body, err = prompt.Render(planned, templates, prompt.LanguageEnglish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func TestRenderExpandsEveryPlaceholderOfTheSelectedTemplate(t *testing.T) {
 }
 
 func TestRenderFillsAnOmittedTemplateWithItsDefault(t *testing.T) {
-	kind, body, err := prompt.Render(designTask(), prompt.Templates{})
+	kind, body, err := prompt.Render(designTask(), prompt.Templates{}, prompt.LanguageEnglish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,83 +89,166 @@ func TestRenderFillsAnOmittedTemplateWithItsDefault(t *testing.T) {
 	}
 }
 
+// languageClauses は既定テンプレートが含むべき条項を言語ごとの語句で表す。
+// 文面は言語で違っても、条項は 3 種類とも同じでなければならない。
+type languageClauses struct {
+	questions      []string
+	assumption     string
+	localOnly      string
+	outOfRepo      string
+	designStatus   string
+	implementation string
+}
+
+func clausesOf(language prompt.Language) languageClauses {
+	if language == prompt.LanguageJapanese {
+		return languageClauses{
+			questions:      []string{"質問はしない"},
+			assumption:     "仮定として明記",
+			localOnly:      "PRX はこのマシンの中だけで動く",
+			outOfRepo:      "PRX やその識別子・コマンドに言及してはならない",
+			designStatus:   "設計中として記録する",
+			implementation: "作業中として記録する",
+		}
+	}
+	return languageClauses{
+		questions:      []string{"do not ask questions", "asks questions"},
+		assumption:     "stated assumption",
+		localOnly:      "PRX runs on this machine only",
+		outOfRepo:      "may mention PRX, its identifiers, or its commands.",
+		designStatus:   "Mark the task as being designed",
+		implementation: "Mark the task as being worked on",
+	}
+}
+
 // 既定テンプレートは多くのインストールがそのまま使うため、各手順が依存する
-// コマンドを明示しなければならない。
+// コマンドを明示しなければならない。コマンド例は言語によらず原語のまま残す。
 func TestDefaultTemplatesGuideTheAgentThroughPRX(t *testing.T) {
-	defaults := prompt.DefaultTemplates()
-	for _, command := range []string{
-		"prx task update {{task_id}} --status designing",
-		"prx task {{task_id}}",
-		"prx graph {{feature_id}}",
-		"prx plan set {{task_id}}",
-	} {
-		if !strings.Contains(defaults.Design, command) {
-			t.Fatalf("default design template does not mention %q", command)
-		}
-	}
-	for _, command := range []string{"prx plan {{task_id}}", "prx pr attach {{task_id}}", "prx task update {{task_id}}"} {
-		if !strings.Contains(defaults.Implementation, command) {
-			t.Fatalf("default implementation template does not mention %q", command)
-		}
-	}
-	if strings.Contains(defaults.Design, "prx plan {{task_id}}\n") {
-		t.Fatal("the design template reads a plan the task does not have yet")
+	for _, language := range prompt.SupportedLanguages() {
+		t.Run(string(language), func(t *testing.T) {
+			defaults := prompt.DefaultTemplates(language)
+			for _, command := range []string{
+				"prx task update {{task_id}} --status designing",
+				"prx task {{task_id}}",
+				"prx graph {{feature_id}}",
+				"prx plan set {{task_id}}",
+			} {
+				if !strings.Contains(defaults.Design, command) {
+					t.Fatalf("default design template does not mention %q", command)
+				}
+			}
+			for _, command := range []string{
+				"prx plan {{task_id}}",
+				"prx pr attach {{task_id}}",
+				"prx task update {{task_id}}",
+			} {
+				if !strings.Contains(defaults.Implementation, command) {
+					t.Fatalf("default implementation template does not mention %q", command)
+				}
+			}
+			if strings.Contains(defaults.Design, "prx plan {{task_id}}\n") {
+				t.Fatal("the design template reads a plan the task does not have yet")
+			}
+			clauses := clausesOf(language)
+			if !strings.Contains(defaults.Design, clauses.designStatus) ||
+				!strings.Contains(defaults.Implementation, clauses.implementation) {
+				t.Fatal("a default template does not record the task status before working on it")
+			}
+		})
 	}
 }
 
 // プロンプトは無人で走るエージェントにも batch の SubAgent にも渡るため、既定テンプレートは
 // 3 種類とも質問を禁じ、未確定事項を仮定として残させなければならない。
 func TestDefaultTemplatesForbidQuestions(t *testing.T) {
-	defaults := prompt.DefaultTemplates()
-	for name, template := range map[string]string{
-		"design":         defaults.Design,
-		"implementation": defaults.Implementation,
-		"batch":          defaults.Batch,
-	} {
-		if !strings.Contains(template, "do not ask questions") &&
-			!strings.Contains(template, "asks questions") {
+	forEachDefaultTemplate(t, func(t *testing.T, clauses languageClauses, name, template string) {
+		t.Helper()
+		if !slices.ContainsFunc(clauses.questions, func(phrase string) bool {
+			return strings.Contains(template, phrase)
+		}) {
 			t.Fatalf("default %s template does not forbid questions", name)
 		}
-		if !strings.Contains(template, "stated assumption") {
+		if !strings.Contains(template, clauses.assumption) {
 			t.Fatalf("default %s template does not ask for stated assumptions", name)
 		}
-	}
+	})
 }
 
 // 資料は task だけでなく feature や project にも付く。既定テンプレートは、設計と実装の
 // どちらでもその 3 か所を読むよう案内しなければならない。
 func TestDefaultTemplatesPointTheAgentAtAttachedDocuments(t *testing.T) {
-	defaults := prompt.DefaultTemplates()
-	for name, template := range map[string]string{
-		"design":         defaults.Design,
-		"implementation": defaults.Implementation,
-	} {
-		for _, command := range []string{
-			"prx document --task {{task_id}}",
-			"prx document --feature {{feature_id}}",
-			"prx document --project PROJECT_ID",
-			"prx document get DOCUMENT_ID",
-		} {
-			if !strings.Contains(template, command) {
-				t.Fatalf("default %s template does not mention %q", name, command)
+	for _, language := range prompt.SupportedLanguages() {
+		t.Run(string(language), func(t *testing.T) {
+			defaults := prompt.DefaultTemplates(language)
+			for name, template := range map[string]string{
+				"design":         defaults.Design,
+				"implementation": defaults.Implementation,
+			} {
+				for _, command := range []string{
+					"prx document --task {{task_id}}",
+					"prx document --feature {{feature_id}}",
+					"prx document --project PROJECT_ID",
+					"prx document get DOCUMENT_ID",
+				} {
+					if !strings.Contains(template, command) {
+						t.Fatalf("default %s template does not mention %q", name, command)
+					}
+				}
 			}
-		}
+		})
 	}
 }
 
 // PRX はローカルのツールなので、リポジトリの読み手には解決できない参照になる。
 // 既定テンプレートは、成果物に PRX を持ち込まないようエージェントに指示する。
 func TestDefaultTemplatesKeepPRXOutOfTheRepository(t *testing.T) {
-	defaults := prompt.DefaultTemplates()
-	for name, template := range map[string]string{
-		"design":         defaults.Design,
-		"implementation": defaults.Implementation,
-		"batch":          defaults.Batch,
-	} {
-		if !strings.Contains(template, "PRX runs on this machine only") ||
-			!strings.Contains(template, "may mention PRX, its identifiers, or its commands.") {
+	forEachDefaultTemplate(t, func(t *testing.T, clauses languageClauses, name, template string) {
+		t.Helper()
+		if !strings.Contains(template, clauses.localOnly) || !strings.Contains(template, clauses.outOfRepo) {
 			t.Fatalf("default %s template does not forbid mentioning PRX in the repository: %q", name, template)
 		}
+	})
+}
+
+// 既定テンプレートは保存されるテンプレートと同じ検証を通る。日本語は UTF-8 で
+// 1 文字 3 バイトになるため、上限に収まることをここで確かめる。
+func TestDefaultTemplatesSatisfyTheStoredTemplateRules(t *testing.T) {
+	for _, language := range prompt.SupportedLanguages() {
+		t.Run(string(language), func(t *testing.T) {
+			defaults := prompt.DefaultTemplates(language)
+			if _, err := defaults.Normalize(language); err != nil {
+				t.Fatal(err)
+			}
+			for name, template := range map[string]string{
+				"design":         defaults.Design,
+				"implementation": defaults.Implementation,
+				"batch":          defaults.Batch,
+			} {
+				if len(template) > prompt.MaximumTemplateBytes {
+					t.Fatalf("default %s template is %d bytes", name, len(template))
+				}
+			}
+		})
+	}
+}
+
+func forEachDefaultTemplate(
+	t *testing.T,
+	check func(t *testing.T, clauses languageClauses, name, template string),
+) {
+	t.Helper()
+	for _, language := range prompt.SupportedLanguages() {
+		t.Run(string(language), func(t *testing.T) {
+			defaults := prompt.DefaultTemplates(language)
+			clauses := clausesOf(language)
+			for name, template := range map[string]string{
+				"design":         defaults.Design,
+				"implementation": defaults.Implementation,
+				"batch":          defaults.Batch,
+			} {
+				check(t, clauses, name, template)
+			}
+		})
 	}
 }
 
@@ -191,10 +274,10 @@ func TestNormalizeRejectsTemplatesTheRendererCouldNotExpand(t *testing.T) {
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			if _, err := test.templates.Normalize(); err == nil || err.Error() != test.message {
+			if _, err := test.templates.Normalize(prompt.LanguageEnglish); err == nil || err.Error() != test.message {
 				t.Fatalf("error=%v, want %q", err, test.message)
 			}
-			if _, _, err := prompt.Render(designTask(), test.templates); err == nil {
+			if _, _, err := prompt.Render(designTask(), test.templates, prompt.LanguageEnglish); err == nil {
 				t.Fatal("Render accepted a template Normalize rejects")
 			}
 		})
@@ -203,14 +286,14 @@ func TestNormalizeRejectsTemplatesTheRendererCouldNotExpand(t *testing.T) {
 
 func TestNormalizeKeepsWhitespaceOtherThanAnEmptyTemplate(t *testing.T) {
 	templates := prompt.Templates{Design: "  {{task_id}}\n\n", Implementation: "   "}
-	normalized, err := templates.Normalize()
+	normalized, err := templates.Normalize(prompt.LanguageEnglish)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if normalized.Design != "  {{task_id}}\n\n" {
 		t.Fatalf("design=%q, want the stored text unchanged", normalized.Design)
 	}
-	if normalized.Implementation != prompt.DefaultTemplates().Implementation {
+	if normalized.Implementation != prompt.DefaultTemplates(prompt.LanguageEnglish).Implementation {
 		t.Fatal("a blank implementation template was not replaced by its default")
 	}
 	if got := normalized.Template(prompt.KindDesign); got != normalized.Design {
@@ -228,7 +311,7 @@ func batchTasks() []domain.Task {
 func TestRenderBatchNamesEveryTaskInTheOrderItWasGiven(t *testing.T) {
 	body, err := prompt.RenderBatch("F-3", batchTasks(), prompt.Templates{
 		Batch: "batch {{feature_id}}\n{{task_list}}",
-	})
+	}, prompt.LanguageEnglish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -241,7 +324,7 @@ func TestRenderBatchNamesEveryTaskInTheOrderItWasGiven(t *testing.T) {
 // batch テンプレートはタスク用テンプレートと並べて保存されるため、一度も
 // カスタマイズしていないインストールには組み込みの文言が届き続ける必要がある。
 func TestRenderBatchFillsAnOmittedTemplateWithItsDefault(t *testing.T) {
-	body, err := prompt.RenderBatch("F-3", batchTasks(), prompt.Templates{})
+	body, err := prompt.RenderBatch("F-3", batchTasks(), prompt.Templates{}, prompt.LanguageEnglish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -273,10 +356,10 @@ func TestNormalizeRejectsABatchTemplateOutsideItsOwnVocabulary(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			templates := prompt.Templates{Batch: test.batch}
-			if _, err := templates.Normalize(); err == nil || err.Error() != test.message {
+			if _, err := templates.Normalize(prompt.LanguageEnglish); err == nil || err.Error() != test.message {
 				t.Fatalf("error=%v, want %q", err, test.message)
 			}
-			if _, err := prompt.RenderBatch("F-3", batchTasks(), templates); err == nil {
+			if _, err := prompt.RenderBatch("F-3", batchTasks(), templates, prompt.LanguageEnglish); err == nil {
 				t.Fatal("RenderBatch accepted a template Normalize rejects")
 			}
 		})
@@ -296,6 +379,7 @@ func TestResolveAppliesIndependentProjectAndFeatureOverrides(t *testing.T) {
 		Batch:          "global batch {{task_list}}",
 	}
 	resolved, err := prompt.Resolve(
+		prompt.LanguageEnglish,
 		global,
 		domain.PromptTemplateOverrides{
 			Design: "project design {{task_id}}",
@@ -317,6 +401,7 @@ func TestResolveAppliesIndependentProjectAndFeatureOverrides(t *testing.T) {
 
 func TestResolveRejectsAnInvalidOverrideWithItsScope(t *testing.T) {
 	_, err := prompt.Resolve(
+		prompt.LanguageEnglish,
 		prompt.Templates{},
 		domain.PromptTemplateOverrides{Design: "missing target"},
 		domain.PromptTemplateOverrides{},

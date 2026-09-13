@@ -1,6 +1,11 @@
 export const supportedLanguages = ["en", "ja"] as const;
 export type SupportedLanguage = (typeof supportedLanguages)[number];
 
+// 言語の設定はサーバーの設定ファイルが持ち、auto は環境のロケールから決めること
+// を表す。表示言語そのものはサーバーが解決した実効言語である。
+export const languagePreferences = ["auto", "en", "ja"] as const;
+export type LanguagePreference = (typeof languagePreferences)[number];
+
 export const themePreferences = ["system", "light", "dark"] as const;
 export type ThemePreference = (typeof themePreferences)[number];
 export type ResolvedTheme = Exclude<ThemePreference, "system">;
@@ -26,7 +31,9 @@ interface WebUISettings {
   railCollapsed?: boolean;
 }
 
-function isSupportedLanguage(value: unknown): value is SupportedLanguage {
+export function isSupportedLanguage(
+  value: unknown,
+): value is SupportedLanguage {
   return supportedLanguages.includes(value as SupportedLanguage);
 }
 
@@ -190,6 +197,8 @@ export function writeRailCollapsed(railCollapsed: boolean) {
   }
 }
 
+// 表示言語の正はサーバーの設定である。ここへの書き込みは初回描画で英語の画面が
+// 一瞬見えるのを防ぐキャッシュで、設定を取得した時点で実効言語に上書きされる。
 export function writeDisplayLanguage(language: SupportedLanguage) {
   try {
     const settings = readWebUISettings();
@@ -225,6 +234,8 @@ export function writeThemePreference(theme: ThemePreference) {
   }
 }
 
+// detectDisplayLanguage は設定が届くまでの初回描画に使う言語を返す。サーバーの
+// 実効言語が届いたら i18n はそちらへ切り替わる。
 export function detectDisplayLanguage(): SupportedLanguage {
   const saved = readWebUISettings().language;
   if (saved) return saved;

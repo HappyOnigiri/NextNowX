@@ -22,6 +22,11 @@ import (
 
 func newPromptClient(t *testing.T) prxv1connect.PRXServiceClient {
 	t.Helper()
+	// 組み込みテンプレートは実効言語で決まる。設定は auto のままなので、
+	// 期待値が実行環境のロケールで変わらないよう言語を固定する。
+	for _, name := range []string{"LC_ALL", "LC_MESSAGES", "LANG"} {
+		t.Setenv(name, "en_US.UTF-8")
+	}
 	root := t.TempDir()
 	database, err := store.Open(context.Background(), filepath.Join(root, "prompt.db"))
 	if err != nil {
@@ -68,7 +73,7 @@ func TestRPCPromptTemplatesRoundTripAndDriveTheTaskPrompt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if stored.Msg.GetTemplates().GetDesign() != prompt.DefaultTemplates().Design {
+	if stored.Msg.GetTemplates().GetDesign() != prompt.DefaultTemplates(prompt.LanguageEnglish).Design {
 		t.Fatalf("design template=%q, want the built-in template", stored.Msg.GetTemplates().GetDesign())
 	}
 	// 語彙はテンプレートと一緒に届く。エディタがこのサーバーの受理内容を
@@ -99,8 +104,9 @@ func TestRPCPromptTemplatesRoundTripAndDriveTheTaskPrompt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if customized.Msg.GetBuiltIn().GetDesign() != prompt.DefaultTemplates().Design ||
-		customized.Msg.GetBuiltIn().GetImplementation() != prompt.DefaultTemplates().Implementation {
+	english := prompt.DefaultTemplates(prompt.LanguageEnglish)
+	if customized.Msg.GetBuiltIn().GetDesign() != english.Design ||
+		customized.Msg.GetBuiltIn().GetImplementation() != english.Implementation {
 		t.Fatalf("built-in templates=%+v", customized.Msg.GetBuiltIn())
 	}
 
@@ -152,7 +158,7 @@ func TestRPCPromptFailuresUseTheConfigurationVocabulary(t *testing.T) {
 	}
 	// 拒否された書き込みは保存済みの組をそのままにしている。
 	stored, err := client.GetPromptTemplates(ctx, connect.NewRequest(&prxv1.GetPromptTemplatesRequest{}))
-	if err != nil || stored.Msg.GetTemplates().GetDesign() != prompt.DefaultTemplates().Design {
+	if err != nil || stored.Msg.GetTemplates().GetDesign() != prompt.DefaultTemplates(prompt.LanguageEnglish).Design {
 		t.Fatalf("stored templates=%+v err=%v", stored.Msg.GetTemplates(), err)
 	}
 }
@@ -205,7 +211,7 @@ func TestRPCBatchPromptCoversTheSelectedTasksOfOneFeature(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if stored.Msg.GetTemplates().GetBatch() != prompt.DefaultTemplates().Batch {
+	if stored.Msg.GetTemplates().GetBatch() != prompt.DefaultTemplates(prompt.LanguageEnglish).Batch {
 		t.Fatalf("batch template=%q, want the built-in template", stored.Msg.GetTemplates().GetBatch())
 	}
 	if !slices.Equal(stored.Msg.GetBatchSupportedPlaceholders(), prompt.BatchSupportedPlaceholders()) ||
@@ -214,8 +220,8 @@ func TestRPCBatchPromptCoversTheSelectedTasksOfOneFeature(t *testing.T) {
 	}
 
 	if _, err := client.UpdatePromptTemplates(ctx, connect.NewRequest(&prxv1.UpdatePromptTemplatesRequest{
-		Design:         prompt.DefaultTemplates().Design,
-		Implementation: prompt.DefaultTemplates().Implementation,
+		Design:         prompt.DefaultTemplates(prompt.LanguageEnglish).Design,
+		Implementation: prompt.DefaultTemplates(prompt.LanguageEnglish).Implementation,
 		Batch:          "Batch {{feature_id}}\n{{task_list}}\n",
 	})); err != nil {
 		t.Fatal(err)
@@ -398,4 +404,57 @@ func createBatchFeature(
 		taskIDs = append(taskIDs, task.Msg.GetTask().GetId())
 	}
 	return featureID, taskIDs
+}
+
+// 言語は設定ファイルに置く共有の値なので、切り替えると組み込みテンプレートも
+// レンダリング結果も追従する。WebUI の表示言語はこの実効言語に従う。
+func TestRPCLanguageConfigSwitchesTheBuiltInTemplates(t *testing.T) {
+	ctx := context.Background()
+	client := newPromptClient(t)
+	taskID := createPromptTask(t, client)
+
+	settings, err := client.GetConfig(ctx, connect.NewRequest(&prxv1.GetConfigRequest{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if settings.Msg.GetConfig().GetLanguage() != config.LanguageAutoValue ||
+		settings.Msg.GetConfig().GetEffectiveLanguage() != string(prompt.LanguageEnglish) {
+		t.Fatalf("config=%+v", settings.Msg.GetConfig())
+	}
+
+	updated, err := client.UpdateLanguageConfig(ctx, connect.NewRequest(&prxv1.UpdateLanguageConfigRequest{
+		Language: string(prompt.LanguageJapanese),
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.Msg.GetConfig().GetLanguage() != string(prompt.LanguageJapanese) ||
+		updated.Msg.GetConfig().GetEffectiveLanguage() != string(prompt.LanguageJapanese) {
+		t.Fatalf("config=%+v", updated.Msg.GetConfig())
+	}
+
+	stored, err := client.GetPromptTemplates(ctx, connect.NewRequest(&prxv1.GetPromptTemplatesRequest{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	japanese := prompt.DefaultTemplates(prompt.LanguageJapanese)
+	if stored.Msg.GetBuiltIn().GetDesign() != japanese.Design ||
+		stored.Msg.GetTemplates().GetDesign() != japanese.Design {
+		t.Fatalf("design template=%q, want the japanese built-in template", stored.Msg.GetTemplates().GetDesign())
+	}
+
+	design, err := client.GetTaskPrompt(ctx, connect.NewRequest(&prxv1.GetTaskPromptRequest{TaskId: taskID}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(design.Msg.GetPrompt(), "設計する") {
+		t.Fatalf("design prompt=%q, want japanese", design.Msg.GetPrompt())
+	}
+
+	_, err = client.UpdateLanguageConfig(ctx, connect.NewRequest(&prxv1.UpdateLanguageConfigRequest{
+		Language: "fr",
+	}))
+	if errorDetailCode(t, err) != prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_CONFIG {
+		t.Fatalf("unsupported language error=%v", err)
+	}
 }

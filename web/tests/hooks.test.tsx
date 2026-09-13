@@ -6,13 +6,17 @@ import {
   useConfig,
   useConfigMutation,
   useDebugReport,
+  useDisplayLanguage,
   useDomainMutation,
+  useLanguageMutation,
   usePromptTemplates,
   usePromptTemplatesMutation,
   useQueryDiagnostics,
   useSnapshot,
   useSnapshotRefresh,
 } from "../src/hooks";
+import i18n from "../src/i18n";
+import { readWebUISettings } from "../src/i18n/settings";
 import { makeSnapshot } from "./factories";
 
 const hookMocks = vi.hoisted(() => ({
@@ -181,6 +185,30 @@ describe("domain query hooks", () => {
     });
   });
 
+  // 言語を変えると組み込みテンプレートも変わるので、設定とテンプレートの
+  // 両方のキャッシュを捨てる。
+  it("refreshes the configuration and the templates after a language write", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries");
+
+    const mutation = vi.fn().mockResolvedValue("saved");
+    const { result } = renderHook(() => useLanguageMutation(mutation), {
+      wrapper: createWrapper(queryClient),
+    });
+    await expect(result.current.mutateAsync("ja")).resolves.toBe("saved");
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["github-config"],
+    });
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["prompt-templates"],
+    });
+  });
+
   it("requests the debug report only once the panel asks for it", async () => {
     const report = {
       report: { problems: [] },
@@ -227,5 +255,58 @@ describe("domain query hooks", () => {
     await waitFor(() => {
       expect(hookMocks.getConfig).not.toHaveBeenCalled();
     });
+  });
+});
+
+// 表示言語の正はサーバーの設定である。auto のときもサーバーが解決した実効言語に
+// 従うので、画面の言語とプロンプトの言語がずれない。
+describe("display language", () => {
+  beforeEach(async () => {
+    localStorage.clear();
+    await i18n.changeLanguage("en");
+  });
+
+  it("follows the effective language the server resolved", async () => {
+    hookMocks.getConfig.mockResolvedValue({
+      language: "auto",
+      effectiveLanguage: "ja",
+    });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    renderHook(
+      () => {
+        useDisplayLanguage();
+      },
+      { wrapper: createWrapper(queryClient) },
+    );
+    await waitFor(() => {
+      expect(i18n.resolvedLanguage).toBe("ja");
+    });
+    // Local Storage は初回描画のためのキャッシュとして更新される。
+    expect(readWebUISettings().language).toBe("ja");
+  });
+
+  it("keeps the current language when the server reports an unknown one", async () => {
+    hookMocks.getConfig.mockResolvedValue({
+      language: "auto",
+      effectiveLanguage: "fr",
+    });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    const { result } = renderHook(
+      () => {
+        useDisplayLanguage();
+        return useConfig();
+      },
+      { wrapper: createWrapper(queryClient) },
+    );
+    await waitFor(() => {
+      expect(result.current.data).toBeDefined();
+    });
+    expect(i18n.resolvedLanguage).toBe("en");
   });
 });

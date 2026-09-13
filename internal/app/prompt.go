@@ -24,11 +24,11 @@ func (s *Service) GetTaskPrompt(ctx context.Context, taskID string) (prompt.Kind
 	if err != nil {
 		return "", "", err
 	}
-	templates, err := s.resolvePromptTemplates(ctx, feature)
+	templates, language, err := s.resolvePromptTemplates(ctx, feature)
 	if err != nil {
 		return "", "", err
 	}
-	return prompt.Render(task, templates)
+	return prompt.Render(task, templates, language)
 }
 
 // GetBatchPrompt は指定された feature の task 群を検証し、task prompt と同じ
@@ -68,51 +68,52 @@ func (s *Service) GetBatchPrompt(ctx context.Context, featureID string, taskIDs 
 	if err := requirePromptBlockers(tasks); err != nil {
 		return "", err
 	}
-	templates, err := s.resolvePromptTemplates(ctx, feature)
+	templates, language, err := s.resolvePromptTemplates(ctx, feature)
 	if err != nil {
 		return "", err
 	}
-	return prompt.RenderBatch(feature.ID, tasks, templates)
+	return prompt.RenderBatch(feature.ID, tasks, templates, language)
 }
 
 func (s *Service) resolvePromptTemplates(
 	ctx context.Context,
 	feature domain.Feature,
-) (prompt.Templates, error) {
+) (prompt.Templates, prompt.Language, error) {
 	if s.configStore == nil {
-		return prompt.Templates{}, domain.NewError(
+		return prompt.Templates{}, "", domain.NewError(
 			domain.DomainErrorCodeInvalidConfig,
 			"prompt templates require a configuration store",
 		)
 	}
 	settings, err := s.configStore.Load()
 	if err != nil {
-		return prompt.Templates{}, configDomainError(err)
+		return prompt.Templates{}, "", configDomainError(err)
 	}
 	project, err := s.ResolveProject(ctx, feature.ProjectID)
 	if err != nil {
-		return prompt.Templates{}, err
+		return prompt.Templates{}, "", err
 	}
-	resolved, err := prompt.Resolve(settings.Prompts, project.PromptOverrides, feature.PromptOverrides)
+	language := settings.EffectiveLanguage()
+	resolved, err := prompt.Resolve(language, settings.Prompts, project.PromptOverrides, feature.PromptOverrides)
 	if err != nil {
 		var typed *prompt.Error
 		if errors.As(err, &typed) {
 			if !strings.HasPrefix(typed.Field, "project.") && !strings.HasPrefix(typed.Field, "feature.") {
-				return prompt.Templates{}, domain.NewError(
+				return prompt.Templates{}, "", domain.NewError(
 					domain.DomainErrorCodeInvalidConfig,
 					"%s",
 					typed.Error(),
 				)
 			}
-			return prompt.Templates{}, domain.NewError(
+			return prompt.Templates{}, "", domain.NewError(
 				domain.DomainErrorCodeInvalidPromptTemplate,
 				"%s",
 				typed.Error(),
 			)
 		}
-		return prompt.Templates{}, err
+		return prompt.Templates{}, "", err
 	}
-	return resolved, nil
+	return resolved, language, nil
 }
 
 func snapshotTask(snapshot domain.Snapshot, id string) (domain.Task, bool) {

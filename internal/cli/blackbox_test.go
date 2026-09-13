@@ -37,6 +37,10 @@ type commandOutput struct {
 	exit   int
 }
 
+// englishLocale はプロンプトの実効言語を英語に固定する。設定が auto のとき、
+// サーバーは環境のロケールから言語を決めるためである。
+var englishLocale = []string{"LC_ALL=en_US.UTF-8", "LC_MESSAGES=en_US.UTF-8", "LANG=en_US.UTF-8"}
+
 func buildCLI(t *testing.T) string {
 	t.Helper()
 	binary := filepath.Join(t.TempDir(), "prx")
@@ -2302,8 +2306,13 @@ func TestBlackBoxPromptFollowsThePlanAndTheConfiguredTemplates(t *testing.T) {
 	root := t.TempDir()
 	dbPath := filepath.Join(root, "prompt.db")
 	configPath := filepath.Join(root, "prompt-config.yaml")
+	// 言語の設定は auto なので、実行環境のロケール次第で組み込みテンプレートの
+	// 言語が変わる。この検証は英語の文面を見るため、ロケールを明示する。
 	run := func(args ...string) commandOutput {
-		return executeCLI(t, binary, "", append([]string{"--db", dbPath, "--config", configPath}, args...)...)
+		return executeCLIWithEnv(
+			t, binary, "", englishLocale,
+			append([]string{"--db", dbPath, "--config", configPath}, args...)...,
+		)
 	}
 
 	if result := run("project", "create", "Prompts"); result.exit != 0 {
@@ -2350,10 +2359,11 @@ func TestBlackBoxPromptFollowsThePlanAndTheConfiguredTemplates(t *testing.T) {
 		t.Fatalf("implementation prompt=%q", implementation.stdout)
 	}
 
-	jsonResult, stderr, exit := runCLIWithFixture(t, binary, dbPath, "", "--config", configPath, "prompt", "T-1")
-	if exit != 0 || stderr != "" {
-		t.Fatalf("prompt --json failed: stderr=%q exit=%d", stderr, exit)
+	jsonRun := run("--json", "prompt", "T-1")
+	if jsonRun.exit != 0 || jsonRun.stderr != "" {
+		t.Fatalf("prompt --json failed: stderr=%q exit=%d", jsonRun.stderr, jsonRun.exit)
 	}
+	jsonResult := decodeResult(t, []byte(jsonRun.stdout), jsonRun.stdout)
 	assertEnvelopeKeys(t, jsonResult, "task_id", "kind", "prompt")
 	var promptData struct {
 		TaskID string `json:"task_id"`
@@ -2371,6 +2381,69 @@ func TestBlackBoxPromptFollowsThePlanAndTheConfiguredTemplates(t *testing.T) {
 	missing, _, exit := runCLIWithFixture(t, binary, dbPath, "", "--config", configPath, "prompt", "T-404")
 	if exit == 0 || missing.ErrorCode != "not_found" {
 		t.Fatalf("missing task result=%+v exit=%d", missing, exit)
+	}
+}
+
+// 言語は設定ファイルに置く共有の値なので、CLI からも切り替えられる。auto の
+// ときは環境のロケールが実効言語を決める。
+func TestBlackBoxConfigLanguageSwitchesThePromptLanguage(t *testing.T) {
+	binary := buildCLI(t)
+	root := t.TempDir()
+	dbPath := filepath.Join(root, "language.db")
+	configPath := filepath.Join(root, "language-config.yaml")
+	japaneseLocale := []string{"LC_ALL=ja_JP.UTF-8", "LC_MESSAGES=ja_JP.UTF-8", "LANG=ja_JP.UTF-8"}
+	run := func(env []string, args ...string) commandOutput {
+		return executeCLIWithEnv(
+			t, binary, "", env,
+			append([]string{"--db", dbPath, "--config", configPath}, args...)...,
+		)
+	}
+
+	for _, args := range [][]string{
+		{"project", "create", "Prompts"},
+		{"feature", "create", "Prompts", "--project", "P-1"},
+		{"task", "create", "F-1", "Add the checkout API", "--scope", "Server only"},
+	} {
+		if result := run(englishLocale, args...); result.exit != 0 {
+			t.Fatalf("%v: stderr=%q", args, result.stderr)
+		}
+	}
+
+	// 設定がなければ auto なので、日本語ロケールの実行は日本語のプロンプトを出す。
+	automatic := run(japaneseLocale, "config", "language")
+	if automatic.exit != 0 || !strings.Contains(automatic.stdout, "Language: auto (effective: ja).") {
+		t.Fatalf("config language output=%q stderr=%q", automatic.stdout, automatic.stderr)
+	}
+	japanese := run(japaneseLocale, "prompt", "T-1")
+	if japanese.exit != 0 || !strings.HasPrefix(japanese.stdout, "feature F-1 の PRX task T-1 を設計する。\n") {
+		t.Fatalf("design prompt=%q stderr=%q", japanese.stdout, japanese.stderr)
+	}
+
+	// 明示した言語はロケールに勝つ。LaunchAgent 経由の起動でロケールが渡らない
+	// 環境でも、設定しておけばプロンプトの言語がぶれない。
+	if result := run(englishLocale, "config", "language", "update", "ja"); result.exit != 0 ||
+		!strings.Contains(result.stdout, "Updated language to ja (effective: ja).") {
+		t.Fatalf("config language update output=%q stderr=%q", result.stdout, result.stderr)
+	}
+	pinned := run(englishLocale, "prompt", "T-1")
+	if !strings.HasPrefix(pinned.stdout, "feature F-1 の PRX task T-1 を設計する。\n") {
+		t.Fatalf("design prompt=%q", pinned.stdout)
+	}
+	settings, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 未カスタマイズのテンプレートは書き出さない。言語を切り替えただけで前の
+	// 言語の文面が固定されると、以後の文面更新に追従できなくなる。
+	if strings.Contains(string(settings), "prompts:") {
+		t.Fatalf("config file contains prompts:\n%s", settings)
+	}
+
+	failure, _, exit := runCLIWithFixture(
+		t, binary, dbPath, "", "--config", configPath, "config", "language", "update", "fr",
+	)
+	if exit == 0 || failure.ErrorCode != "invalid_config" {
+		t.Fatalf("unsupported language result=%+v exit=%d", failure, exit)
 	}
 }
 

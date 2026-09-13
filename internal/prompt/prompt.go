@@ -195,8 +195,15 @@ func BatchSupportedPlaceholders() []string {
 func BatchRequiredPlaceholder() string { return batchRequiredPlaceholder }
 
 // DefaultTemplates は設定が独自のテンプレートを定義していないときに使う
-// 組み込みテンプレートを返す。
-func DefaultTemplates() Templates {
+// 組み込みテンプレートを、実効言語の版で返す。未知の言語は英語版を返す。
+func DefaultTemplates(language Language) Templates {
+	if language == LanguageJapanese {
+		return Templates{
+			Design:         japaneseDesignTemplate,
+			Implementation: japaneseImplementationTemplate,
+			Batch:          japaneseBatchTemplate,
+		}
+	}
 	return Templates{
 		Design:         defaultDesignTemplate,
 		Implementation: defaultImplementationTemplate,
@@ -229,10 +236,11 @@ func (t Templates) Template(kind Kind) string {
 // 下位スコープの空文字列は上位スコープから継承する。global は必ず Normalize
 // を通すが、DB から読んだ上書きはここで個別に検証する。
 func Resolve(
+	language Language,
 	global Templates,
 	project, feature domain.PromptTemplateOverrides,
 ) (Templates, error) {
-	base, err := global.Normalize()
+	base, err := global.Normalize(language)
 	if err != nil {
 		return Templates{}, err
 	}
@@ -293,12 +301,12 @@ func applyOverride(result *Templates, scope string, overrides domain.PromptTempl
 	return nil
 }
 
-// Normalize は省略されたテンプレートを組み込みの既定値で埋め、最初に見つかった
+// Normalize は省略されたテンプレートを実効言語の既定値で埋め、最初に見つかった
 // 不正なテンプレートを報告する。prompts がなかった頃の設定ファイルがそのまま
 // 読み込めるのはこの処理のおかげ。
-func (t Templates) Normalize() (Templates, error) {
+func (t Templates) Normalize(language Language) (Templates, error) {
 	result := t
-	defaults := DefaultTemplates()
+	defaults := DefaultTemplates(language)
 	if strings.TrimSpace(result.Design) == "" {
 		result.Design = defaults.Design
 	}
@@ -329,8 +337,8 @@ func (t Templates) Normalize() (Templates, error) {
 // Render は 1 つのタスクをプロンプトに展開し、どのテンプレートを使ったかを返す。
 // 読み込みから描画までの間に手編集されたファイルが未展開のプレースホルダを
 // 出さないよう、保存済みテンプレートをここで再検証する。
-func Render(task domain.Task, templates Templates) (Kind, string, error) {
-	normalized, err := templates.Normalize()
+func Render(task domain.Task, templates Templates, language Language) (Kind, string, error) {
+	normalized, err := templates.Normalize(language)
 	if err != nil {
 		return "", "", err
 	}
@@ -350,8 +358,13 @@ func Render(task domain.Task, templates Templates) (Kind, string, error) {
 // RenderBatch は batch テンプレートを複数タスクに展開する。呼び出し元が並べた順を
 // 保ち、タスクごとの指示は含めない。
 // docs/design/agent-prompts.md を参照。
-func RenderBatch(featureID string, tasks []domain.Task, templates Templates) (string, error) {
-	normalized, err := templates.Normalize()
+func RenderBatch(
+	featureID string,
+	tasks []domain.Task,
+	templates Templates,
+	language Language,
+) (string, error) {
+	normalized, err := templates.Normalize(language)
 	if err != nil {
 		return "", err
 	}

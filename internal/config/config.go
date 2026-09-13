@@ -152,19 +152,31 @@ func (c GitHubConfig) MarshalYAML() (any, error) {
 // 人間向けや RPC の出力には Public を使うこと。Prompts は CLI も出力するため、
 // Local Storage ではなくここに置く。
 type Config struct {
-	Version int              `yaml:"version" json:"version"`
-	GitHub  GitHubConfig     `yaml:"github"  json:"github"`
-	Server  ServerConfig     `yaml:"server"  json:"server"`
-	Prompts prompt.Templates `yaml:"prompts" json:"prompts"`
+	Version  int              `yaml:"version"            json:"version"`
+	Language string           `yaml:"language,omitempty" json:"language"`
+	GitHub   GitHubConfig     `yaml:"github"             json:"github"`
+	Server   ServerConfig     `yaml:"server"             json:"server"`
+	Prompts  prompt.Templates `yaml:"prompts"            json:"prompts"`
+}
+
+// LanguageAutoValue は環境のロケールから実効言語を決めることを表す語彙。設定
+// ファイルと CLI が同じ語を使う。
+const LanguageAutoValue = prompt.LanguageAutoValue
+
+// EffectiveLanguage は組み込みテンプレートと WebUI の表示に使う実効言語を返す。
+// 設定が auto のときだけ環境のロケールを読む。
+func (c Config) EffectiveLanguage() prompt.Language {
+	return prompt.ResolveLanguage(c.Language)
 }
 
 // yamlConfig は YAML 出力用の Config の写し。組み込みテンプレートのままの設定で
 // キーごと省略できるよう、Prompts はポインタにしてある。
 type yamlConfig struct {
-	Version int          `yaml:"version"`
-	GitHub  GitHubConfig `yaml:"github"`
-	Server  ServerConfig `yaml:"server"`
-	Prompts *yamlPrompts `yaml:"prompts,omitempty"`
+	Version  int          `yaml:"version"`
+	Language string       `yaml:"language,omitempty"`
+	GitHub   GitHubConfig `yaml:"github"`
+	Server   ServerConfig `yaml:"server"`
+	Prompts  *yamlPrompts `yaml:"prompts,omitempty"`
 }
 
 type yamlPrompts struct {
@@ -177,7 +189,7 @@ type yamlPrompts struct {
 // 読み込み時に空のテンプレートを埋めるため、そのまま書き戻すと最初に保存した
 // PRX のバージョンの文言でファイルが固定されてしまう。
 func (c Config) MarshalYAML() (any, error) {
-	defaults := prompt.DefaultTemplates()
+	defaults := prompt.DefaultTemplates(c.EffectiveLanguage())
 	prompts := yamlPrompts{}
 	if c.Prompts.Design != defaults.Design {
 		prompts.Design = c.Prompts.Design
@@ -189,6 +201,10 @@ func (c Config) MarshalYAML() (any, error) {
 		prompts.Batch = c.Prompts.Batch
 	}
 	result := yamlConfig{Version: c.Version, GitHub: c.GitHub, Server: c.Server}
+	// auto はキーを持たない状態と同じ意味なので書き出さない。
+	if c.Language != "" && c.Language != LanguageAutoValue {
+		result.Language = c.Language
+	}
 	if prompts != (yamlPrompts{}) {
 		result.Prompts = &prompts
 	}
@@ -213,10 +229,14 @@ type PublicGitHubConfig struct {
 	AutoSyncIntervalSeconds int64              `json:"auto_sync_interval_seconds"`
 }
 
+// PublicConfig は設定の生の language と、サーバーが解決した effective_language を
+// 並べて返す。auto のままでも WebUI がサーバーと同じ言語を表示できるようにする。
 type PublicConfig struct {
-	Version int                `json:"version"`
-	GitHub  PublicGitHubConfig `json:"github"`
-	Server  ServerConfig       `json:"server"`
+	Version           int                `json:"version"`
+	Language          string             `json:"language"`
+	EffectiveLanguage string             `json:"effective_language"`
+	GitHub            PublicGitHubConfig `json:"github"`
+	Server            ServerConfig       `json:"server"`
 }
 
 type ErrorCode string
@@ -262,14 +282,16 @@ func DefaultHost() Host {
 }
 
 func Default() Config {
-	return Config{
-		Version: CurrentVersion,
+	value := Config{
+		Version:  CurrentVersion,
+		Language: LanguageAutoValue,
 		GitHub: GitHubConfig{
 			Hosts:                   []Host{DefaultHost()},
 			AutoSyncIntervalSeconds: DefaultAutoSyncIntervalSeconds,
 		},
-		Prompts: prompt.DefaultTemplates(),
 	}
+	value.Prompts = prompt.DefaultTemplates(value.EffectiveLanguage())
+	return value
 }
 
 // NormalizeHost は PR・設定・認証キャッシュで使う大文字小文字を区別しない
@@ -300,7 +322,12 @@ func (c Config) Normalize() (Config, error) {
 		return Config{}, newError(ErrorCodeInvalid, "config version must be %d", CurrentVersion)
 	}
 	result := c
-	prompts, err := c.Prompts.Normalize()
+	language, err := normalizeLanguage(c.Language)
+	if err != nil {
+		return Config{}, err
+	}
+	result.Language = language
+	prompts, err := result.Prompts.Normalize(result.EffectiveLanguage())
 	if err != nil {
 		return Config{}, promptError(err)
 	}
@@ -372,6 +399,26 @@ func (c Config) Normalize() (Config, error) {
 		result.GitHub.AuthMethods[index] = method
 	}
 	return result, nil
+}
+
+// normalizeLanguage は auto・en・ja だけを受け付け、キーの欠落を auto として扱う。
+// 未知の値を黙って auto に落とすと、設定した覚えのない言語でプロンプトが出る。
+func normalizeLanguage(value string) (string, error) {
+	trimmed := strings.ToLower(strings.TrimSpace(value))
+	if trimmed == "" || trimmed == LanguageAutoValue {
+		return LanguageAutoValue, nil
+	}
+	language, ok := prompt.ParseLanguage(trimmed)
+	if !ok {
+		return "", newError(
+			ErrorCodeInvalid,
+			"language must be %q, %q, or %q",
+			LanguageAutoValue,
+			prompt.LanguageEnglish,
+			prompt.LanguageJapanese,
+		)
+	}
+	return string(language), nil
 }
 
 func (c Config) Validate() error {
@@ -648,6 +695,33 @@ func (c *Config) SetPrompts(templates prompt.Templates) error {
 	return nil
 }
 
+// SetLanguage は表示とプロンプトが共有する言語を設定する。auto は環境のロケール
+// から実効言語を決めることを表す。
+func (c *Config) SetLanguage(value string) error {
+	previous := *c
+	// 読み込み時に埋められた既定値をそのまま残すと、言語を変えた瞬間に前の言語の
+	// 文面がカスタマイズとして固定される。既定値のままの種類だけ空へ戻す。
+	defaults := prompt.DefaultTemplates(c.EffectiveLanguage())
+	c.Language = value
+	for _, item := range []struct {
+		stored  *string
+		builtIn string
+	}{
+		{stored: &c.Prompts.Design, builtIn: defaults.Design},
+		{stored: &c.Prompts.Implementation, builtIn: defaults.Implementation},
+		{stored: &c.Prompts.Batch, builtIn: defaults.Batch},
+	} {
+		if *item.stored == item.builtIn {
+			*item.stored = ""
+		}
+	}
+	if err := c.normalizeInPlace(); err != nil {
+		*c = previous
+		return err
+	}
+	return nil
+}
+
 // promptError は拒否されたテンプレートを設定側のエラー語彙で表現する。CLI と
 // RPC が他の不正な設定値と同じようにマッピングできるようにするため。
 func promptError(err error) error {
@@ -693,9 +767,15 @@ func (c *Config) normalizeInPlace() error {
 }
 
 func (c Config) Public() PublicConfig {
+	language := c.Language
+	if language == "" {
+		language = LanguageAutoValue
+	}
 	result := PublicConfig{
-		Version: c.Version,
-		Server:  c.Server,
+		Version:           c.Version,
+		Language:          language,
+		EffectiveLanguage: string(c.EffectiveLanguage()),
+		Server:            c.Server,
 		GitHub: PublicGitHubConfig{
 			Hosts:                   append([]Host(nil), c.GitHub.Hosts...),
 			AuthMethods:             make([]PublicAuthMethod, 0, len(c.GitHub.AuthMethods)),

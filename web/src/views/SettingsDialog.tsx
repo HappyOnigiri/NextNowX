@@ -1,12 +1,15 @@
 import { X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { configMutations } from "../api";
+import { useConfig, useLanguageMutation } from "../hooks";
 import { setDisplayLanguage } from "../i18n";
 import {
+  isSupportedLanguage,
+  languagePreferences,
   readThemePreference,
-  supportedLanguages,
   themePreferences,
-  type SupportedLanguage,
+  type LanguagePreference,
   type ThemePreference,
 } from "../i18n/settings";
 import { setDisplayTheme } from "../theme";
@@ -180,13 +183,19 @@ function SettingsPanel({
 }
 
 function DisplaySettingsPanel() {
-  const { t, i18n } = useTranslation();
-  const language = (i18n.resolvedLanguage ?? "en") as SupportedLanguage;
+  const { t } = useTranslation();
+  // 言語は表示とプロンプトが共有する設定なので、ブラウザーではなくサーバーの
+  // 設定が正になる。テーマは表示だけの好みなので Local Storage に残す。
+  const config = useConfig();
+  const updateLanguage = useLanguageMutation(configMutations.updateLanguage);
   const [draft, setDraft] = useState<{
-    language: SupportedLanguage;
+    language: LanguagePreference;
     theme: ThemePreference;
   }>();
-  const saved = { language, theme: readThemePreference() };
+  const saved = {
+    language: (config.data?.language ?? "auto") as LanguagePreference,
+    theme: readThemePreference(),
+  };
   const current = draft ?? saved;
 
   useRegisterSettingsSection("display", {
@@ -194,7 +203,13 @@ function DisplaySettingsPanel() {
     invalid: false,
     save: async () => {
       setDisplayTheme(current.theme);
-      await setDisplayLanguage(current.language);
+      if (current.language !== saved.language) {
+        const response = await updateLanguage.mutateAsync(current.language);
+        const effective = response.config?.effectiveLanguage;
+        // 実効言語はサーバーが決める。auto を選んだときの表示言語は、
+        // ブラウザーのロケールではなくサーバーが読んだロケールに従う。
+        if (isSupportedLanguage(effective)) await setDisplayLanguage(effective);
+      }
       setDraft(undefined);
     },
   });
@@ -204,6 +219,7 @@ function DisplaySettingsPanel() {
       <label className="settings-display-row">
         <span className="settings-display-copy">
           <strong>{t("settings.display.language.label")}</strong>
+          <small>{t("settings.display.language.note")}</small>
         </span>
         <select
           aria-label={t("settings.display.language.label")}
@@ -211,17 +227,22 @@ function DisplaySettingsPanel() {
           onChange={(event) => {
             setDraft({
               ...current,
-              language: event.target.value as SupportedLanguage,
+              language: event.target.value as LanguagePreference,
             });
           }}
         >
-          {supportedLanguages.map((option) => (
+          {languagePreferences.map((option) => (
             <option value={option} key={option}>
               {t(`settings.display.language.options.${option}`)}
             </option>
           ))}
         </select>
       </label>
+      {updateLanguage.isError && (
+        <p className="form-error" role="alert">
+          {t("settings.display.language.error")}
+        </p>
+      )}
       <label className="settings-display-row">
         <span className="settings-display-copy">
           <strong>{t("settings.display.theme.label")}</strong>

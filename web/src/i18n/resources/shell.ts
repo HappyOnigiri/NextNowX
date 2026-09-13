@@ -14,7 +14,9 @@ export const shell = {
       display: {
         language: {
           label: "Display language",
-          options: { en: "English", ja: "日本語" },
+          options: { auto: "Automatic", en: "English", ja: "日本語" },
+          note: "Also selects the language of the built-in agent prompts.",
+          error: "The language could not be saved.",
         },
         theme: {
           label: "Display theme",
@@ -115,7 +117,9 @@ export const shell = {
       display: {
         language: {
           label: "表示言語",
-          options: { en: "English", ja: "日本語" },
+          options: { auto: "自動", en: "English", ja: "日本語" },
+          note: "組み込みのエージェント用プロンプトの言語も切り替えます。",
+          error: "言語を保存できませんでした。",
         },
         theme: {
           label: "表示テーマ",

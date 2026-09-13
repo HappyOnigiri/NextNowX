@@ -38,6 +38,7 @@ import {
   UpdateGitHubAuthMethodRequestSchema,
   UpdateGitHubHostRequestSchema,
   UpdateGitHubSyncConfigRequestSchema,
+  UpdateLanguageConfigRequestSchema,
   UpdateProjectRequestSchema,
   UpdatePromptTemplatesRequestSchema,
   UpdateTaskRequestSchema,
@@ -269,6 +270,12 @@ export const configMutations = {
   reorderAuth: (ids: string[]) =>
     client.reorderGitHubAuthMethods(
       create(ReorderGitHubAuthMethodsRequestSchema, { ids }),
+    ),
+  // 言語は表示とプロンプトが共有する設定なので、localStorage ではなくサーバーへ
+  // 書き込む。auto は環境のロケールから実効言語を決めることを表す。
+  updateLanguage: (language: string) =>
+    client.updateLanguageConfig(
+      create(UpdateLanguageConfigRequestSchema, { language }),
     ),
   updateSync: (intervalSeconds: bigint) =>
     client.updateGitHubSyncConfig(

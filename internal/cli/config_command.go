@@ -11,6 +11,7 @@ import (
 
 	"github.com/HappyOnigiri/PRX/internal/config"
 	"github.com/HappyOnigiri/PRX/internal/domain"
+	"github.com/HappyOnigiri/PRX/internal/prompt"
 )
 
 func (s *state) configCommand() *cobra.Command {
@@ -35,6 +36,7 @@ func (s *state) configCommand() *cobra.Command {
 		s.configPathCommand(),
 		s.configValidateCommand(),
 		s.configSyncCommand(),
+		s.configLanguageCommand(),
 		s.configServerCommand(),
 		s.configHostCommand(),
 		s.configAuthCommand(),
@@ -106,6 +108,75 @@ func (s *state) configSyncUpdateCommand() *cobra.Command {
 		},
 	}
 	return command
+}
+
+// configLanguageCommand は組み込みプロンプトと WebUI の表示が共有する言語を扱う。
+// 設定ファイルを直接編集せずに切り替えられるようにするためにある。
+func (s *state) configLanguageCommand() *cobra.Command {
+	command := &cobra.Command{
+		Use:     "language",
+		Short:   "Show or manage the shared display and prompt language",
+		Example: "prx config language",
+		Args:    cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			store, err := s.configStore()
+			if err != nil {
+				return configCommandError(err)
+			}
+			settings, err := store.Load()
+			if err != nil {
+				return configCommandError(err)
+			}
+			return s.writeLanguage(settings, "Language: %s (effective: %s).")
+		},
+	}
+	command.AddCommand(s.configLanguageUpdateCommand())
+	return command
+}
+
+func (s *state) configLanguageUpdateCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "update LANGUAGE",
+		Short: "Update the shared display and prompt language",
+		Long: fmt.Sprintf(
+			"Update the shared display and prompt language.\n\n"+
+				"LANGUAGE is %q, %q, or %q. With %[1]q, PRX reads LC_ALL, LC_MESSAGES, and LANG, "+
+				"and falls back to %[2]q.\n"+
+				"The language selects the built-in prompt templates and the WebUI display language. "+
+				"Templates you have customized keep the text you wrote.",
+			config.LanguageAutoValue,
+			string(prompt.LanguageEnglish),
+			string(prompt.LanguageJapanese),
+		),
+		Example: "prx config language update ja",
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			store, err := s.configStore()
+			if err != nil {
+				return configCommandError(err)
+			}
+			settings, err := store.Update(func(settings *config.Config) error {
+				return settings.SetLanguage(args[0])
+			})
+			if err != nil {
+				return configCommandError(err)
+			}
+			return s.writeLanguage(settings, "Updated language to %s (effective: %s).")
+		},
+	}
+}
+
+// languageResponse は設定した値と、そこから解決した実効言語を並べて返す。auto の
+// ままでは、どちらの言語でプロンプトが出るかが値だけでは分からないためである。
+type languageResponse struct {
+	Language          string `json:"language"`
+	EffectiveLanguage string `json:"effective_language"`
+}
+
+func (s *state) writeLanguage(settings config.Config, format string) error {
+	public := settings.Public()
+	value := languageResponse{Language: public.Language, EffectiveLanguage: public.EffectiveLanguage}
+	return s.write(value, renderMessage(format, value.Language, value.EffectiveLanguage))
 }
 
 func (s *state) configServerCommand() *cobra.Command {
