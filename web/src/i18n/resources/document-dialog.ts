@@ -4,6 +4,9 @@ export const documentDialog = {
       projectTitle: "Add project reference",
       featureTitle: "Add feature reference",
       taskTitle: "Add task reference",
+      editProjectTitle: "Edit project reference",
+      editFeatureTitle: "Edit feature reference",
+      editTaskTitle: "Edit task reference",
       titleLabel: "Reference title (optional)",
       titlePlaceholder: "Architecture decision",
       tabs: {
@@ -31,6 +34,9 @@ export const documentDialog = {
       projectTitle: "プロジェクト資料を追加",
       featureTitle: "フィーチャー資料を追加",
       taskTitle: "タスク資料を追加",
+      editProjectTitle: "プロジェクト資料を編集",
+      editFeatureTitle: "フィーチャー資料を編集",
+      editTaskTitle: "タスク資料を編集",
       titleLabel: "資料タイトル（任意）",
       titlePlaceholder: "アーキテクチャ決定記録",
       tabs: {

@@ -1,15 +1,14 @@
 import { ChevronDown, Plus } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { mutations } from "../api";
 import type { DocumentParent } from "../document-parent";
-import { useDomainMutation } from "../hooks";
-import { AddDocumentDialog } from "./AddDocumentDialog";
+import { DocumentDialog } from "./DocumentDialog";
 import { IconButton } from "./IconButton";
 import { MutationError } from "./MutationError";
-import { DocumentRow, MarkdownEditForm } from "./TaskInspectorReferences";
+import { DocumentRow } from "./TaskInspectorReferences";
 import type { TaskNodeDocument } from "./TaskNode";
 import { useDocumentDeletion } from "./useDocumentDeletion";
+import { useDocumentEditing } from "./useDocumentEditing";
 
 // パネルと編集の流れはドキュメントの所属先に依存しないので、親はそのまま
 // 追加ダイアログへ渡す。
@@ -27,16 +26,11 @@ export function DocumentReferences({
   readOnly = false,
 }: DocumentReferencesProps) {
   const { t } = useTranslation();
-  const updateDocument = useDomainMutation(mutations.updateDocument);
-  const getDocument = useDomainMutation(mutations.getDocument);
   const deletion = useDocumentDeletion();
+  const editing = useDocumentEditing();
   const [open, setOpen] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [addTrigger, setAddTrigger] = useState<HTMLElement | null>(null);
-  const [editing, setEditing] = useState<{
-    id: string;
-    content: string;
-  } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const triggerId = useId();
@@ -69,14 +63,6 @@ export function DocumentReferences({
       Number(right.isImplementationPlan) - Number(left.isImplementationPlan),
   );
 
-  function editMarkdown(document: TaskNodeDocument) {
-    getDocument.mutate(document.id, {
-      onSuccess: (response) => {
-        setEditing({ id: document.id, content: response.content });
-      },
-    });
-  }
-
   return (
     <div className="document-references" ref={rootRef}>
       <IconButton
@@ -97,9 +83,7 @@ export function DocumentReferences({
           id={panelId}
           labelledBy={triggerId}
           documents={ordered}
-          editing={editing}
           readOnly={readOnly}
-          errors={[updateDocument.error, getDocument.error]}
           onPreview={(selected) => {
             setOpen(false);
             onPreview(selected);
@@ -108,30 +92,24 @@ export function DocumentReferences({
             // 確認ダイアログはパネルの外に出す。パネルを開いたままにすると、
             // 外側の pointerdown で閉じたときにダイアログごと消える。
             setOpen(false);
-            setEditing(null);
             deletion.request(target);
           }}
-          onEdit={editMarkdown}
-          onUpdate={(document, content) => {
-            updateDocument.mutate({
-              id: document.id,
-              source: { case: "markdown", value: content },
-            });
-            setEditing(null);
-          }}
-          onCancelEdit={() => {
-            setEditing(null);
+          onEdit={(target) => {
+            // 編集ダイアログも同じ理由でパネルの外に出す。鉛筆ボタンは閉じた
+            // 時点で外れるので、フォーカスの戻り先はパネルの trigger にする。
+            setOpen(false);
+            editing.request(target, triggerRef.current);
           }}
           onAdd={() => {
             setOpen(false);
-            setEditing(null);
             setAddTrigger(triggerRef.current);
             setShowAddDialog(true);
           }}
         />
       )}
       {showAddDialog && (
-        <AddDocumentDialog
+        <DocumentDialog
+          mode="add"
           {...parent}
           trigger={addTrigger}
           onClose={() => {
@@ -139,6 +117,9 @@ export function DocumentReferences({
           }}
         />
       )}
+      {/* 本文の読み出しに失敗したときはパネルを閉じているので、外へ出す。 */}
+      <MutationError error={editing.error} />
+      {editing.dialog}
       {deletion.dialog}
     </div>
   );
@@ -148,27 +129,19 @@ function DocumentReferencesPanel({
   id,
   labelledBy,
   documents,
-  editing,
   readOnly,
-  errors,
   onPreview,
   onDelete,
   onEdit,
-  onUpdate,
-  onCancelEdit,
   onAdd,
 }: {
   id: string;
   labelledBy: string;
   documents: TaskNodeDocument[];
-  editing: { id: string; content: string } | null;
   readOnly: boolean;
-  errors: (Error | null)[];
   onPreview: (document: TaskNodeDocument) => void;
   onDelete: (document: TaskNodeDocument) => void;
   onEdit: (document: TaskNodeDocument) => void;
-  onUpdate: (document: TaskNodeDocument, content: string) => void;
-  onCancelEdit: () => void;
   onAdd: () => void;
 }) {
   const { t } = useTranslation();
@@ -179,36 +152,20 @@ function DocumentReferencesPanel({
       aria-labelledby={labelledBy}
     >
       <div className="document-references-list">
-        {documents.map((document) =>
-          editing?.id === document.id ? (
-            <MarkdownEditForm
-              key={document.id}
-              document={document}
-              content={editing.content}
-              compact
-              onSubmit={(content) => {
-                onUpdate(document, content);
-              }}
-              onCancel={onCancelEdit}
-            />
-          ) : (
-            <DocumentRow
-              key={document.id}
-              document={document}
-              onPreview={onPreview}
-              onDelete={onDelete}
-              onEdit={onEdit}
-              canEdit={!readOnly}
-              canDelete={!readOnly}
-            />
-          ),
-        )}
+        {documents.map((document) => (
+          <DocumentRow
+            key={document.id}
+            document={document}
+            onPreview={onPreview}
+            onDelete={onDelete}
+            onEdit={onEdit}
+            canEdit={!readOnly}
+            canDelete={!readOnly}
+          />
+        ))}
         {documents.length === 0 && (
           <p className="read-only-empty">{t("inspector.noReferences")}</p>
         )}
-        {errors.map((error, index) => (
-          <MutationError key={index} error={error} />
-        ))}
       </div>
       {!readOnly && (
         <div className="document-references-footer">

@@ -381,6 +381,30 @@ test("creates and edits a feature DAG while preserving state", async ({
     .getByRole("button", { name: "Close Markdown preview" })
     .click();
 
+  // 編集は追加と同じモーダルで行い、種別をまたいで差し替えられる。
+  await page.getByRole("button", { name: "References" }).click();
+  await page.getByRole("button", { name: "Edit Feature brief" }).click();
+  const featureReferenceEdit = page.getByRole("dialog", {
+    name: "Edit feature reference",
+  });
+  await expect(featureReferenceEdit.getByLabel("File path")).toHaveValue(
+    "README.md",
+  );
+  await featureReferenceEdit.getByRole("tab", { name: "URL" }).click();
+  await featureReferenceEdit
+    .getByLabel("Document URL")
+    .fill("https://example.com/brief");
+  await featureReferenceEdit
+    .getByLabel("Reference title (optional)")
+    .fill("Feature brief v2");
+  await featureReferenceEdit.getByRole("button", { name: "Save" }).click();
+  await expect(featureReferenceEdit).toBeHidden();
+  await page.getByRole("button", { name: "References" }).click();
+  await expect(
+    featureReferences.getByRole("link", { name: /Feature brief v2/ }),
+  ).toHaveAttribute("href", "https://example.com/brief");
+  await page.keyboard.press("Escape");
+
   // 空状態はキャンバスを覆いつつ、グラフを動かせるようポインタイベントを
   // 透過させるので、その中のボタンだけは受け取る側に戻す必要がある。
   const emptyStateAddTask = page
