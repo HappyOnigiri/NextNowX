@@ -310,3 +310,39 @@ func TestUpdateStatusStoresOnlyTheReleasesItShows(t *testing.T) {
 		}
 	}
 }
+
+// 直前の結果を読めないときは保存へ進まない。空で上書きすると一時的な失敗が
+// 恒久的なキャッシュ消失に変わる。
+type unreadableUpdateRepository struct {
+	repositoryStub
+	completed bool
+}
+
+func (r *unreadableUpdateRepository) UpdateCheckState(context.Context) (domain.UpdateCheckState, error) {
+	return domain.UpdateCheckState{}, errors.New("update state is unreadable")
+}
+
+func (r *unreadableUpdateRepository) AcquireUpdateCheck(context.Context, time.Time, int64) (bool, error) {
+	return true, nil
+}
+
+func (r *unreadableUpdateRepository) CompleteUpdateCheck(
+	context.Context, time.Time, []domain.ReleaseNote, string,
+) error {
+	r.completed = true
+	return nil
+}
+
+func TestUpdateStatusKeepsTheCacheWhenItCannotBeRead(t *testing.T) {
+	app.StubUpdateBuildVersionForTest(t, "0.3.0")
+	repository := &unreadableUpdateRepository{}
+	service := app.New(repository, nil)
+	service.SetUpdateSources(&countingProvider{err: errors.New("offline")}, nil)
+
+	if _, err := service.GetUpdateStatus(context.Background()); err == nil {
+		t.Fatal("expected the unreadable state to surface")
+	}
+	if repository.completed {
+		t.Fatal("the cache was overwritten while it could not be read")
+	}
+}

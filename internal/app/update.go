@@ -50,6 +50,10 @@ func (s *Service) GetUpdateStatus(ctx context.Context) (domain.UpdateStatus, err
 	previous, previousErr := repository.UpdateCheckState(ctx)
 	runError := ""
 	if checkErr != nil {
+		// 直前の結果を読めないまま保存すると、残すはずのキャッシュを空で上書きする。
+		if previousErr != nil {
+			return domain.UpdateStatus{}, errors.Join(checkErr, previousErr)
+		}
 		runError = checkErr.Error()
 		releases = previous.Releases
 	}
