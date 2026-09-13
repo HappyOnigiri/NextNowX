@@ -270,6 +270,38 @@ describe("useRevisionStream", () => {
     expect(streamMocks.watchRevision.mock.calls.length).toBeGreaterThan(1);
   });
 
+  // 1 通目は接続のたびに必ず届く。これで試行回数が戻ると、1 通目の後に切れる
+  // 障害のあいだ、全タブが最短間隔で永久に張り直し続ける。
+  it("lengthens the backoff when each connection dies right after the first message", async () => {
+    streamMocks.watchRevision.mockImplementation(async function* () {
+      yield await Promise.resolve({ revision: 1n });
+    });
+    renderHook(() => useRevisionStream(), {
+      wrapper: createWrapper(queryClient),
+    });
+    await waitFor(() => {
+      expect(streamMocks.watchRevision).toHaveBeenCalledTimes(1);
+    });
+    for (const delay of [initialBackoffMs, initialBackoffMs * 2]) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(delay);
+      });
+    }
+    await waitFor(() => {
+      expect(streamMocks.watchRevision).toHaveBeenCalledTimes(3);
+    });
+
+    // 3 回目の切断まで来ていれば、次の待ち時間は初期値を超えている。
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(initialBackoffMs);
+    });
+    expect(streamMocks.watchRevision).toHaveBeenCalledTimes(3);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(initialBackoffMs * 4);
+    });
+    expect(streamMocks.watchRevision).toHaveBeenCalledTimes(4);
+  });
+
   // 単発の切断では警告を出さない。頻繁に起こり得るので、そのたびに出すと表示が
   // 信用されなくなる。
   it("reports a stale stream only after it stays down for the notice delay", async () => {

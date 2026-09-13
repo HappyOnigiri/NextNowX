@@ -84,9 +84,13 @@ async function consume(
   try {
     for await (const message of watchRevision(connection.signal)) {
       clearTimeout(deadline);
-      onProgress();
+      // 1 通目は接続した直後に必ず届く。これで試行回数を戻すと、1 通目の後に
+      // 切れる障害では backoff がいつまでも初期値のままになる。
       if (seen === undefined) handlers.onConnect(message.revision);
-      else if (message.revision !== seen) handlers.onRevision(message.revision);
+      else {
+        onProgress();
+        if (message.revision !== seen) handlers.onRevision(message.revision);
+      }
       seen = message.revision;
       deadline = watchdog(connection);
     }
