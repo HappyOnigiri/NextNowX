@@ -607,6 +607,58 @@ test("visually separates disconnected dependency chains", async ({ page }) => {
   expect(componentGap).toBeGreaterThanOrEqual(118);
 });
 
+// ノードの寸法固定と中央寄せの限定は、実際の ELK と CSS を通して初めて
+// 確かめられる。1 本でレイアウトの安定と視点の保持の両方を見る。
+async function graphTransforms(page: Page) {
+  return {
+    viewport: await page.locator(".react-flow__viewport").getAttribute("style"),
+    nodes: await page
+      .locator(".react-flow__node")
+      .evaluateAll((elements) =>
+        elements.map((element) => [
+          element.getAttribute("data-id"),
+          element.getAttribute("style"),
+        ]),
+      ),
+  };
+}
+
+test("holds the layout and the viewport when a status changes", async ({
+  page,
+}) => {
+  await createFeature(page, `Stable layout ${crypto.randomUUID()}`);
+  for (const title of ["Stable A", "Stable B", "Stable C"])
+    await addTask(page, title);
+  await connectTasks(page, "Stable A", "Stable B");
+  await connectTasks(page, "Stable B", "Stable C");
+  await page.locator(".react-flow__controls-fitview").click();
+  await settleGraph(page);
+
+  // 中央寄せが残っていれば、パンした視点はステータス更新で元へ戻る。
+  const stage = await page.locator(".graph-stage").boundingBox();
+  if (!stage) throw new Error("graph bounds missing");
+  await page.mouse.move(stage.x + 12, stage.y + 12);
+  await page.mouse.down();
+  await page.mouse.move(stage.x + 92, stage.y + 72, { steps: 8 });
+  await page.mouse.up();
+  await settleGraph(page);
+  const before = await graphTransforms(page);
+
+  await openTask(page, "Stable B");
+  const inspector = page.getByRole("complementary", { name: "Task inspector" });
+  await inspector
+    .locator("select[name=status]")
+    .selectOption({ label: "In progress" });
+  await inspector.getByRole("button", { name: "Save task" }).click();
+  await page.getByRole("button", { name: "Close inspector" }).click();
+  await expect(
+    page.locator(".task-node").filter({ hasText: "Stable B" }),
+  ).toContainText("Implementation");
+  await settleGraph(page);
+
+  expect(await graphTransforms(page)).toEqual(before);
+});
+
 test("archives and safely deletes a feature", async ({ page }) => {
   const title = `Temporary feature ${crypto.randomUUID()}`;
   await createFeature(page, title);

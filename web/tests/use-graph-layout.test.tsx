@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { TaskBlockLabel } from "../src/gen/prx/v1/prx_pb";
+import { TaskBlockLabel, TaskDisplayState } from "../src/gen/prx/v1/prx_pb";
 import { useGraphLayout } from "../src/views/useGraphLayout";
 import {
   makeDependency,
@@ -309,7 +309,7 @@ describe("useGraphLayout", () => {
     });
   });
 
-  it("reserves a second badge row for two through four block labels", async () => {
+  it("gives every node the same size whatever it carries", async () => {
     layoutMocks.layout.mockResolvedValue({ children: [] });
     const labels = [
       [],
@@ -331,12 +331,93 @@ describe("useGraphLayout", () => {
       tasks: labels.map((blockLabels, index) =>
         makeTask({ id: `task-${String(index + 1)}`, blockLabels }),
       ),
-      dependencies: [],
+      dependencies: [
+        makeDependency({ blockerTaskId: "task-2", blockedTaskId: "task-3" }),
+        makeDependency({ blockerTaskId: "task-1", blockedTaskId: "task-2" }),
+      ],
+      pullRequests: new Map([
+        ["task-2", makePullRequest({ taskId: "task-2" })],
+      ]),
+      documentsByTask: new Map([
+        [
+          "task-3",
+          [
+            makeDocument({ id: "document-1" }),
+            makeDocument({ id: "document-2" }),
+            makeDocument({ id: "document-3" }),
+          ],
+        ],
+      ]),
+      onEditTask: vi.fn(),
+      onPreviewDocument: vi.fn(),
+      readOnly: true,
+    };
+    const { rerender } = renderHook(
+      (props: typeof options) => useGraphLayout(props),
+      { initialProps: options },
+    );
+
+    await waitFor(() => {
+      expect(layoutMocks.layout).toHaveBeenCalledOnce();
+    });
+    const layoutInput = layoutMocks.layout.mock.calls[0]?.[0] as {
+      children: { width: number; height: number }[];
+    };
+    expect(layoutInput.children).toHaveLength(5);
+    for (const child of layoutInput.children)
+      expect(child).toMatchObject({ width: 284, height: 332 });
+
+    // 本丸の回帰ガード。ステータスも添え物も変わった同じタスク集合が、ELK へ
+    // まったく同じ入力として届く。
+    rerender({
+      ...options,
+      tasks: options.tasks.map((task, index) =>
+        makeTask({
+          id: task.id,
+          blockLabels: index === 0 ? [TaskBlockLabel.CI_FAILED] : [],
+          displayState: TaskDisplayState.IN_REVIEW,
+        }),
+      ),
+      pullRequests: new Map([
+        ["task-1", makePullRequest({ taskId: "task-1" })],
+        ["task-4", makePullRequest({ taskId: "task-4" })],
+      ]),
+      documentsByTask: new Map([["task-5", [makeDocument()]]]),
+      readOnly: false,
+    });
+    await waitFor(() => {
+      expect(layoutMocks.layout).toHaveBeenCalledTimes(2);
+    });
+    const second = layoutMocks.layout.mock.calls[1]?.[0] as {
+      children: unknown;
+      edges: unknown;
+    };
+    expect(second.children).toEqual(layoutInput.children);
+    expect(second.edges).toEqual(
+      (layoutMocks.layout.mock.calls[0]?.[0] as { edges: unknown }).edges,
+    );
+  });
+
+  it("orders nodes and edges by task id without disturbing the caller", async () => {
+    layoutMocks.layout.mockResolvedValue({ children: [] });
+    const tasks = [
+      makeTask({ id: "T-10" }),
+      makeTask({ id: "T-2" }),
+      makeTask({ id: "T-9" }),
+      makeTask({ id: "T-1" }),
+    ];
+    const dependencies = [
+      makeDependency({ blockerTaskId: "T-9", blockedTaskId: "T-10" }),
+      makeDependency({ blockerTaskId: "T-1", blockedTaskId: "T-9" }),
+      makeDependency({ blockerTaskId: "T-1", blockedTaskId: "T-2" }),
+    ];
+    const options = {
+      tasks,
+      dependencies,
       pullRequests: new Map(),
       documentsByTask: new Map(),
       onEditTask: vi.fn(),
       onPreviewDocument: vi.fn(),
-      readOnly: true,
     };
     renderHook(() => useGraphLayout(options));
 
@@ -344,10 +425,30 @@ describe("useGraphLayout", () => {
       expect(layoutMocks.layout).toHaveBeenCalledOnce();
     });
     const layoutInput = layoutMocks.layout.mock.calls[0]?.[0] as {
-      children: { height: number }[];
+      children: { id: string }[];
+      edges: { id: string }[];
+      layoutOptions: Record<string, string>;
     };
-    expect(layoutInput.children.map((child) => child.height)).toEqual([
-      170, 170, 196, 196, 196,
+    expect(layoutInput.children.map((child) => child.id)).toEqual([
+      "T-1",
+      "T-2",
+      "T-9",
+      "T-10",
+    ]);
+    expect(layoutInput.edges.map((edge) => edge.id)).toEqual([
+      "T-1-T-2",
+      "T-1-T-9",
+      "T-9-T-10",
+    ]);
+    expect(layoutInput.layoutOptions).toMatchObject({
+      "elk.layered.considerModelOrder.strategy": "NODES_AND_EDGES",
+    });
+    // 呼び出し側の配列はインスペクタや件数表示と共有されているので動かさない。
+    expect(tasks.map((task) => task.id)).toEqual(["T-10", "T-2", "T-9", "T-1"]);
+    expect(dependencies.map((dependency) => dependency.blockedTaskId)).toEqual([
+      "T-10",
+      "T-9",
+      "T-2",
     ]);
   });
 

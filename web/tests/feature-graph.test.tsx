@@ -838,4 +838,82 @@ describe("FeatureGraph", () => {
     fireEvent.click(screen.getByRole("button", { name: "Retry layout" }));
     expect(retryLayout).toHaveBeenCalledOnce();
   });
+
+  it("centers the viewport only when the visible tasks change", () => {
+    function layoutWith(nodes: unknown[]) {
+      graphMocks.useGraphLayout.mockReturnValue({
+        edgeRoutes: new Map(),
+        nodes,
+        layoutError: undefined,
+        retryLayout: vi.fn(),
+      });
+    }
+    function graph() {
+      return (
+        <FeatureGraph
+          tasks={[makeTask()]}
+          dependencies={[]}
+          pullRequests={new Map()}
+          documentsByTask={new Map()}
+          onEditTask={vi.fn()}
+          onPreviewDocument={vi.fn()}
+          onCreateTask={vi.fn()}
+        />
+      );
+    }
+    layoutWith([]);
+    const view = render(graph());
+    expect(graphMocks.flow.setCenter).not.toHaveBeenCalled();
+
+    layoutWith([makeTask()]);
+    view.rerender(graph());
+    expect(graphMocks.flow.setCenter).toHaveBeenCalledOnce();
+
+    // 同じタスクにステータスが届いただけなら配列は作り直されるが、視点は
+    // ユーザーが置いた場所に残す。
+    layoutWith([makeTask()]);
+    view.rerender(graph());
+    expect(graphMocks.flow.setCenter).toHaveBeenCalledOnce();
+
+    layoutWith([makeTask(), makeTask({ id: "task-2" })]);
+    view.rerender(graph());
+    expect(graphMocks.flow.setCenter).toHaveBeenCalledTimes(2);
+  });
+
+  // レイアウト失敗からのリトライは節点を作り直さないので、同じタスク集合の
+  // ままなら視点も動かない。
+  it("keeps the viewport when a retried layout returns the same tasks", () => {
+    const retryLayout = vi.fn();
+    const graph = (
+      <FeatureGraph
+        tasks={[makeTask()]}
+        dependencies={[]}
+        pullRequests={new Map()}
+        documentsByTask={new Map()}
+        onEditTask={vi.fn()}
+        onPreviewDocument={vi.fn()}
+        onCreateTask={vi.fn()}
+      />
+    );
+    graphMocks.useGraphLayout.mockReturnValue({
+      edgeRoutes: new Map(),
+      nodes: [makeTask()],
+      layoutError: { message: "worker unavailable" },
+      retryLayout,
+    });
+    const view = render(graph);
+
+    expect(graphMocks.flow.setCenter).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole("button", { name: "Retry layout" }));
+    expect(retryLayout).toHaveBeenCalledOnce();
+    // やり直しが同じタスク集合を返しても、視点は動かさない。
+    graphMocks.useGraphLayout.mockReturnValue({
+      edgeRoutes: new Map(),
+      nodes: [makeTask()],
+      layoutError: undefined,
+      retryLayout,
+    });
+    view.rerender(graph);
+    expect(graphMocks.flow.setCenter).toHaveBeenCalledOnce();
+  });
 });

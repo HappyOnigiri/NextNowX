@@ -451,8 +451,16 @@ function useCenterOnNodes(
   flow: ReactFlowInstance<TaskFlowNode, DependencyFlowEdge> | undefined,
   graphZoom: React.RefObject<number>,
 ) {
+  // 中央寄せはユーザーのパン位置を奪うので、表示するタスクの集合が変わった
+  // ときだけ行う。ステータス更新や同期では今の視点を保つ。
+  const centeredKey = useRef<string>(undefined);
   useEffect(() => {
     if (!nodes.length || !flow) return;
+    // キーはレイアウト済みのノードから作る。tasks から作ると座標が入る前に
+    // 走り、古い座標で寄せてしまう。
+    const key = nodes.map((node) => node.id).join("\n");
+    if (key === centeredKey.current) return;
+    centeredKey.current = key;
     const bounds = flow.getNodesBounds(nodes);
     void flow.setCenter(
       bounds.x + bounds.width / 2,
