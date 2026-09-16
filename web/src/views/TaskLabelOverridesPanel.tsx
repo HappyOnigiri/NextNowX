@@ -202,7 +202,7 @@ function LabelGroup({
                         [key]: { ...current, text: event.target.value },
                       });
                     }}
-                    placeholder={t("taskLabels.inherit")}
+                    placeholder={t("taskLabels.noOverride")}
                   />
                   {textError && (
                     <small className="form-error">{textError}</small>
@@ -246,7 +246,7 @@ function LabelGroup({
                         onChange({ ...draft, [key]: { ...current, text: "" } });
                       }}
                     >
-                      {t("taskLabels.inheritText")}
+                      {t("taskLabels.removeText")}
                     </button>
                     <button
                       type="button"
@@ -259,7 +259,7 @@ function LabelGroup({
                         });
                       }}
                     >
-                      {t("taskLabels.inheritColor")}
+                      {t("taskLabels.removeColor")}
                     </button>
                   </div>
                 )}

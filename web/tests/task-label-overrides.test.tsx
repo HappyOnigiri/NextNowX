@@ -138,16 +138,16 @@ describe("task label settings", () => {
     fireEvent.change(colorInput, { target: { value: "red" } });
     expect(screen.getAllByText(/#RRGGBB/i).length).toBeGreaterThan(0);
     fireEvent.change(colorInput, { target: { value: "#ffffff" } });
-    const inheritText = screen.getAllByRole("button", {
-      name: "Inherit text",
+    const removeText = screen.getAllByRole("button", {
+      name: "Remove text override",
     })[3];
-    const inheritColor = screen.getAllByRole("button", {
-      name: "Inherit color",
+    const removeColor = screen.getAllByRole("button", {
+      name: "Remove color override",
     })[3];
-    if (!inheritText || !inheritColor)
-      throw new Error("inherit buttons not found");
-    fireEvent.click(inheritText);
-    fireEvent.click(inheritColor);
+    if (!removeText || !removeColor)
+      throw new Error("remove override buttons not found");
+    fireEvent.click(removeText);
+    fireEvent.click(removeColor);
     expect(mocks.updateTaskLabels).toHaveBeenCalled();
   });
 
