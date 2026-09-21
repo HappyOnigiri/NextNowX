@@ -32,12 +32,14 @@ type state struct {
 	configPathSource string
 	json             bool
 	fixture          string
-	demo             bool
-	out              io.Writer
-	errOut           io.Writer
-	runStarted       bool
-	openService      OpenService
-	service          Service
+	// noSampleData は `prx setup` のローカルフラグ。初回のサンプル投入だけを止める。
+	noSampleData bool
+	demo         bool
+	out          io.Writer
+	errOut       io.Writer
+	runStarted   bool
+	openService  OpenService
+	service      Service
 	// serviceOpenErr は `debug` が失敗せずに報告してよいエラーを保持する。
 	// 壊れたインストールを説明するコマンドは動き続ける必要がある。
 	serviceOpenErr error

@@ -4,7 +4,7 @@ Choose how PRX should start
 
 ### Synopsis
 
-Choose how PRX should start. On macOS, the setup walk can register the LaunchAgent, start the background server, and open the WebUI.
+Choose how PRX should start. On macOS, the setup walk can register the LaunchAgent, start the background server, and open the WebUI. When it creates the database, setup adds a small sample project.
 
 ```
 prx setup [flags]
@@ -19,7 +19,8 @@ prx setup
 ### Options
 
 ```
-  -h, --help   help for setup
+  -h, --help             help for setup
+      --no-sample-data   skip the first-run sample data (env: PRX_NO_SAMPLE_DATA, any non-empty value)
 ```
 
 ### Options inherited from parent commands
