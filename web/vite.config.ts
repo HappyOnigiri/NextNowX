@@ -109,6 +109,11 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: "./tests/setup.ts",
     exclude: ["tests/e2e/**", "node_modules/**"],
+    // `make ci` は複数のターゲットを CPU 数だけ並列に走らせるため、CPU の奪い合いで
+    // 個々のテストの実時間が単独実行の 15〜19 倍まで伸びる。既定値（5000 / 10000）では
+    // 打ち切られるので引き上げる。テスト自体が重いわけではない。
+    testTimeout: 15_000,
+    hookTimeout: 15_000,
     coverage: {
       provider: "v8",
       reporter: ["text", "json-summary", "json"],
