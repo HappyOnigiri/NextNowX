@@ -1067,7 +1067,7 @@
 
 .batch-prompt-dialog {
   width: min(960px, 100%);
-  max-height: min(900px, calc(100dvh - 40px));
+  height: min(1200px, calc(100dvh - 40px));
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1254,7 +1254,7 @@
 
 .task-prompt-dialog {
   width: min(960px, 100%);
-  max-height: min(900px, calc(100dvh - 40px));
+  height: min(1200px, calc(100dvh - 40px));
   display: flex;
   flex-direction: column;
   overflow: hidden;
