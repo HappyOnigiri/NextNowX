@@ -1,6 +1,5 @@
-// Package update は確認済みのリリースに添付された install.sh を取得して実行する。
-// checksum 検証・版番号検証・atomic な置換・PATH の案内はすべてインストーラーが
-// 持つので、Go 側には持たない。方針は docs/design/updates.md にある。
+//go:build !noupdate
+
 package update
 
 import (

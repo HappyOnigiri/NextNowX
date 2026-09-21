@@ -19,6 +19,9 @@ const (
 	UpdateDisabledDevelopmentBuild UpdateDisabledReason = "development_build"
 	// UpdateDisabledDemo は demo 実行を表す。demo は一時環境で、実ネットワークにも出ない。
 	UpdateDisabledDemo UpdateDisabledReason = "demo"
+	// UpdateDisabledExcludedFromBuild は更新機能をコンパイル対象から外したビルドを表す。
+	// 配布元を読む実装ごと存在しないので、バージョンの値にかかわらず無効である。
+	UpdateDisabledExcludedFromBuild UpdateDisabledReason = "excluded_from_build"
 )
 
 // MaxUpdateReleases は 1 回の確認で保持するリリース件数の上限。
