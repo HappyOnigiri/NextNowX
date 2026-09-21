@@ -403,6 +403,22 @@ func TestDefaultImplementationTemplatesHandleAMissingPlan(t *testing.T) {
 	}
 }
 
+// 一括実装の SubAgent は種類を明示して prompt を取る。省くと、計画のない task に
+// 設計プロンプトが渡り、実装のつもりで設計が回る。
+func TestDefaultBatchTemplatesAskForTheImplementationPrompt(t *testing.T) {
+	for _, language := range prompt.SupportedLanguages() {
+		_, body, err := prompt.RenderBatch(
+			"F-3", batchTasks(), prompt.KindBatch, prompt.Templates{}, language,
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(body, "prx prompt TASK_ID --kind implementation") {
+			t.Fatalf("the %s batch prompt does not pin the prompt kind: %q", language, body)
+		}
+	}
+}
+
 // batch_design は batch と同じ語彙で検証する。上書きだけが別の語彙を持つと、
 // 設定 UI が提示する placeholder 一覧と保存の可否がずれる。
 func TestBatchDesignSharesTheBatchVocabulary(t *testing.T) {

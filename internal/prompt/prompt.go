@@ -178,7 +178,9 @@ Tasks:
    Each SubAgent works in a fresh git worktree of its own: SubAgents sharing a checkout
    commit each other's half-finished edits.
    Each SubAgent takes its instructions from PRX rather than from you.
-   - It runs ` + "`prx prompt TASK_ID`" + ` for the task it was given and follows the prompt that prints.
+   - It runs ` + "`prx prompt TASK_ID --kind implementation`" + ` for the task it was given and follows
+     the prompt that prints. The flag matters: without it a task that has no registered plan is
+     handed the design prompt and the task is designed instead of implemented.
    - It reports what it changed and anything the prompt did not cover.
    Tasks the graph shows as independent may run in parallel.
    A task that depends on another task of this list is implemented after that task is finished,

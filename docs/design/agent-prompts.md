@@ -48,7 +48,8 @@ project の識別子は置換語彙にないので、`prx feature` で所属 pro
 
 batch には実装用の `batch` と設計用の `batch_design` の 2 種類がある。WebUI は、feature と選択した task に対してどちらかを明示的に要求し、指定がない要求は `batch` を意味する。
 どちらの組み込みテンプレートも各 task を個別の SubAgent に委譲し、その SubAgent は batch 本文に複製された task の文面ではなく `prx prompt TASK_ID` から指示を得る。
-`batch_design` の SubAgent は `--kind design` を付けて設計プロンプトを取り、pull request を開かず `prx plan set` で計画を登録して終える。
+どちらの batch テンプレートも SubAgent に種類を明示させる。`batch` は `--kind implementation`、`batch_design` は `--kind design` を付けさせる。導出に任せると、計画のない task を一括実装へ渡したときに設計プロンプトが返り、実装のつもりで設計が回るためである。
+`batch_design` の SubAgent は pull request を開かず、`prx plan set` で計画を登録して終える。
 各 SubAgent はそれぞれ新規の worktree で作業する。テンプレートは独立した task の並行実装を許すので、checkout を共有した SubAgent が HEAD と index を取り合い、互いの書きかけの編集をコミットしてしまうためである。
 
 選択したすべての task が指定した feature に属し、未解決の blocker がすべて blocked な task と一緒に含まれていなければ、レンダリングは失敗する。

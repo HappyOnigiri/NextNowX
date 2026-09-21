@@ -105,7 +105,9 @@ Tasks:
    各 SubAgent はそれぞれ新規の git worktree で作業する。checkout を共有した SubAgent は、
    互いの書きかけの編集をコミットしてしまう。
    各 SubAgent は指示を自分からではなく PRX から受け取る。
-   - 渡された task について ` + "`prx prompt TASK_ID`" + ` を実行し、表示されたプロンプトに従う。
+   - 渡された task について ` + "`prx prompt TASK_ID --kind implementation`" + ` を実行し、
+     表示されたプロンプトに従う。このフラグは必須である。付けないと、計画が未登録の
+     task には設計プロンプトが渡り、実装ではなく設計が行われる。
    - 変更した内容と、プロンプトが扱っていなかった点を報告する。
    graph 上で独立している task は並行して進めてよい。
    この一覧の別の task に依存する task は、その task が終わってから実装し、
