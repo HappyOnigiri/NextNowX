@@ -1138,8 +1138,11 @@
   margin: 0;
 }
 
+/* 一覧とプレビューはパネルの高さを分け合う。低いウィンドウでも一覧が数行残る
+   よう下限を置き、プレビューより先に縮ませる。 */
 .batch-prompt-list {
   flex: 1 1 auto;
+  min-height: 120px;
   overflow-y: auto;
   margin: 0;
   padding: 0;
@@ -1312,7 +1315,7 @@
 
 .prompt-preview-body {
   flex: 1 1 auto;
-  min-height: 240px;
+  min-height: 160px;
   resize: none;
   font-family: var(--font-mono);
   font-size: var(--text-xs);

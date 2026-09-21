@@ -41,7 +41,7 @@ export const inspector = {
       promptTab: { design: "Design", implementation: "Implementation" },
       promptPreview: "Prompt preview",
       promptWithoutPlan:
-        "This task has no implementation plan yet, and the implementation prompt tells the agent to read one.",
+        "This task has no implementation plan yet. The built-in implementation prompt has the agent settle the approach itself, but a template you overrode may still expect a registered plan.",
       promptWithPlan:
         "This task already has an implementation plan, and registering a new one from the design prompt replaces it.",
       designPromptCopied: "Design prompt copied.",
@@ -93,7 +93,7 @@ export const inspector = {
       promptTab: { design: "設計", implementation: "実装" },
       promptPreview: "プロンプトのプレビュー",
       promptWithoutPlan:
-        "このタスクにはまだ実装プランがありませんが、実装プロンプトはプランを読むよう指示します。",
+        "このタスクにはまだ実装プランがありません。組み込みの実装プロンプトはエージェントに自分で方針を決めさせますが、上書きしたテンプレートは計画がある前提のままかもしれません。",
       promptWithPlan:
         "このタスクにはすでに実装プランがあり、設計プロンプトで新しく登録すると置き換わります。",
       designPromptCopied: "設計プロンプトをコピーしました。",
