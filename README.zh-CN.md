@@ -57,6 +57,7 @@ prx prompt T-1 # 组装交给任务的指令
 - **与 GitHub 同步：** 通过 `prx config`、`GITHUB_TOKEN`、`GH_TOKEN` 或已登录的 `gh` CLI 提供凭据。即使不同步，任务和依赖关系的管理也照常可用。
 - **固定端口：** `prx config server update PORT`。要把正在运行的服务器迁移到新端口，请接着执行 `prx daemon restart`。
 - **在前台启动：** `prx serve` 会在任意操作系统上于前台启动服务器。
+- **示例数据：** 首次执行 `prx setup` 时，如果它创建了数据库，就会添加一个小型示例 project。不需要时请使用 `prx setup --no-sample-data`。
 - **演示：** `prx serve --demo` 会启动装有示例数据的演示环境。它不会影响你自己的数据，适合先试用一下。
 
 ## 卸载

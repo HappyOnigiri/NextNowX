@@ -27,7 +27,11 @@ type Store struct {
 	// path は Open が解決した位置。プロセスが実際に開いたデータベースを
 	// 診断で報告できるよう保持する。
 	path string
-	now  func() time.Time
+	// createdFile は、この Open がデータベースファイルそのものを作ったことを表す。
+	// 初回セットアップのサンプル投入だけがこれを見る。
+	// docs/design/persistence.md「初回のサンプルデータ」を参照。
+	createdFile bool
+	now         func() time.Time
 	// dataVersion は PRAGMA data_version 専用の接続を守る。接続ごとの値なので
 	// プールから借り直すと検知が成立しない。docs/design/persistence.md を参照。
 	dataVersion dataVersionState
@@ -67,6 +71,14 @@ func Open(ctx context.Context, path string) (*Store, error) {
 			return nil, fmt.Errorf("create database directory: %w", err)
 		}
 	}
+	// 新規作成の判定は sql.Open より前でなければ成立しない。sql.Open 自体が
+	// ファイルを作るため、後から stat しても常に存在することになる。
+	createdFile := false
+	if isDatabaseFilePath(path) {
+		if _, statErr := os.Stat(path); os.IsNotExist(statErr) {
+			createdFile = true
+		}
+	}
 	dsn := path
 	separator := "?"
 	if strings.Contains(dsn, "?") {
@@ -90,7 +102,10 @@ func Open(ctx context.Context, path string) (*Store, error) {
 		database.SetMaxOpenConns(8)
 		database.SetMaxIdleConns(4)
 	}
-	store := &Store{db: database, path: path, now: func() time.Time { return time.Now().UTC() }}
+	store := &Store{
+		db: database, path: path, createdFile: createdFile,
+		now: func() time.Time { return time.Now().UTC() },
+	}
 	// 専用接続を 1 本握ると、上限 1 本のプールでは以降の全クエリが待ち続ける。
 	store.dataVersion.unavailable = singleConnection
 	if err := store.migrate(ctx); err != nil {
@@ -108,6 +123,10 @@ func (s *Store) Close() error {
 }
 
 func (s *Store) DB() *sql.DB { return s.db }
+
+// CreatedDatabaseFile は、この Open がデータベースファイルを作ったかを返す。
+// `:memory:` と `file:` DSN、および既存ファイルの再オープンはいずれも偽になる。
+func (s *Store) CreatedDatabaseFile() bool { return s.createdFile }
 
 func (s *Store) migrate(ctx context.Context) error {
 	if _, err := s.db.ExecContext(

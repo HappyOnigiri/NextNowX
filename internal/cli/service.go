@@ -95,6 +95,9 @@ type Service interface {
 		kind prompt.Kind,
 	) (prompt.Kind, string, error)
 	Snapshot(ctx context.Context) (domain.Snapshot, error)
+	// EnsureSampleData は `prx setup` だけが呼ぶ。判定と投入を分けないのは、
+	// 「新規作成されたか」と「投入してよいか」の間に隙間を作らないためである。
+	EnsureSampleData(ctx context.Context) (bool, error)
 	Sync(ctx context.Context, featureID, taskID string) (int, int, error)
 	SyncIfDue(ctx context.Context) (bool, domain.GitHubSyncStatus, error)
 	SyncStatus(ctx context.Context) (domain.GitHubSyncStatus, error)

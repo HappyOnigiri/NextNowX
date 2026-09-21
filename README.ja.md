@@ -57,6 +57,7 @@ prx prompt T-1 # タスクに渡す指示文を組み立てる
 - **GitHub と同期:** `prx config`、`GITHUB_TOKEN`、`GH_TOKEN`、認証済みの `gh` CLI のいずれかで認証情報を用意します。同期しない場合でも、タスクと依存関係の管理はそのまま使えます。
 - **ポートの固定:** `prx config server update PORT`。稼働中のサーバーを新しいポートへ移すには、続けて `prx daemon restart` を実行します。
 - **前景での起動:** `prx serve` は、どの OS でも前景でサーバーを起動します。
+- **サンプルデータ:** 初回の `prx setup` は、データベースを作成したときに小さなサンプル project を追加します。不要な場合は `prx setup --no-sample-data` を使います。
 - **デモ:** `prx serve --demo` は、サンプルデータの入ったデモを起動します。自分のデータには影響しないので、まず触ってみたいときに使えます。
 
 ## アンインストール

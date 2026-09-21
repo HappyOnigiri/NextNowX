@@ -57,6 +57,7 @@ See `prx -h` and `prx <command> -h` for commands and options.
 - **Synchronize with GitHub:** supply a credential through `prx config`, `GITHUB_TOKEN`, `GH_TOKEN`, or an authenticated `gh` CLI. Tasks and dependencies work the same way without it.
 - **Pin a port:** `prx config server update PORT`. Run `prx daemon restart` afterwards to move a server that is already running.
 - **Run in the foreground:** `prx serve` runs the server in the foreground on any operating system.
+- **Sample data:** the first `prx setup` adds a small sample project when it creates the database; `prx setup --no-sample-data` skips it.
 - **Demo:** `prx serve --demo` starts a demo loaded with sample data. It leaves your own data untouched, so use it to try PRX first.
 
 ## Uninstallation
