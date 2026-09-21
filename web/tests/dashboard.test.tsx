@@ -108,7 +108,7 @@ describe("Dashboard", () => {
     // 次の task を選ぶのは ready ボードなので、agent に渡すプロンプトは
     // 1 画面奥ではなくここでコピーする。
     expect(
-      screen.getAllByRole("button", { name: "Copy design prompt" }),
+      screen.getAllByRole("button", { name: "Copy task prompt" }),
     ).toHaveLength(2);
   });
 });

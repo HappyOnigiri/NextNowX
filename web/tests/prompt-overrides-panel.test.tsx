@@ -83,6 +83,7 @@ describe("PromptOverridesPanel", () => {
         design: "Feature design {{task_id}}",
         implementation: "",
         batch: "",
+        batchDesign: "",
       },
       true,
       false,
@@ -138,6 +139,7 @@ describe("PromptOverridesPanel", () => {
         design: "Feature design {{task_id}}",
         implementation: "Feature implementation {{task_id}}",
         batch: "Project batch {{task_list}}",
+        batchDesign: "",
       },
       true,
       false,
@@ -160,7 +162,7 @@ describe("PromptOverridesPanel", () => {
 
     expect(await screen.findByText("metadata down")).toBeInTheDocument();
     expect(onStateChange).toHaveBeenCalledWith(
-      { design: "", implementation: "", batch: "" },
+      { design: "", implementation: "", batch: "", batchDesign: "" },
       false,
       false,
     );

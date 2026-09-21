@@ -10,6 +10,7 @@ interface TemplateDraft {
   design: string;
   implementation: string;
   batch: string;
+  batchDesign: string;
 }
 
 export function PromptSettingsPanel() {
@@ -81,6 +82,7 @@ export function PromptSettingsPanel() {
                 design: templates.data.builtIn.design,
                 implementation: templates.data.builtIn.implementation,
                 batch: templates.data.builtIn.batch,
+                batchDesign: templates.data.builtIn.batchDesign,
               });
             }}
           />
@@ -96,6 +98,7 @@ function templatesOf(templates: PromptTemplateSettings): TemplateDraft {
     design: templates.design,
     implementation: templates.implementation,
     batch: templates.batch,
+    batchDesign: templates.batchDesign,
   };
 }
 
@@ -103,7 +106,8 @@ function sameTemplates(left: TemplateDraft, right: TemplateDraft): boolean {
   return (
     left.design === right.design &&
     left.implementation === right.implementation &&
-    left.batch === right.batch
+    left.batch === right.batch &&
+    left.batchDesign === right.batchDesign
   );
 }
 
@@ -150,6 +154,14 @@ function TemplateFields({
         value={current.batch}
         onChange={(batch) => {
           onEdit({ ...current, batch });
+        }}
+      />
+      <TemplateField
+        hint={t("promptSettings.batchDesignHint")}
+        label={t("promptSettings.batchDesign")}
+        value={current.batchDesign}
+        onChange={(batchDesign) => {
+          onEdit({ ...current, batchDesign });
         }}
       />
       <small>

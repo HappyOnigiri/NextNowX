@@ -1236,6 +1236,95 @@
   font-size: var(--text-xs);
 }
 
+/* タブとフッタの間はパネルが占める。リストとプレビューがその中で高さを分け、
+   ダイアログ自身の寸法は選択の増減で変わらない。 */
+.batch-prompt-panel,
+.task-prompt-panel {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  padding-top: 16px;
+}
+
+.batch-prompt-panel .batch-prompt-body {
+  flex: 1 1 40%;
+}
+
+.task-prompt-dialog {
+  width: min(720px, 100%);
+  max-height: min(760px, calc(100dvh - 40px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.task-prompt-head {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.task-prompt-head h2 {
+  margin-bottom: 6px;
+}
+
+.task-prompt-head .dialog-lead {
+  margin: 0;
+}
+
+/* 選んだ種類がタスクの状態に合わないことだけを伝える。操作は止めないので、
+   エラーの赤ではなく注意の色を使う。 */
+.task-prompt-notice {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--status-waiting);
+  border-radius: 6px;
+  color: var(--text-2);
+  font-size: var(--text-sm);
+}
+
+.task-prompt-dialog > footer {
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.task-prompt-status {
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--text-xs);
+}
+
+/* プレビューはコピーされる本文そのものなので、等幅で折り返さずに置く。 */
+.prompt-preview {
+  display: flex;
+  flex: 1 1 60%;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.prompt-preview-body {
+  flex: 1 1 auto;
+  min-height: 160px;
+  resize: none;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  white-space: pre;
+  overflow: auto;
+}
+
+.prompt-preview-placeholder {
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--text-sm);
+}
+
 /* タスクや feature の状態を、一覧・カード・ページ見出しで同じ形にする。
    色は呼び出し元のクラスから受け取り、レコード種別のアイコンは見出し側に残す。 */
 .status-badge {
