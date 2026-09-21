@@ -104,9 +104,7 @@ function AppShellLayout({ children }: { children: ReactNode }) {
       <aside className="rail" id={railId}>
         <div className="rail-head">
           <Link to="/" className="brand" aria-label={t("nav.dashboard")}>
-            <span className="brand-mark">
-              P<span>R</span>X
-            </span>
+            <span className="brand-mark">PRX</span>
           </Link>
           <IconButton
             aria-controls={railId}
