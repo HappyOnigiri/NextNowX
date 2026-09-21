@@ -61,6 +61,9 @@ PRX はこのマシンの中だけで動くので、リポジトリを読む人�
    - ` + "`prx task {{task_id}}`" + `
    - ` + "`prx graph {{feature_id}}`" + `
    - ` + "`prx plan {{task_id}}`" + `
+   最後のコマンドは計画が未登録なら失敗する。これは直すべきエラーではない。
+   Title・Scope・以下の資料から自分で方針を決め、仮定として明記して報告する。
+   計画は登録しない。
 2. コードを書く前に、PRX に添付された資料を読む。
    document は task・その feature・その feature が属する project のそれぞれに付き、
    どれにもこの scope が満たすべき要件が入っている可能性がある。
@@ -70,7 +73,7 @@ PRX はこのマシンの中だけで動くので、リポジトリを読む人�
      ファイルを指す document は locator を出力するだけなので、自分で開く。
 3. 何かを変更する前に、この task を作業中として記録する。
    - ` + "`prx task update {{task_id}} --status in_progress`" + `
-4. 上記の scope の内側にとどまって計画を実装する。
+4. 上記の scope の内側にとどまって、計画または自分で決めた方針を実装する。
    既定で main や master から分岐せず、その作業が本来乗るべきベースから分岐する。
    blocker が未解決の task はその blocker のブランチに乗せ、2 つの pull request を積む。
 5. 結果を PRX に記録する。

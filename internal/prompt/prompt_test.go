@@ -383,6 +383,26 @@ func TestDefaultBatchDesignTemplatesSendEverySubAgentToTheDesignPrompt(t *testin
 	}
 }
 
+// 実装プロンプトは計画のない task にも渡せるので、組み込みテンプレートは計画の
+// 取得が失敗したときの進め方を示していなければならない。
+func TestDefaultImplementationTemplatesHandleAMissingPlan(t *testing.T) {
+	for _, language := range prompt.SupportedLanguages() {
+		_, body, err := prompt.Render(
+			designTask(), prompt.KindImplementation, prompt.Templates{}, language,
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := "That is not an error to fix"
+		if language == prompt.LanguageJapanese {
+			want = "これは直すべきエラーではない"
+		}
+		if !strings.Contains(body, want) {
+			t.Fatalf("the %s implementation prompt does not mention %q: %q", language, want, body)
+		}
+	}
+}
+
 // batch_design は batch と同じ語彙で検証する。上書きだけが別の語彙を持つと、
 // 設定 UI が提示する placeholder 一覧と保存の可否がずれる。
 func TestBatchDesignSharesTheBatchVocabulary(t *testing.T) {

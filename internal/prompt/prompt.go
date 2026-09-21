@@ -135,6 +135,9 @@ take the option you can defend and report it as a stated assumption.
    - ` + "`prx task {{task_id}}`" + `
    - ` + "`prx graph {{feature_id}}`" + `
    - ` + "`prx plan {{task_id}}`" + `
+   That last command fails when no plan was registered. That is not an error to fix: settle the
+   approach yourself from the title, the scope, and the material below, and report it as a stated
+   assumption. Do not register a plan.
 2. Read the reference material attached in PRX before you write any code.
    Documents hang off the task, off its feature, and off the project that feature belongs to,
    and any of them may carry the requirements this scope has to meet.
@@ -144,7 +147,7 @@ take the option you can defend and report it as a stated assumption.
      local file prints that locator instead, so open it yourself.
 3. Mark the task as being worked on before you change anything.
    - ` + "`prx task update {{task_id}} --status in_progress`" + `
-4. Implement the plan, staying inside the scope above.
+4. Implement the plan, or the approach you settled on, staying inside the scope above.
    Branch from the base the work actually belongs on rather than from main or master by default.
    A task whose blocker is still open belongs on that blocker's branch, so the two pull requests stack.
 5. Record the result in PRX.
