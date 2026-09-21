@@ -273,7 +273,10 @@ test("keeps the batch prompt list and preview apart at small viewports", async (
   await featureDialog.getByRole("button", { name: "Create feature" }).click();
   await expect(page.getByRole("heading", { name: title })).toBeVisible();
 
-  for (const taskTitle of ["E2E layout first", "E2E layout second"]) {
+  // 一覧が自分の箱に収まらない数にする。task が多い feature こそ一括の本題で、
+  // そこで一覧が伸び切るとプレビューがパネルの外へ出てしまう。
+  for (let index = 0; index < 12; index += 1) {
+    const taskTitle = `E2E layout ${index}`;
     await page.getByRole("button", { name: "Add task" }).first().click();
     const taskDialog = page.getByRole("form", { name: "Create task" });
     await taskDialog.getByLabel("Title").fill(taskTitle);
@@ -319,5 +322,11 @@ test("keeps the batch prompt list and preview apart at small viewports", async (
         getComputedStyle(node).overflowY === "auto",
     );
     expect(reachable, `the panel clips content at ${height}`).toBe(true);
+    // 通常の高さでは、一覧が何行あってもプレビューはスクロールせずに見える。
+    if (height >= 800)
+      expect(
+        preview.y,
+        `the preview starts below the panel at ${height}`,
+      ).toBeLessThan(panelBox.y + panelBox.height);
   }
 });
