@@ -6,21 +6,29 @@ import (
 	"errors"
 	"io"
 	"os"
+	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"testing"
 
+	"gopkg.in/yaml.v3"
+
 	"github.com/HappyOnigiri/PRX/internal/daemon"
 	"github.com/HappyOnigiri/PRX/internal/launchd"
+	"github.com/HappyOnigiri/PRX/internal/prompt"
 	"github.com/HappyOnigiri/PRX/internal/runstate"
 	"github.com/HappyOnigiri/PRX/internal/tui"
 )
 
+// TestSetupSettledMessage は分岐ごとの 1 行を両言語で確かめる。日本語の期待値を
+// 並べることで、英語のまま取り残された分岐を機械的に見つけられる。
 func TestSetupSettledMessage(t *testing.T) {
 	tests := []struct {
 		name   string
 		status daemon.Status
-		want   string
+		wantEn string
+		wantJa string
 	}{
 		{
 			name: "stale plist kept",
@@ -28,12 +36,14 @@ func TestSetupSettledMessage(t *testing.T) {
 				Installed: true, PlistStatus: launchd.PlistStale,
 				Running: true, State: runstate.State{URL: "http://127.0.0.1:7331"},
 			},
-			want: "Kept the existing LaunchAgent. Run prx daemon install to update it.",
+			wantEn: "Kept the existing LaunchAgent. Run prx daemon install to update it.",
+			wantJa: "既存の LaunchAgent を残した。更新するには prx daemon install を使う。",
 		},
 		{
 			name:   "left stopped",
 			status: daemon.Status{Installed: true, PlistStatus: launchd.PlistCurrent},
-			want:   "Left the PRX server stopped. Run prx daemon start when you need it.",
+			wantEn: "Left the PRX server stopped. Run prx daemon start when you need it.",
+			wantJa: "PRX のサーバーは停止したままにした。必要になったら prx daemon start を使う。",
 		},
 		{
 			name: "already running",
@@ -41,7 +51,8 @@ func TestSetupSettledMessage(t *testing.T) {
 				Installed: true, PlistStatus: launchd.PlistCurrent,
 				Running: true, State: runstate.State{URL: "http://127.0.0.1:7331"},
 			},
-			want: "PRX is already set up and listening on http://127.0.0.1:7331.",
+			wantEn: "PRX is already set up and listening on http://127.0.0.1:7331.",
+			wantJa: "PRX はセットアップ済みで、http://127.0.0.1:7331 で待ち受けている。",
 		},
 		{
 			name: "running with unknown address",
@@ -49,20 +60,25 @@ func TestSetupSettledMessage(t *testing.T) {
 				Installed: true, PlistStatus: launchd.PlistCurrent,
 				Running: true, AddressUnknown: true,
 			},
-			want: "PRX is already set up and running.",
+			wantEn: "PRX is already set up and running.",
+			wantJa: "PRX はセットアップ済みで、すでに動作している。",
 		},
 		{
 			name: "running without recorded url",
 			status: daemon.Status{
 				Installed: true, PlistStatus: launchd.PlistCurrent, Running: true,
 			},
-			want: "PRX is already set up and running.",
+			wantEn: "PRX is already set up and running.",
+			wantJa: "PRX はセットアップ済みで、すでに動作している。",
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			if got := setupSettledMessage(test.status); got != test.want {
-				t.Fatalf("message=%q, want %q", got, test.want)
+			if got := setupSettledMessage(test.status, englishSetupText()); got != test.wantEn {
+				t.Fatalf("english message=%q, want %q", got, test.wantEn)
+			}
+			if got := setupSettledMessage(test.status, japaneseSetupText()); got != test.wantJa {
+				t.Fatalf("japanese message=%q, want %q", got, test.wantJa)
 			}
 		})
 	}
@@ -83,6 +99,18 @@ func (s *sampleDataService) EnsureSampleData(context.Context) (bool, error) {
 	return s.added, s.err
 }
 
+// isolateSetupConfig は設定ファイルと実効言語を固定し、開発者のホームにある設定や
+// ロケールが setup の文言を変えないようにする。書き込み先のパスを返す。
+func isolateSetupConfig(t *testing.T) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	t.Setenv("PRX_CONFIG", path)
+	for _, name := range []string{"LC_ALL", "LC_MESSAGES", "LANG"} {
+		t.Setenv(name, "en_US.UTF-8")
+	}
+	return path
+}
+
 // runSetupWithoutTerminal は端末を持たない環境の setup を走らせる。darwin では
 // TUI の問いかけに入る前に終端し、他の OS では macOS 判定で終わる。
 func runSetupWithoutTerminal(
@@ -91,6 +119,7 @@ func runSetupWithoutTerminal(
 	open OpenService,
 ) (stdout, stderr string, err error) {
 	t.Helper()
+	isolateSetupConfig(t)
 	previousTerminal := setupIsTerminal
 	previousOpenTTY := setupOpenTTY
 	setupIsTerminal = func(int) bool { return false }
@@ -102,6 +131,151 @@ func runSetupWithoutTerminal(
 	var out, errOut bytes.Buffer
 	err = Execute(context.Background(), append([]string{"setup"}, args...), &out, &errOut, open)
 	return out.String(), errOut.String(), err
+}
+
+// runSetupWithInput は問いかけに使える端末があるものとして setup を走らせる。端末の
+// 確保ごと差し替えるのは、go test の stdin を端末に見せかけられないためである。
+func runSetupWithInput(
+	t *testing.T,
+	input string,
+	open OpenService,
+) (stdout, stderr string, err error) {
+	t.Helper()
+	previous := setupTerminal
+	setupTerminal = func(out, errOut io.Writer) (setupSession, func(), bool) {
+		return setupSession{input: strings.NewReader(input), out: out, errOut: errOut}, func() {}, true
+	}
+	t.Cleanup(func() { setupTerminal = previous })
+	var out, errOut bytes.Buffer
+	err = Execute(context.Background(), []string{"setup"}, &out, &errOut, open)
+	return out.String(), errOut.String(), err
+}
+
+// savedSetupLanguage は setup が書いた設定の language を読む。ファイルが無ければ空を返す。
+func savedSetupLanguage(t *testing.T, path string) string {
+	t.Helper()
+	body, err := os.ReadFile(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return ""
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	var saved struct {
+		Language string `yaml:"language"`
+	}
+	if err := yaml.Unmarshal(body, &saved); err != nil {
+		t.Fatal(err)
+	}
+	return saved.Language
+}
+
+// TestSetupAsksForTheLanguageFirst は、下矢印 + Enter が日本語を選び、その言語が
+// 設定へ残り、同じ実行のサンプル投入まで進むことを確かめる。darwin では言語の後に
+// 常駐の問いかけへ入り、実機の LaunchAgent に触れるので走らせない。
+func TestSetupAsksForTheLanguageFirst(t *testing.T) {
+	if runtime.GOOS == "darwin" {
+		t.Skip("the setup walk continues into the real LaunchAgent on darwin")
+	}
+	path := isolateSetupConfig(t)
+	service := &sampleDataService{added: true}
+	stdout, stderr, err := runSetupWithInput(t, "\x1b[B\r",
+		func(context.Context, ServiceOptions) (Service, io.Closer, error) {
+			return service, nil, nil
+		},
+	)
+	if err != nil {
+		t.Fatalf("error=%v stderr=%q", err, stderr)
+	}
+	if got := savedSetupLanguage(t, path); got != "ja" {
+		t.Fatalf("saved language=%q, want ja", got)
+	}
+	if service.calls != 1 {
+		t.Fatalf("EnsureSampleData calls=%d, want 1", service.calls)
+	}
+	if !strings.Contains(stdout, japaneseSetupText().sampleDataAdded) {
+		t.Fatalf("stdout=%q, want the japanese sample data line", stdout)
+	}
+	if !strings.Contains(stdout, japaneseSetupText().daemonUnsupported) {
+		t.Fatalf("stdout=%q, want the japanese macOS line", stdout)
+	}
+}
+
+// TestChooseSetupLanguage は問いかけの結果と設定への保存を、setup の残りから切り
+// 離して確かめる。実機の LaunchAgent に触れないので、どの OS でも走る。
+func TestChooseSetupLanguage(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  prompt.Language
+		saved string
+	}{
+		// 初期位置は現在の実効言語。ロケールを英語に固定しているので en が選ばれる。
+		{name: "enter keeps the current language", input: "\r", want: prompt.LanguageEnglish, saved: "en"},
+		{name: "down selects japanese", input: "\x1b[B\r", want: prompt.LanguageJapanese, saved: "ja"},
+		// キャンセルは設定を書かない。auto のままなので次回の setup でまた尋ねる。
+		{name: "escape cancels", input: "\x1b", want: prompt.LanguageEnglish, saved: ""},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			path := isolateSetupConfig(t)
+			var errOut bytes.Buffer
+			s := &state{out: io.Discard, errOut: &errOut}
+			session := setupSession{input: strings.NewReader(test.input), out: io.Discard, errOut: io.Discard}
+			got, err := s.chooseSetupLanguage(context.Background(), session, true)
+			if err != nil {
+				t.Fatalf("error=%v", err)
+			}
+			if got != test.want {
+				t.Fatalf("language=%q, want %q", got, test.want)
+			}
+			if saved := savedSetupLanguage(t, path); saved != test.saved {
+				t.Fatalf("saved language=%q, want %q", saved, test.saved)
+			}
+			if errOut.Len() != 0 {
+				t.Fatalf("stderr=%q, want no warning", errOut.String())
+			}
+		})
+	}
+}
+
+// TestChooseSetupLanguageWithoutATerminal は、端末が無いときは尋ねず、設定も書かず、
+// 設定とロケールから決めた言語をそのまま使うことを確かめる。
+func TestChooseSetupLanguageWithoutATerminal(t *testing.T) {
+	path := isolateSetupConfig(t)
+	s := &state{out: io.Discard, errOut: io.Discard}
+	got, err := s.chooseSetupLanguage(context.Background(), setupSession{}, false)
+	if err != nil || got != prompt.LanguageEnglish {
+		t.Fatalf("language=%q err=%v", got, err)
+	}
+	if saved := savedSetupLanguage(t, path); saved != "" {
+		t.Fatalf("saved language=%q, want no config file", saved)
+	}
+}
+
+// TestSetupTextsDifferBetweenLanguages は、文言一式のどの項目も空でなく、言語ごとに
+// 違うことを確かめる。英語のまま取り残された項目の検出が目的である。
+func TestSetupTextsDifferBetweenLanguages(t *testing.T) {
+	english := reflect.ValueOf(englishSetupText())
+	japanese := reflect.ValueOf(japaneseSetupText())
+	var walk func(t *testing.T, name string, left, right reflect.Value)
+	walk = func(t *testing.T, name string, left, right reflect.Value) {
+		t.Helper()
+		if left.Kind() == reflect.Struct {
+			for index := range left.NumField() {
+				walk(t, name+"."+left.Type().Field(index).Name, left.Field(index), right.Field(index))
+			}
+			return
+		}
+		if left.String() == "" || right.String() == "" {
+			t.Errorf("%s is empty in one of the languages", name)
+			return
+		}
+		if left.String() == right.String() {
+			t.Errorf("%s is the same in both languages: %q", name, left.String())
+		}
+	}
+	walk(t, "setupText", english, japanese)
 }
 
 // assertSetupWalkOutcome は、投入とは無関係な setup 本体の結果を確かめる。端末が
