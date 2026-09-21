@@ -968,11 +968,12 @@ func (GithubAuthMethodType) EnumDescriptor() ([]byte, []int) {
 }
 
 // TaskPromptKind は task をどのプロンプトテンプレートで展開したかを表す。
-// 選択の材料は実装計画の有無だけである。
+// 要求で指定でき、未指定のときだけサーバーが実装計画の有無から導出する。
+// 単一 task と batch のどちらの要求でも同じ 2 値を使う。
 type TaskPromptKind int32
 
 const (
-	// TASK_PROMPT_KIND_UNSPECIFIED はサーバーが返さず、リクエストのフィールドでもない。
+	// TASK_PROMPT_KIND_UNSPECIFIED は要求では導出を意味し、応答には現れない。
 	TaskPromptKind_TASK_PROMPT_KIND_UNSPECIFIED TaskPromptKind = 0
 	// TASK_PROMPT_KIND_DESIGN は実装計画の作成をエージェントに求める。
 	TaskPromptKind_TASK_PROMPT_KIND_DESIGN TaskPromptKind = 1
@@ -1624,7 +1625,9 @@ type PromptTemplateOverrides struct {
 	// implementation は実装計画がある task に使う上書き。空文字列は継承。
 	Implementation string `protobuf:"bytes,2,opt,name=implementation,proto3" json:"implementation,omitempty"`
 	// batch は複数 task の一括実装に使う上書き。空文字列は継承。
-	Batch         string `protobuf:"bytes,3,opt,name=batch,proto3" json:"batch,omitempty"`
+	Batch string `protobuf:"bytes,3,opt,name=batch,proto3" json:"batch,omitempty"`
+	// batch_design は複数 task の一括設計に使う上書き。空文字列は継承。
+	BatchDesign   string `protobuf:"bytes,4,opt,name=batch_design,json=batchDesign,proto3" json:"batch_design,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1680,6 +1683,13 @@ func (x *PromptTemplateOverrides) GetBatch() string {
 	return ""
 }
 
+func (x *PromptTemplateOverrides) GetBatchDesign() string {
+	if x != nil {
+		return x.BatchDesign
+	}
+	return ""
+}
+
 // PromptTemplateOverridesUpdate は上書きを種類ごとに部分更新する。
 // 未設定は変更なし、空文字列は継承への復帰、非空文字列は検証後に保存する。
 type PromptTemplateOverridesUpdate struct {
@@ -1688,8 +1698,10 @@ type PromptTemplateOverridesUpdate struct {
 	Design *string `protobuf:"bytes,1,opt,name=design,proto3,oneof" json:"design,omitempty"`
 	// implementation は実装テンプレートの変更。未設定は変更なし。
 	Implementation *string `protobuf:"bytes,2,opt,name=implementation,proto3,oneof" json:"implementation,omitempty"`
-	// batch は一括テンプレートの変更。未設定は変更なし。
-	Batch         *string `protobuf:"bytes,3,opt,name=batch,proto3,oneof" json:"batch,omitempty"`
+	// batch は一括実装テンプレートの変更。未設定は変更なし。
+	Batch *string `protobuf:"bytes,3,opt,name=batch,proto3,oneof" json:"batch,omitempty"`
+	// batch_design は一括設計テンプレートの変更。未設定は変更なし。
+	BatchDesign   *string `protobuf:"bytes,4,opt,name=batch_design,json=batchDesign,proto3,oneof" json:"batch_design,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1741,6 +1753,13 @@ func (x *PromptTemplateOverridesUpdate) GetImplementation() string {
 func (x *PromptTemplateOverridesUpdate) GetBatch() string {
 	if x != nil && x.Batch != nil {
 		return *x.Batch
+	}
+	return ""
+}
+
+func (x *PromptTemplateOverridesUpdate) GetBatchDesign() string {
+	if x != nil && x.BatchDesign != nil {
+		return *x.BatchDesign
 	}
 	return ""
 }
@@ -6910,9 +6929,11 @@ type PromptTemplates struct {
 	Design string `protobuf:"bytes,1,opt,name=design,proto3" json:"design,omitempty"`
 	// implementation はすでに実装計画がある task に使う。
 	Implementation string `protobuf:"bytes,2,opt,name=implementation,proto3" json:"implementation,omitempty"`
-	// batch は複数の task を 1 つのプロンプトで引き渡すときに使う。個々の task から
-	// 導出せず、呼び出し側が batch を要求したことで選ばれる。
-	Batch         string `protobuf:"bytes,3,opt,name=batch,proto3" json:"batch,omitempty"`
+	// batch は複数の task を 1 つのプロンプトでまとめて実装させるときに使う。個々の
+	// task から導出せず、呼び出し側が batch を要求したことで選ばれる。
+	Batch string `protobuf:"bytes,3,opt,name=batch,proto3" json:"batch,omitempty"`
+	// batch_design は複数の task を 1 つのプロンプトでまとめて設計させるときに使う。
+	BatchDesign   string `protobuf:"bytes,4,opt,name=batch_design,json=batchDesign,proto3" json:"batch_design,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6968,6 +6989,13 @@ func (x *PromptTemplates) GetBatch() string {
 	return ""
 }
 
+func (x *PromptTemplates) GetBatchDesign() string {
+	if x != nil {
+		return x.BatchDesign
+	}
+	return ""
+}
+
 // GetPromptTemplatesRequest は保存されたエージェント用テンプレートを要求する。
 type GetPromptTemplatesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -7019,11 +7047,12 @@ type GetPromptTemplatesResponse struct {
 	// built_in は PRX に同梱するテンプレート。復元を提示するエディタは、書き込みが
 	// 終わるまで空欄にせず、ここに入っている文面を表示できる。
 	BuiltIn *PromptTemplates `protobuf:"bytes,4,opt,name=built_in,json=builtIn,proto3" json:"built_in,omitempty"`
-	// batch_supported_placeholders は batch テンプレートの置換語彙。batch には task
-	// 用の placeholder を展開する元になる単一の task がないため、task の語彙より
-	// 小さい。
+	// batch_supported_placeholders は batch テンプレートの置換語彙で、batch と
+	// batch_design が共有する。batch には task 用の placeholder を展開する元になる
+	// 単一の task がないため、task の語彙より小さい。
 	BatchSupportedPlaceholders []string `protobuf:"bytes,5,rep,name=batch_supported_placeholders,json=batchSupportedPlaceholders,proto3" json:"batch_supported_placeholders,omitempty"`
 	// batch_required_placeholder は batch テンプレートが必ず使う唯一の placeholder。
+	// batch と batch_design で共通である。
 	BatchRequiredPlaceholder string `protobuf:"bytes,6,opt,name=batch_required_placeholder,json=batchRequiredPlaceholder,proto3" json:"batch_required_placeholder,omitempty"`
 	unknownFields            protoimpl.UnknownFields
 	sizeCache                protoimpl.SizeCache
@@ -7109,8 +7138,12 @@ type UpdatePromptTemplatesRequest struct {
 	Design string `protobuf:"bytes,1,opt,name=design,proto3" json:"design,omitempty"`
 	// implementation は実装計画がある task 用のテンプレートを置き換える。
 	Implementation string `protobuf:"bytes,2,opt,name=implementation,proto3" json:"implementation,omitempty"`
-	// batch は複数の task を 1 つのプロンプトで引き渡す用のテンプレートを置き換える。
-	Batch         string `protobuf:"bytes,3,opt,name=batch,proto3" json:"batch,omitempty"`
+	// batch は複数の task を 1 つのプロンプトでまとめて実装させるテンプレートを
+	// 置き換える。
+	Batch string `protobuf:"bytes,3,opt,name=batch,proto3" json:"batch,omitempty"`
+	// batch_design は複数の task を 1 つのプロンプトでまとめて設計させるテンプレートを
+	// 置き換える。
+	BatchDesign   string `protobuf:"bytes,4,opt,name=batch_design,json=batchDesign,proto3" json:"batch_design,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7166,6 +7199,13 @@ func (x *UpdatePromptTemplatesRequest) GetBatch() string {
 	return ""
 }
 
+func (x *UpdatePromptTemplatesRequest) GetBatchDesign() string {
+	if x != nil {
+		return x.BatchDesign
+	}
+	return ""
+}
+
 // UpdatePromptTemplatesResponse は書き込みの結果できたテンプレートを返す。
 type UpdatePromptTemplatesResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -7216,7 +7256,9 @@ func (x *UpdatePromptTemplatesResponse) GetTemplates() *PromptTemplates {
 type GetTaskPromptRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// task_id は task の公開識別子。
-	TaskId        string `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	TaskId string `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	// kind はどのテンプレートで展開するかを選ぶ。未指定なら実装計画の有無から導出する。
+	Kind          TaskPromptKind `protobuf:"varint,2,opt,name=kind,proto3,enum=prx.v1.TaskPromptKind" json:"kind,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7256,6 +7298,13 @@ func (x *GetTaskPromptRequest) GetTaskId() string {
 		return x.TaskId
 	}
 	return ""
+}
+
+func (x *GetTaskPromptRequest) GetKind() TaskPromptKind {
+	if x != nil {
+		return x.Kind
+	}
+	return TaskPromptKind_TASK_PROMPT_KIND_UNSPECIFIED
 }
 
 // GetTaskPromptResponse は task 1 件分の展開済みエージェントプロンプトを返す。
@@ -7328,7 +7377,10 @@ type GetBatchPromptRequest struct {
 	// feature_id は task が属する feature の公開識別子。
 	FeatureId string `protobuf:"bytes,1,opt,name=feature_id,json=featureId,proto3" json:"feature_id,omitempty"`
 	// task_ids は対象の task を、プロンプトに並べたい順で列挙する。
-	TaskIds       []string `protobuf:"bytes,2,rep,name=task_ids,json=taskIds,proto3" json:"task_ids,omitempty"`
+	TaskIds []string `protobuf:"bytes,2,rep,name=task_ids,json=taskIds,proto3" json:"task_ids,omitempty"`
+	// kind は一括設計と一括実装のどちらのテンプレートで展開するかを選ぶ。
+	// 未指定は一括実装を意味する。
+	Kind          TaskPromptKind `protobuf:"varint,3,opt,name=kind,proto3,enum=prx.v1.TaskPromptKind" json:"kind,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7377,6 +7429,13 @@ func (x *GetBatchPromptRequest) GetTaskIds() []string {
 	return nil
 }
 
+func (x *GetBatchPromptRequest) GetKind() TaskPromptKind {
+	if x != nil {
+		return x.Kind
+	}
+	return TaskPromptKind_TASK_PROMPT_KIND_UNSPECIFIED
+}
+
 // GetBatchPromptResponse は展開済みの batch プロンプトを返す。
 type GetBatchPromptResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -7385,7 +7444,9 @@ type GetBatchPromptResponse struct {
 	// task_ids は対象の task を、プロンプトが挙げる順で列挙する。
 	TaskIds []string `protobuf:"bytes,2,rep,name=task_ids,json=taskIds,proto3" json:"task_ids,omitempty"`
 	// prompt は展開済みの batch テンプレートで、他のエージェントにそのまま渡せる。
-	Prompt        string `protobuf:"bytes,3,opt,name=prompt,proto3" json:"prompt,omitempty"`
+	Prompt string `protobuf:"bytes,3,opt,name=prompt,proto3" json:"prompt,omitempty"`
+	// kind はどの batch テンプレートからプロンプトができたかを示す。
+	Kind          TaskPromptKind `protobuf:"varint,4,opt,name=kind,proto3,enum=prx.v1.TaskPromptKind" json:"kind,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7439,6 +7500,13 @@ func (x *GetBatchPromptResponse) GetPrompt() string {
 		return x.Prompt
 	}
 	return ""
+}
+
+func (x *GetBatchPromptResponse) GetKind() TaskPromptKind {
+	if x != nil {
+		return x.Kind
+	}
+	return TaskPromptKind_TASK_PROMPT_KIND_UNSPECIFIED
 }
 
 // SyncRequest は GitHub から更新する pull request を選ぶ。
@@ -10240,18 +10308,21 @@ const file_prx_v1_prx_proto_rawDesc = "" +
 	"\tread_only\x18\x11 \x01(\bR\breadOnly\x12J\n" +
 	"\x10prompt_overrides\x18\x12 \x01(\v2\x1f.prx.v1.PromptTemplateOverridesR\x0fpromptOverrides\x12L\n" +
 	"\x14task_label_overrides\x18\x13 \x01(\v2\x1a.prx.v1.TaskLabelOverridesR\x12taskLabelOverrides\x12R\n" +
-	"\x16task_label_appearances\x18\x14 \x01(\v2\x1c.prx.v1.TaskLabelAppearancesR\x14taskLabelAppearancesJ\x04\b\x02\x10\x03R\x04slug\"o\n" +
+	"\x16task_label_appearances\x18\x14 \x01(\v2\x1c.prx.v1.TaskLabelAppearancesR\x14taskLabelAppearancesJ\x04\b\x02\x10\x03R\x04slug\"\x92\x01\n" +
 	"\x17PromptTemplateOverrides\x12\x16\n" +
 	"\x06design\x18\x01 \x01(\tR\x06design\x12&\n" +
 	"\x0eimplementation\x18\x02 \x01(\tR\x0eimplementation\x12\x14\n" +
-	"\x05batch\x18\x03 \x01(\tR\x05batch\"\xac\x01\n" +
+	"\x05batch\x18\x03 \x01(\tR\x05batch\x12!\n" +
+	"\fbatch_design\x18\x04 \x01(\tR\vbatchDesign\"\xe5\x01\n" +
 	"\x1dPromptTemplateOverridesUpdate\x12\x1b\n" +
 	"\x06design\x18\x01 \x01(\tH\x00R\x06design\x88\x01\x01\x12+\n" +
 	"\x0eimplementation\x18\x02 \x01(\tH\x01R\x0eimplementation\x88\x01\x01\x12\x19\n" +
-	"\x05batch\x18\x03 \x01(\tH\x02R\x05batch\x88\x01\x01B\t\n" +
+	"\x05batch\x18\x03 \x01(\tH\x02R\x05batch\x88\x01\x01\x12&\n" +
+	"\fbatch_design\x18\x04 \x01(\tH\x03R\vbatchDesign\x88\x01\x01B\t\n" +
 	"\a_designB\x11\n" +
 	"\x0f_implementationB\b\n" +
-	"\x06_batch\"=\n" +
+	"\x06_batchB\x0f\n" +
+	"\r_batch_design\"=\n" +
 	"\x11TaskLabelOverride\x12\x12\n" +
 	"\x04text\x18\x01 \x01(\tR\x04text\x12\x14\n" +
 	"\x05color\x18\x02 \x01(\tR\x05color\"\xaa\x01\n" +
@@ -10640,11 +10711,12 @@ const file_prx_v1_prx_proto_rawDesc = "" +
 	"\x16ValidateConfigResponse\x12\x14\n" +
 	"\x05valid\x18\x01 \x01(\bR\x05valid\x12\x16\n" +
 	"\x06errors\x18\x02 \x03(\tR\x06errors\x12\x1a\n" +
-	"\bwarnings\x18\x03 \x03(\tR\bwarnings\"g\n" +
+	"\bwarnings\x18\x03 \x03(\tR\bwarnings\"\x8a\x01\n" +
 	"\x0fPromptTemplates\x12\x16\n" +
 	"\x06design\x18\x01 \x01(\tR\x06design\x12&\n" +
 	"\x0eimplementation\x18\x02 \x01(\tR\x0eimplementation\x12\x14\n" +
-	"\x05batch\x18\x03 \x01(\tR\x05batch\"\x1b\n" +
+	"\x05batch\x18\x03 \x01(\tR\x05batch\x12!\n" +
+	"\fbatch_design\x18\x04 \x01(\tR\vbatchDesign\"\x1b\n" +
 	"\x19GetPromptTemplatesRequest\"\xf1\x02\n" +
 	"\x1aGetPromptTemplatesResponse\x125\n" +
 	"\ttemplates\x18\x01 \x01(\v2\x17.prx.v1.PromptTemplatesR\ttemplates\x125\n" +
@@ -10652,28 +10724,32 @@ const file_prx_v1_prx_proto_rawDesc = "" +
 	"\x14required_placeholder\x18\x03 \x01(\tR\x13requiredPlaceholder\x122\n" +
 	"\bbuilt_in\x18\x04 \x01(\v2\x17.prx.v1.PromptTemplatesR\abuiltIn\x12@\n" +
 	"\x1cbatch_supported_placeholders\x18\x05 \x03(\tR\x1abatchSupportedPlaceholders\x12<\n" +
-	"\x1abatch_required_placeholder\x18\x06 \x01(\tR\x18batchRequiredPlaceholder\"t\n" +
+	"\x1abatch_required_placeholder\x18\x06 \x01(\tR\x18batchRequiredPlaceholder\"\x97\x01\n" +
 	"\x1cUpdatePromptTemplatesRequest\x12\x16\n" +
 	"\x06design\x18\x01 \x01(\tR\x06design\x12&\n" +
 	"\x0eimplementation\x18\x02 \x01(\tR\x0eimplementation\x12\x14\n" +
-	"\x05batch\x18\x03 \x01(\tR\x05batch\"V\n" +
+	"\x05batch\x18\x03 \x01(\tR\x05batch\x12!\n" +
+	"\fbatch_design\x18\x04 \x01(\tR\vbatchDesign\"V\n" +
 	"\x1dUpdatePromptTemplatesResponse\x125\n" +
-	"\ttemplates\x18\x01 \x01(\v2\x17.prx.v1.PromptTemplatesR\ttemplates\"/\n" +
+	"\ttemplates\x18\x01 \x01(\v2\x17.prx.v1.PromptTemplatesR\ttemplates\"[\n" +
 	"\x14GetTaskPromptRequest\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\"t\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12*\n" +
+	"\x04kind\x18\x02 \x01(\x0e2\x16.prx.v1.TaskPromptKindR\x04kind\"t\n" +
 	"\x15GetTaskPromptResponse\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12*\n" +
 	"\x04kind\x18\x02 \x01(\x0e2\x16.prx.v1.TaskPromptKindR\x04kind\x12\x16\n" +
-	"\x06prompt\x18\x03 \x01(\tR\x06prompt\"Q\n" +
+	"\x06prompt\x18\x03 \x01(\tR\x06prompt\"}\n" +
 	"\x15GetBatchPromptRequest\x12\x1d\n" +
 	"\n" +
 	"feature_id\x18\x01 \x01(\tR\tfeatureId\x12\x19\n" +
-	"\btask_ids\x18\x02 \x03(\tR\ataskIds\"j\n" +
+	"\btask_ids\x18\x02 \x03(\tR\ataskIds\x12*\n" +
+	"\x04kind\x18\x03 \x01(\x0e2\x16.prx.v1.TaskPromptKindR\x04kind\"\x96\x01\n" +
 	"\x16GetBatchPromptResponse\x12\x1d\n" +
 	"\n" +
 	"feature_id\x18\x01 \x01(\tR\tfeatureId\x12\x19\n" +
 	"\btask_ids\x18\x02 \x03(\tR\ataskIds\x12\x16\n" +
-	"\x06prompt\x18\x03 \x01(\tR\x06prompt\"E\n" +
+	"\x06prompt\x18\x03 \x01(\tR\x06prompt\x12*\n" +
+	"\x04kind\x18\x04 \x01(\x0e2\x16.prx.v1.TaskPromptKindR\x04kind\"E\n" +
 	"\vSyncRequest\x12\x1d\n" +
 	"\n" +
 	"feature_id\x18\x01 \x01(\tR\tfeatureId\x12\x17\n" +
@@ -11333,138 +11409,141 @@ var file_prx_v1_prx_proto_depIdxs = []int32{
 	105, // 70: prx.v1.GetPromptTemplatesResponse.templates:type_name -> prx.v1.PromptTemplates
 	105, // 71: prx.v1.GetPromptTemplatesResponse.built_in:type_name -> prx.v1.PromptTemplates
 	105, // 72: prx.v1.UpdatePromptTemplatesResponse.templates:type_name -> prx.v1.PromptTemplates
-	13,  // 73: prx.v1.GetTaskPromptResponse.kind:type_name -> prx.v1.TaskPromptKind
-	116, // 74: prx.v1.GetGitHubSyncStatusResponse.status:type_name -> prx.v1.GitHubSyncStatus
-	116, // 75: prx.v1.SyncGitHubIfDueResponse.status:type_name -> prx.v1.GitHubSyncStatus
-	15,  // 76: prx.v1.UpdateStatus.disabled_reason:type_name -> prx.v1.UpdateDisabledReason
-	121, // 77: prx.v1.UpdateStatus.releases:type_name -> prx.v1.UpdateRelease
-	122, // 78: prx.v1.GetUpdateStatusResponse.status:type_name -> prx.v1.UpdateStatus
-	122, // 79: prx.v1.SkipUpdateVersionResponse.status:type_name -> prx.v1.UpdateStatus
-	14,  // 80: prx.v1.DebugProblem.code:type_name -> prx.v1.DebugProblemCode
-	135, // 81: prx.v1.DebugPaths.environment_variables:type_name -> prx.v1.DebugEnvironmentVariable
-	137, // 82: prx.v1.DebugConfig.hosts:type_name -> prx.v1.DebugConfigHost
-	138, // 83: prx.v1.DebugConfig.auth_methods:type_name -> prx.v1.DebugConfigAuthMethod
-	140, // 84: prx.v1.DebugStorage.database_file:type_name -> prx.v1.DebugDatabaseFile
-	142, // 85: prx.v1.DebugData.feature_statuses:type_name -> prx.v1.DebugCount
-	142, // 86: prx.v1.DebugData.task_display_states:type_name -> prx.v1.DebugCount
-	142, // 87: prx.v1.DebugData.pull_request_display_states:type_name -> prx.v1.DebugCount
-	142, // 88: prx.v1.DebugData.pull_request_hosts:type_name -> prx.v1.DebugCount
-	142, // 89: prx.v1.DebugData.document_kinds:type_name -> prx.v1.DebugCount
-	142, // 90: prx.v1.DebugData.project_states:type_name -> prx.v1.DebugCount
-	116, // 91: prx.v1.DebugGitHubSync.status:type_name -> prx.v1.GitHubSyncStatus
-	144, // 92: prx.v1.DebugGitHubSync.host_failures:type_name -> prx.v1.DebugSyncFailure
-	144, // 93: prx.v1.DebugGitHubSync.repository_failures:type_name -> prx.v1.DebugSyncFailure
-	145, // 94: prx.v1.DebugGitHubSync.error_groups:type_name -> prx.v1.DebugErrorGroup
-	146, // 95: prx.v1.DebugGitHubSync.auth_cache:type_name -> prx.v1.DebugAuthCacheEntry
-	131, // 96: prx.v1.DebugReport.problems:type_name -> prx.v1.DebugProblem
-	132, // 97: prx.v1.DebugReport.build:type_name -> prx.v1.DebugBuild
-	133, // 98: prx.v1.DebugReport.runtime:type_name -> prx.v1.DebugRuntime
-	136, // 99: prx.v1.DebugReport.paths:type_name -> prx.v1.DebugPaths
-	134, // 100: prx.v1.DebugReport.daemon:type_name -> prx.v1.DebugDaemon
-	139, // 101: prx.v1.DebugReport.config:type_name -> prx.v1.DebugConfig
-	141, // 102: prx.v1.DebugReport.storage:type_name -> prx.v1.DebugStorage
-	143, // 103: prx.v1.DebugReport.records:type_name -> prx.v1.DebugData
-	147, // 104: prx.v1.DebugReport.github_sync:type_name -> prx.v1.DebugGitHubSync
-	148, // 105: prx.v1.GetDebugReportResponse.report:type_name -> prx.v1.DebugReport
-	22,  // 106: prx.v1.TaskLabelOverrides.ValuesEntry.value:type_name -> prx.v1.TaskLabelOverride
-	24,  // 107: prx.v1.TaskLabelOverridesUpdate.ValuesEntry.value:type_name -> prx.v1.TaskLabelOverrideUpdate
-	33,  // 108: prx.v1.PRXService.GetSnapshot:input_type -> prx.v1.GetSnapshotRequest
-	35,  // 109: prx.v1.PRXService.WatchRevision:input_type -> prx.v1.WatchRevisionRequest
-	37,  // 110: prx.v1.PRXService.CreateProject:input_type -> prx.v1.CreateProjectRequest
-	39,  // 111: prx.v1.PRXService.UpdateProject:input_type -> prx.v1.UpdateProjectRequest
-	41,  // 112: prx.v1.PRXService.DeleteProject:input_type -> prx.v1.DeleteProjectRequest
-	43,  // 113: prx.v1.PRXService.CreateFeature:input_type -> prx.v1.CreateFeatureRequest
-	45,  // 114: prx.v1.PRXService.UpdateFeature:input_type -> prx.v1.UpdateFeatureRequest
-	47,  // 115: prx.v1.PRXService.DeleteFeature:input_type -> prx.v1.DeleteFeatureRequest
-	49,  // 116: prx.v1.PRXService.CreateTask:input_type -> prx.v1.CreateTaskRequest
-	51,  // 117: prx.v1.PRXService.UpdateTask:input_type -> prx.v1.UpdateTaskRequest
-	53,  // 118: prx.v1.PRXService.DeleteTask:input_type -> prx.v1.DeleteTaskRequest
-	55,  // 119: prx.v1.PRXService.AddDependency:input_type -> prx.v1.AddDependencyRequest
-	57,  // 120: prx.v1.PRXService.RemoveDependency:input_type -> prx.v1.RemoveDependencyRequest
-	59,  // 121: prx.v1.PRXService.AttachPullRequest:input_type -> prx.v1.AttachPullRequestRequest
-	61,  // 122: prx.v1.PRXService.DetachPullRequest:input_type -> prx.v1.DetachPullRequestRequest
-	63,  // 123: prx.v1.PRXService.AddDocument:input_type -> prx.v1.AddDocumentRequest
-	65,  // 124: prx.v1.PRXService.GetDocument:input_type -> prx.v1.GetDocumentRequest
-	67,  // 125: prx.v1.PRXService.UpdateDocument:input_type -> prx.v1.UpdateDocumentRequest
-	69,  // 126: prx.v1.PRXService.DeleteDocument:input_type -> prx.v1.DeleteDocumentRequest
-	71,  // 127: prx.v1.PRXService.ReadDocumentContent:input_type -> prx.v1.ReadDocumentContentRequest
-	73,  // 128: prx.v1.PRXService.SelectLocalFile:input_type -> prx.v1.SelectLocalFileRequest
-	114, // 129: prx.v1.PRXService.Sync:input_type -> prx.v1.SyncRequest
-	117, // 130: prx.v1.PRXService.GetGitHubSyncStatus:input_type -> prx.v1.GetGitHubSyncStatusRequest
-	119, // 131: prx.v1.PRXService.SyncGitHubIfDue:input_type -> prx.v1.SyncGitHubIfDueRequest
-	123, // 132: prx.v1.PRXService.GetUpdateStatus:input_type -> prx.v1.GetUpdateStatusRequest
-	125, // 133: prx.v1.PRXService.SkipUpdateVersion:input_type -> prx.v1.SkipUpdateVersionRequest
-	127, // 134: prx.v1.PRXService.ApplyUpdate:input_type -> prx.v1.ApplyUpdateRequest
-	129, // 135: prx.v1.PRXService.Validate:input_type -> prx.v1.ValidateRequest
-	149, // 136: prx.v1.PRXService.GetDebugReport:input_type -> prx.v1.GetDebugReportRequest
-	78,  // 137: prx.v1.PRXService.GetConfig:input_type -> prx.v1.GetConfigRequest
-	80,  // 138: prx.v1.PRXService.GetTaskLabelConfig:input_type -> prx.v1.GetTaskLabelConfigRequest
-	83,  // 139: prx.v1.PRXService.UpdateTaskLabelConfig:input_type -> prx.v1.UpdateTaskLabelConfigRequest
-	85,  // 140: prx.v1.PRXService.UpdateGitHubSyncConfig:input_type -> prx.v1.UpdateGitHubSyncConfigRequest
-	87,  // 141: prx.v1.PRXService.UpdateLanguageConfig:input_type -> prx.v1.UpdateLanguageConfigRequest
-	89,  // 142: prx.v1.PRXService.AddGitHubHost:input_type -> prx.v1.AddGitHubHostRequest
-	91,  // 143: prx.v1.PRXService.UpdateGitHubHost:input_type -> prx.v1.UpdateGitHubHostRequest
-	93,  // 144: prx.v1.PRXService.DeleteGitHubHost:input_type -> prx.v1.DeleteGitHubHostRequest
-	95,  // 145: prx.v1.PRXService.AddGitHubAuthMethod:input_type -> prx.v1.AddGitHubAuthMethodRequest
-	97,  // 146: prx.v1.PRXService.UpdateGitHubAuthMethod:input_type -> prx.v1.UpdateGitHubAuthMethodRequest
-	99,  // 147: prx.v1.PRXService.DeleteGitHubAuthMethod:input_type -> prx.v1.DeleteGitHubAuthMethodRequest
-	101, // 148: prx.v1.PRXService.ReorderGitHubAuthMethods:input_type -> prx.v1.ReorderGitHubAuthMethodsRequest
-	103, // 149: prx.v1.PRXService.ValidateConfig:input_type -> prx.v1.ValidateConfigRequest
-	106, // 150: prx.v1.PRXService.GetPromptTemplates:input_type -> prx.v1.GetPromptTemplatesRequest
-	108, // 151: prx.v1.PRXService.UpdatePromptTemplates:input_type -> prx.v1.UpdatePromptTemplatesRequest
-	110, // 152: prx.v1.PRXService.GetTaskPrompt:input_type -> prx.v1.GetTaskPromptRequest
-	112, // 153: prx.v1.PRXService.GetBatchPrompt:input_type -> prx.v1.GetBatchPromptRequest
-	34,  // 154: prx.v1.PRXService.GetSnapshot:output_type -> prx.v1.GetSnapshotResponse
-	36,  // 155: prx.v1.PRXService.WatchRevision:output_type -> prx.v1.WatchRevisionResponse
-	38,  // 156: prx.v1.PRXService.CreateProject:output_type -> prx.v1.CreateProjectResponse
-	40,  // 157: prx.v1.PRXService.UpdateProject:output_type -> prx.v1.UpdateProjectResponse
-	42,  // 158: prx.v1.PRXService.DeleteProject:output_type -> prx.v1.DeleteProjectResponse
-	44,  // 159: prx.v1.PRXService.CreateFeature:output_type -> prx.v1.CreateFeatureResponse
-	46,  // 160: prx.v1.PRXService.UpdateFeature:output_type -> prx.v1.UpdateFeatureResponse
-	48,  // 161: prx.v1.PRXService.DeleteFeature:output_type -> prx.v1.DeleteFeatureResponse
-	50,  // 162: prx.v1.PRXService.CreateTask:output_type -> prx.v1.CreateTaskResponse
-	52,  // 163: prx.v1.PRXService.UpdateTask:output_type -> prx.v1.UpdateTaskResponse
-	54,  // 164: prx.v1.PRXService.DeleteTask:output_type -> prx.v1.DeleteTaskResponse
-	56,  // 165: prx.v1.PRXService.AddDependency:output_type -> prx.v1.AddDependencyResponse
-	58,  // 166: prx.v1.PRXService.RemoveDependency:output_type -> prx.v1.RemoveDependencyResponse
-	60,  // 167: prx.v1.PRXService.AttachPullRequest:output_type -> prx.v1.AttachPullRequestResponse
-	62,  // 168: prx.v1.PRXService.DetachPullRequest:output_type -> prx.v1.DetachPullRequestResponse
-	64,  // 169: prx.v1.PRXService.AddDocument:output_type -> prx.v1.AddDocumentResponse
-	66,  // 170: prx.v1.PRXService.GetDocument:output_type -> prx.v1.GetDocumentResponse
-	68,  // 171: prx.v1.PRXService.UpdateDocument:output_type -> prx.v1.UpdateDocumentResponse
-	70,  // 172: prx.v1.PRXService.DeleteDocument:output_type -> prx.v1.DeleteDocumentResponse
-	72,  // 173: prx.v1.PRXService.ReadDocumentContent:output_type -> prx.v1.ReadDocumentContentResponse
-	74,  // 174: prx.v1.PRXService.SelectLocalFile:output_type -> prx.v1.SelectLocalFileResponse
-	115, // 175: prx.v1.PRXService.Sync:output_type -> prx.v1.SyncResponse
-	118, // 176: prx.v1.PRXService.GetGitHubSyncStatus:output_type -> prx.v1.GetGitHubSyncStatusResponse
-	120, // 177: prx.v1.PRXService.SyncGitHubIfDue:output_type -> prx.v1.SyncGitHubIfDueResponse
-	124, // 178: prx.v1.PRXService.GetUpdateStatus:output_type -> prx.v1.GetUpdateStatusResponse
-	126, // 179: prx.v1.PRXService.SkipUpdateVersion:output_type -> prx.v1.SkipUpdateVersionResponse
-	128, // 180: prx.v1.PRXService.ApplyUpdate:output_type -> prx.v1.ApplyUpdateResponse
-	130, // 181: prx.v1.PRXService.Validate:output_type -> prx.v1.ValidateResponse
-	150, // 182: prx.v1.PRXService.GetDebugReport:output_type -> prx.v1.GetDebugReportResponse
-	79,  // 183: prx.v1.PRXService.GetConfig:output_type -> prx.v1.GetConfigResponse
-	82,  // 184: prx.v1.PRXService.GetTaskLabelConfig:output_type -> prx.v1.GetTaskLabelConfigResponse
-	84,  // 185: prx.v1.PRXService.UpdateTaskLabelConfig:output_type -> prx.v1.UpdateTaskLabelConfigResponse
-	86,  // 186: prx.v1.PRXService.UpdateGitHubSyncConfig:output_type -> prx.v1.UpdateGitHubSyncConfigResponse
-	88,  // 187: prx.v1.PRXService.UpdateLanguageConfig:output_type -> prx.v1.UpdateLanguageConfigResponse
-	90,  // 188: prx.v1.PRXService.AddGitHubHost:output_type -> prx.v1.AddGitHubHostResponse
-	92,  // 189: prx.v1.PRXService.UpdateGitHubHost:output_type -> prx.v1.UpdateGitHubHostResponse
-	94,  // 190: prx.v1.PRXService.DeleteGitHubHost:output_type -> prx.v1.DeleteGitHubHostResponse
-	96,  // 191: prx.v1.PRXService.AddGitHubAuthMethod:output_type -> prx.v1.AddGitHubAuthMethodResponse
-	98,  // 192: prx.v1.PRXService.UpdateGitHubAuthMethod:output_type -> prx.v1.UpdateGitHubAuthMethodResponse
-	100, // 193: prx.v1.PRXService.DeleteGitHubAuthMethod:output_type -> prx.v1.DeleteGitHubAuthMethodResponse
-	102, // 194: prx.v1.PRXService.ReorderGitHubAuthMethods:output_type -> prx.v1.ReorderGitHubAuthMethodsResponse
-	104, // 195: prx.v1.PRXService.ValidateConfig:output_type -> prx.v1.ValidateConfigResponse
-	107, // 196: prx.v1.PRXService.GetPromptTemplates:output_type -> prx.v1.GetPromptTemplatesResponse
-	109, // 197: prx.v1.PRXService.UpdatePromptTemplates:output_type -> prx.v1.UpdatePromptTemplatesResponse
-	111, // 198: prx.v1.PRXService.GetTaskPrompt:output_type -> prx.v1.GetTaskPromptResponse
-	113, // 199: prx.v1.PRXService.GetBatchPrompt:output_type -> prx.v1.GetBatchPromptResponse
-	154, // [154:200] is the sub-list for method output_type
-	108, // [108:154] is the sub-list for method input_type
-	108, // [108:108] is the sub-list for extension type_name
-	108, // [108:108] is the sub-list for extension extendee
-	0,   // [0:108] is the sub-list for field type_name
+	13,  // 73: prx.v1.GetTaskPromptRequest.kind:type_name -> prx.v1.TaskPromptKind
+	13,  // 74: prx.v1.GetTaskPromptResponse.kind:type_name -> prx.v1.TaskPromptKind
+	13,  // 75: prx.v1.GetBatchPromptRequest.kind:type_name -> prx.v1.TaskPromptKind
+	13,  // 76: prx.v1.GetBatchPromptResponse.kind:type_name -> prx.v1.TaskPromptKind
+	116, // 77: prx.v1.GetGitHubSyncStatusResponse.status:type_name -> prx.v1.GitHubSyncStatus
+	116, // 78: prx.v1.SyncGitHubIfDueResponse.status:type_name -> prx.v1.GitHubSyncStatus
+	15,  // 79: prx.v1.UpdateStatus.disabled_reason:type_name -> prx.v1.UpdateDisabledReason
+	121, // 80: prx.v1.UpdateStatus.releases:type_name -> prx.v1.UpdateRelease
+	122, // 81: prx.v1.GetUpdateStatusResponse.status:type_name -> prx.v1.UpdateStatus
+	122, // 82: prx.v1.SkipUpdateVersionResponse.status:type_name -> prx.v1.UpdateStatus
+	14,  // 83: prx.v1.DebugProblem.code:type_name -> prx.v1.DebugProblemCode
+	135, // 84: prx.v1.DebugPaths.environment_variables:type_name -> prx.v1.DebugEnvironmentVariable
+	137, // 85: prx.v1.DebugConfig.hosts:type_name -> prx.v1.DebugConfigHost
+	138, // 86: prx.v1.DebugConfig.auth_methods:type_name -> prx.v1.DebugConfigAuthMethod
+	140, // 87: prx.v1.DebugStorage.database_file:type_name -> prx.v1.DebugDatabaseFile
+	142, // 88: prx.v1.DebugData.feature_statuses:type_name -> prx.v1.DebugCount
+	142, // 89: prx.v1.DebugData.task_display_states:type_name -> prx.v1.DebugCount
+	142, // 90: prx.v1.DebugData.pull_request_display_states:type_name -> prx.v1.DebugCount
+	142, // 91: prx.v1.DebugData.pull_request_hosts:type_name -> prx.v1.DebugCount
+	142, // 92: prx.v1.DebugData.document_kinds:type_name -> prx.v1.DebugCount
+	142, // 93: prx.v1.DebugData.project_states:type_name -> prx.v1.DebugCount
+	116, // 94: prx.v1.DebugGitHubSync.status:type_name -> prx.v1.GitHubSyncStatus
+	144, // 95: prx.v1.DebugGitHubSync.host_failures:type_name -> prx.v1.DebugSyncFailure
+	144, // 96: prx.v1.DebugGitHubSync.repository_failures:type_name -> prx.v1.DebugSyncFailure
+	145, // 97: prx.v1.DebugGitHubSync.error_groups:type_name -> prx.v1.DebugErrorGroup
+	146, // 98: prx.v1.DebugGitHubSync.auth_cache:type_name -> prx.v1.DebugAuthCacheEntry
+	131, // 99: prx.v1.DebugReport.problems:type_name -> prx.v1.DebugProblem
+	132, // 100: prx.v1.DebugReport.build:type_name -> prx.v1.DebugBuild
+	133, // 101: prx.v1.DebugReport.runtime:type_name -> prx.v1.DebugRuntime
+	136, // 102: prx.v1.DebugReport.paths:type_name -> prx.v1.DebugPaths
+	134, // 103: prx.v1.DebugReport.daemon:type_name -> prx.v1.DebugDaemon
+	139, // 104: prx.v1.DebugReport.config:type_name -> prx.v1.DebugConfig
+	141, // 105: prx.v1.DebugReport.storage:type_name -> prx.v1.DebugStorage
+	143, // 106: prx.v1.DebugReport.records:type_name -> prx.v1.DebugData
+	147, // 107: prx.v1.DebugReport.github_sync:type_name -> prx.v1.DebugGitHubSync
+	148, // 108: prx.v1.GetDebugReportResponse.report:type_name -> prx.v1.DebugReport
+	22,  // 109: prx.v1.TaskLabelOverrides.ValuesEntry.value:type_name -> prx.v1.TaskLabelOverride
+	24,  // 110: prx.v1.TaskLabelOverridesUpdate.ValuesEntry.value:type_name -> prx.v1.TaskLabelOverrideUpdate
+	33,  // 111: prx.v1.PRXService.GetSnapshot:input_type -> prx.v1.GetSnapshotRequest
+	35,  // 112: prx.v1.PRXService.WatchRevision:input_type -> prx.v1.WatchRevisionRequest
+	37,  // 113: prx.v1.PRXService.CreateProject:input_type -> prx.v1.CreateProjectRequest
+	39,  // 114: prx.v1.PRXService.UpdateProject:input_type -> prx.v1.UpdateProjectRequest
+	41,  // 115: prx.v1.PRXService.DeleteProject:input_type -> prx.v1.DeleteProjectRequest
+	43,  // 116: prx.v1.PRXService.CreateFeature:input_type -> prx.v1.CreateFeatureRequest
+	45,  // 117: prx.v1.PRXService.UpdateFeature:input_type -> prx.v1.UpdateFeatureRequest
+	47,  // 118: prx.v1.PRXService.DeleteFeature:input_type -> prx.v1.DeleteFeatureRequest
+	49,  // 119: prx.v1.PRXService.CreateTask:input_type -> prx.v1.CreateTaskRequest
+	51,  // 120: prx.v1.PRXService.UpdateTask:input_type -> prx.v1.UpdateTaskRequest
+	53,  // 121: prx.v1.PRXService.DeleteTask:input_type -> prx.v1.DeleteTaskRequest
+	55,  // 122: prx.v1.PRXService.AddDependency:input_type -> prx.v1.AddDependencyRequest
+	57,  // 123: prx.v1.PRXService.RemoveDependency:input_type -> prx.v1.RemoveDependencyRequest
+	59,  // 124: prx.v1.PRXService.AttachPullRequest:input_type -> prx.v1.AttachPullRequestRequest
+	61,  // 125: prx.v1.PRXService.DetachPullRequest:input_type -> prx.v1.DetachPullRequestRequest
+	63,  // 126: prx.v1.PRXService.AddDocument:input_type -> prx.v1.AddDocumentRequest
+	65,  // 127: prx.v1.PRXService.GetDocument:input_type -> prx.v1.GetDocumentRequest
+	67,  // 128: prx.v1.PRXService.UpdateDocument:input_type -> prx.v1.UpdateDocumentRequest
+	69,  // 129: prx.v1.PRXService.DeleteDocument:input_type -> prx.v1.DeleteDocumentRequest
+	71,  // 130: prx.v1.PRXService.ReadDocumentContent:input_type -> prx.v1.ReadDocumentContentRequest
+	73,  // 131: prx.v1.PRXService.SelectLocalFile:input_type -> prx.v1.SelectLocalFileRequest
+	114, // 132: prx.v1.PRXService.Sync:input_type -> prx.v1.SyncRequest
+	117, // 133: prx.v1.PRXService.GetGitHubSyncStatus:input_type -> prx.v1.GetGitHubSyncStatusRequest
+	119, // 134: prx.v1.PRXService.SyncGitHubIfDue:input_type -> prx.v1.SyncGitHubIfDueRequest
+	123, // 135: prx.v1.PRXService.GetUpdateStatus:input_type -> prx.v1.GetUpdateStatusRequest
+	125, // 136: prx.v1.PRXService.SkipUpdateVersion:input_type -> prx.v1.SkipUpdateVersionRequest
+	127, // 137: prx.v1.PRXService.ApplyUpdate:input_type -> prx.v1.ApplyUpdateRequest
+	129, // 138: prx.v1.PRXService.Validate:input_type -> prx.v1.ValidateRequest
+	149, // 139: prx.v1.PRXService.GetDebugReport:input_type -> prx.v1.GetDebugReportRequest
+	78,  // 140: prx.v1.PRXService.GetConfig:input_type -> prx.v1.GetConfigRequest
+	80,  // 141: prx.v1.PRXService.GetTaskLabelConfig:input_type -> prx.v1.GetTaskLabelConfigRequest
+	83,  // 142: prx.v1.PRXService.UpdateTaskLabelConfig:input_type -> prx.v1.UpdateTaskLabelConfigRequest
+	85,  // 143: prx.v1.PRXService.UpdateGitHubSyncConfig:input_type -> prx.v1.UpdateGitHubSyncConfigRequest
+	87,  // 144: prx.v1.PRXService.UpdateLanguageConfig:input_type -> prx.v1.UpdateLanguageConfigRequest
+	89,  // 145: prx.v1.PRXService.AddGitHubHost:input_type -> prx.v1.AddGitHubHostRequest
+	91,  // 146: prx.v1.PRXService.UpdateGitHubHost:input_type -> prx.v1.UpdateGitHubHostRequest
+	93,  // 147: prx.v1.PRXService.DeleteGitHubHost:input_type -> prx.v1.DeleteGitHubHostRequest
+	95,  // 148: prx.v1.PRXService.AddGitHubAuthMethod:input_type -> prx.v1.AddGitHubAuthMethodRequest
+	97,  // 149: prx.v1.PRXService.UpdateGitHubAuthMethod:input_type -> prx.v1.UpdateGitHubAuthMethodRequest
+	99,  // 150: prx.v1.PRXService.DeleteGitHubAuthMethod:input_type -> prx.v1.DeleteGitHubAuthMethodRequest
+	101, // 151: prx.v1.PRXService.ReorderGitHubAuthMethods:input_type -> prx.v1.ReorderGitHubAuthMethodsRequest
+	103, // 152: prx.v1.PRXService.ValidateConfig:input_type -> prx.v1.ValidateConfigRequest
+	106, // 153: prx.v1.PRXService.GetPromptTemplates:input_type -> prx.v1.GetPromptTemplatesRequest
+	108, // 154: prx.v1.PRXService.UpdatePromptTemplates:input_type -> prx.v1.UpdatePromptTemplatesRequest
+	110, // 155: prx.v1.PRXService.GetTaskPrompt:input_type -> prx.v1.GetTaskPromptRequest
+	112, // 156: prx.v1.PRXService.GetBatchPrompt:input_type -> prx.v1.GetBatchPromptRequest
+	34,  // 157: prx.v1.PRXService.GetSnapshot:output_type -> prx.v1.GetSnapshotResponse
+	36,  // 158: prx.v1.PRXService.WatchRevision:output_type -> prx.v1.WatchRevisionResponse
+	38,  // 159: prx.v1.PRXService.CreateProject:output_type -> prx.v1.CreateProjectResponse
+	40,  // 160: prx.v1.PRXService.UpdateProject:output_type -> prx.v1.UpdateProjectResponse
+	42,  // 161: prx.v1.PRXService.DeleteProject:output_type -> prx.v1.DeleteProjectResponse
+	44,  // 162: prx.v1.PRXService.CreateFeature:output_type -> prx.v1.CreateFeatureResponse
+	46,  // 163: prx.v1.PRXService.UpdateFeature:output_type -> prx.v1.UpdateFeatureResponse
+	48,  // 164: prx.v1.PRXService.DeleteFeature:output_type -> prx.v1.DeleteFeatureResponse
+	50,  // 165: prx.v1.PRXService.CreateTask:output_type -> prx.v1.CreateTaskResponse
+	52,  // 166: prx.v1.PRXService.UpdateTask:output_type -> prx.v1.UpdateTaskResponse
+	54,  // 167: prx.v1.PRXService.DeleteTask:output_type -> prx.v1.DeleteTaskResponse
+	56,  // 168: prx.v1.PRXService.AddDependency:output_type -> prx.v1.AddDependencyResponse
+	58,  // 169: prx.v1.PRXService.RemoveDependency:output_type -> prx.v1.RemoveDependencyResponse
+	60,  // 170: prx.v1.PRXService.AttachPullRequest:output_type -> prx.v1.AttachPullRequestResponse
+	62,  // 171: prx.v1.PRXService.DetachPullRequest:output_type -> prx.v1.DetachPullRequestResponse
+	64,  // 172: prx.v1.PRXService.AddDocument:output_type -> prx.v1.AddDocumentResponse
+	66,  // 173: prx.v1.PRXService.GetDocument:output_type -> prx.v1.GetDocumentResponse
+	68,  // 174: prx.v1.PRXService.UpdateDocument:output_type -> prx.v1.UpdateDocumentResponse
+	70,  // 175: prx.v1.PRXService.DeleteDocument:output_type -> prx.v1.DeleteDocumentResponse
+	72,  // 176: prx.v1.PRXService.ReadDocumentContent:output_type -> prx.v1.ReadDocumentContentResponse
+	74,  // 177: prx.v1.PRXService.SelectLocalFile:output_type -> prx.v1.SelectLocalFileResponse
+	115, // 178: prx.v1.PRXService.Sync:output_type -> prx.v1.SyncResponse
+	118, // 179: prx.v1.PRXService.GetGitHubSyncStatus:output_type -> prx.v1.GetGitHubSyncStatusResponse
+	120, // 180: prx.v1.PRXService.SyncGitHubIfDue:output_type -> prx.v1.SyncGitHubIfDueResponse
+	124, // 181: prx.v1.PRXService.GetUpdateStatus:output_type -> prx.v1.GetUpdateStatusResponse
+	126, // 182: prx.v1.PRXService.SkipUpdateVersion:output_type -> prx.v1.SkipUpdateVersionResponse
+	128, // 183: prx.v1.PRXService.ApplyUpdate:output_type -> prx.v1.ApplyUpdateResponse
+	130, // 184: prx.v1.PRXService.Validate:output_type -> prx.v1.ValidateResponse
+	150, // 185: prx.v1.PRXService.GetDebugReport:output_type -> prx.v1.GetDebugReportResponse
+	79,  // 186: prx.v1.PRXService.GetConfig:output_type -> prx.v1.GetConfigResponse
+	82,  // 187: prx.v1.PRXService.GetTaskLabelConfig:output_type -> prx.v1.GetTaskLabelConfigResponse
+	84,  // 188: prx.v1.PRXService.UpdateTaskLabelConfig:output_type -> prx.v1.UpdateTaskLabelConfigResponse
+	86,  // 189: prx.v1.PRXService.UpdateGitHubSyncConfig:output_type -> prx.v1.UpdateGitHubSyncConfigResponse
+	88,  // 190: prx.v1.PRXService.UpdateLanguageConfig:output_type -> prx.v1.UpdateLanguageConfigResponse
+	90,  // 191: prx.v1.PRXService.AddGitHubHost:output_type -> prx.v1.AddGitHubHostResponse
+	92,  // 192: prx.v1.PRXService.UpdateGitHubHost:output_type -> prx.v1.UpdateGitHubHostResponse
+	94,  // 193: prx.v1.PRXService.DeleteGitHubHost:output_type -> prx.v1.DeleteGitHubHostResponse
+	96,  // 194: prx.v1.PRXService.AddGitHubAuthMethod:output_type -> prx.v1.AddGitHubAuthMethodResponse
+	98,  // 195: prx.v1.PRXService.UpdateGitHubAuthMethod:output_type -> prx.v1.UpdateGitHubAuthMethodResponse
+	100, // 196: prx.v1.PRXService.DeleteGitHubAuthMethod:output_type -> prx.v1.DeleteGitHubAuthMethodResponse
+	102, // 197: prx.v1.PRXService.ReorderGitHubAuthMethods:output_type -> prx.v1.ReorderGitHubAuthMethodsResponse
+	104, // 198: prx.v1.PRXService.ValidateConfig:output_type -> prx.v1.ValidateConfigResponse
+	107, // 199: prx.v1.PRXService.GetPromptTemplates:output_type -> prx.v1.GetPromptTemplatesResponse
+	109, // 200: prx.v1.PRXService.UpdatePromptTemplates:output_type -> prx.v1.UpdatePromptTemplatesResponse
+	111, // 201: prx.v1.PRXService.GetTaskPrompt:output_type -> prx.v1.GetTaskPromptResponse
+	113, // 202: prx.v1.PRXService.GetBatchPrompt:output_type -> prx.v1.GetBatchPromptResponse
+	157, // [157:203] is the sub-list for method output_type
+	111, // [111:157] is the sub-list for method input_type
+	111, // [111:111] is the sub-list for extension type_name
+	111, // [111:111] is the sub-list for extension extendee
+	0,   // [0:111] is the sub-list for field type_name
 }
 
 func init() { file_prx_v1_prx_proto_init() }

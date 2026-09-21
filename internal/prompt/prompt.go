@@ -18,8 +18,8 @@ import (
 // 本文が無制限でも誰の得にもならない。
 const MaximumTemplateBytes = 8192
 
-// Kind はテンプレートの種類を示す。task 用の種類は task から導出し、batch は
-// 呼び出し元が選ぶ。いずれも保存されることはない。
+// Kind はテンプレートの種類を示す。どの種類を使うかは呼び出し元が選び、
+// 選ばなかった場合だけ task から導出する。いずれも保存されることはない。
 type Kind string
 
 const (
@@ -29,15 +29,22 @@ const (
 	KindImplementation Kind = "implementation"
 	// KindBatch は複数の task をまとめて実装するようエージェントに依頼する。
 	KindBatch Kind = "batch"
+	// KindBatchDesign は複数の task をまとめて設計するようエージェントに依頼する。
+	KindBatchDesign Kind = "batch_design"
 )
 
 // Templates は task 用テンプレートと、複数 task をまとめる batch テンプレートを保持する。
-// batch は個々の task から導出されず、複数 task をまとめて要求する呼び出し元が選ぶ。
+// batch 系は個々の task から導出されず、複数 task をまとめて要求する呼び出し元が選ぶ。
 type Templates struct {
 	Design         string `yaml:"design"         json:"design"`
 	Implementation string `yaml:"implementation" json:"implementation"`
 	Batch          string `yaml:"batch"          json:"batch"`
+	BatchDesign    string `yaml:"batch_design"   json:"batch_design"`
 }
+
+// IsBatch は複数 task をまとめる種類かどうかを返す。batch 系は task 用とは別の
+// 置換語彙を持つため、検証と描画がこの区別を使う。
+func (k Kind) IsBatch() bool { return k == KindBatch || k == KindBatchDesign }
 
 // placeholderPattern は未対応のものも含めて置換トークン全てに一致する。レンダラが
 // 黙って残してしまう名前を検証で弾けるようにするため。
@@ -181,6 +188,43 @@ Tasks:
 Report each task's outcome separately, including the ones that failed.
 `
 
+const defaultBatchDesignTemplate = `Design the PRX tasks of feature {{feature_id}} listed below.
+
+PRX is a local CLI that tracks tasks and the dependencies between them.
+Run ` + "`prx --help`" + ` and ` + "`prx <command> --help`" + ` for its exact surface.
+PRX runs on this machine only, so nobody reading the repository can see it.
+Keep it out of what the repository carries, in your work and in every SubAgent's: no code comment,
+commit message, or pull request may mention PRX, its identifiers, or its commands.
+Nobody is watching this run, so neither you nor any SubAgent asks questions. Where the material
+leaves something undecided, take the option you can defend and report it as a stated assumption.
+
+Tasks:
+{{task_list}}
+
+1. Read the feature graph so you know how the listed tasks relate to the rest of the work.
+   - ` + "`prx graph {{feature_id}}`" + `
+2. Hand every task to its own SubAgent: one task per SubAgent, and never two tasks to the same one.
+   Each SubAgent works in a fresh git worktree of its own: SubAgents sharing a checkout
+   commit each other's half-finished edits.
+   Each SubAgent takes its instructions from PRX rather than from you.
+   - It runs ` + "`prx prompt TASK_ID --kind design`" + ` for the task it was given and follows the
+     prompt that prints.
+   - That prompt tells it to ask the user about decisions that shape the design. Nobody is here to
+     answer, so it writes those into the plan as stated assumptions instead.
+   - It ends by registering the plan with ` + "`prx plan set TASK_ID --file PATH`" + `.
+     It writes no production code and opens no pull request.
+   - It reports what it decided and anything the prompt did not cover.
+   Tasks the graph shows as independent may run in parallel.
+   A task that depends on another task of this list is designed after that task's plan is
+   registered, so its own design can rely on what that plan settles.
+3. Wait for every SubAgent and read what each one reported.
+   A task whose SubAgent failed stays undesigned: report it instead of designing it yourself.
+   Whatever depends on it stays undesigned as well, because the plan it would build on is missing.
+
+Design only: leave the implementation and the pull requests to a later step.
+Report each task's outcome separately, including the ones that failed.
+`
+
 // SupportedPlaceholders は置換語彙を波括弧なしで返す。クライアントが独自の一覧を
 // 抱えて黙って乖離するのではなく、サーバーが受け付ける内容を提示できるようにある。
 func SupportedPlaceholders() []string {
@@ -207,18 +251,20 @@ func DefaultTemplates(language Language) Templates {
 			Design:         japaneseDesignTemplate,
 			Implementation: japaneseImplementationTemplate,
 			Batch:          japaneseBatchTemplate,
+			BatchDesign:    japaneseBatchDesignTemplate,
 		}
 	}
 	return Templates{
 		Design:         defaultDesignTemplate,
 		Implementation: defaultImplementationTemplate,
 		Batch:          defaultBatchTemplate,
+		BatchDesign:    defaultBatchDesignTemplate,
 	}
 }
 
-// KindFor はタスクに必要なテンプレートを選ぶ。判断材料は実装計画の有無だけ。
-// 表示状態や着手可否は進捗を表すものであって、エージェントに投げる問いが
-// どれかを決めるものではない。
+// KindFor は種類を選ばなかった呼び出し元のためにタスクから既定の種類を導出する。
+// 判断材料は実装計画の有無だけ。表示状態や着手可否は進捗を表すものであって、
+// エージェントに投げる問いがどれかを決めるものではない。
 func KindFor(task domain.Task) Kind {
 	if task.HasImplementationPlan {
 		return KindImplementation
@@ -228,11 +274,15 @@ func KindFor(task domain.Task) Kind {
 
 // Template は指定した kind に対応する保存済みテンプレートを返す。
 func (t Templates) Template(kind Kind) string {
-	if kind == KindImplementation {
+	switch kind {
+	case KindImplementation:
 		return t.Implementation
-	}
-	if kind == KindBatch {
+	case KindBatch:
 		return t.Batch
+	case KindBatchDesign:
+		return t.BatchDesign
+	case KindDesign:
+		return t.Design
 	}
 	return t.Design
 }
@@ -272,10 +322,10 @@ func ValidateOverride(kind Kind, value string) error {
 		return nil
 	}
 	supported, required := supportedPlaceholders, requiredPlaceholder
-	if kind == KindBatch {
+	if kind.IsBatch() {
 		supported, required = batchSupportedPlaceholders, batchRequiredPlaceholder
 	}
-	if kind != KindDesign && kind != KindImplementation && kind != KindBatch {
+	if kind != KindDesign && kind != KindImplementation && !kind.IsBatch() {
 		return newError("prompt_overrides", "unsupported template kind %q", kind)
 	}
 	return validateTemplate("prompt_overrides."+string(kind), value, supported, required)
@@ -290,6 +340,7 @@ func applyOverride(result *Templates, scope string, overrides domain.PromptTempl
 		{kind: KindDesign, value: overrides.Design, target: &result.Design},
 		{kind: KindImplementation, value: overrides.Implementation, target: &result.Implementation},
 		{kind: KindBatch, value: overrides.Batch, target: &result.Batch},
+		{kind: KindBatchDesign, value: overrides.BatchDesign, target: &result.BatchDesign},
 	} {
 		if item.value == "" {
 			continue
@@ -321,6 +372,9 @@ func (t Templates) Normalize(language Language) (Templates, error) {
 	if strings.TrimSpace(result.Batch) == "" {
 		result.Batch = defaults.Batch
 	}
+	if strings.TrimSpace(result.BatchDesign) == "" {
+		result.BatchDesign = defaults.BatchDesign
+	}
 	if err := validateTemplate(
 		"prompts.design", result.Design, supportedPlaceholders, requiredPlaceholder,
 	); err != nil {
@@ -336,18 +390,25 @@ func (t Templates) Normalize(language Language) (Templates, error) {
 	); err != nil {
 		return Templates{}, err
 	}
+	if err := validateTemplate(
+		"prompts.batch_design", result.BatchDesign, batchSupportedPlaceholders, batchRequiredPlaceholder,
+	); err != nil {
+		return Templates{}, err
+	}
 	return result, nil
 }
 
-// Render は 1 つのタスクをプロンプトに展開し、どのテンプレートを使ったかを返す。
-// 読み込みから描画までの間に手編集されたファイルが未展開のプレースホルダを
-// 出さないよう、保存済みテンプレートをここで再検証する。
-func Render(task domain.Task, templates Templates, language Language) (Kind, string, error) {
+// Render は 1 つのタスクを指定された種類のプロンプトに展開する。種類が空なら
+// KindFor で導出する。読み込みから描画までの間に手編集されたファイルが未展開の
+// プレースホルダを出さないよう、保存済みテンプレートをここで再検証する。
+func Render(task domain.Task, kind Kind, templates Templates, language Language) (Kind, string, error) {
 	normalized, err := templates.Normalize(language)
 	if err != nil {
 		return "", "", err
 	}
-	kind := KindFor(task)
+	if kind != KindDesign && kind != KindImplementation {
+		kind = KindFor(task)
+	}
 	values := map[string]string{
 		"task_id":    task.ID,
 		"feature_id": task.FeatureID,
@@ -360,26 +421,32 @@ func Render(task domain.Task, templates Templates, language Language) (Kind, str
 	return kind, body, nil
 }
 
-// RenderBatch は batch テンプレートを複数タスクに展開する。呼び出し元が並べた順を
-// 保ち、タスクごとの指示は含めない。
+// RenderBatch は指定された batch 種別のテンプレートを複数タスクに展開する。
+// 呼び出し元が並べた順を保ち、種類が batch 系でなければ実装用の batch に落とす。
 // docs/design/agent-prompts.md を参照。
 func RenderBatch(
 	featureID string,
 	tasks []domain.Task,
+	kind Kind,
 	templates Templates,
 	language Language,
-) (string, error) {
+) (Kind, string, error) {
 	normalized, err := templates.Normalize(language)
 	if err != nil {
-		return "", err
+		return "", "", err
+	}
+	if !kind.IsBatch() {
+		kind = KindBatch
 	}
 	values := map[string]string{
 		"feature_id": featureID,
 		"task_list":  batchTaskList(tasks),
 	}
-	return placeholderPattern.ReplaceAllStringFunc(normalized.Batch, func(match string) string {
-		return values[placeholderName(match)]
-	}), nil
+	body := placeholderPattern.ReplaceAllStringFunc(
+		normalized.Template(kind),
+		func(match string) string { return values[placeholderName(match)] },
+	)
+	return kind, body, nil
 }
 
 // batchTaskList は各タスクを、エージェントが `prx prompt` に渡し返す識別子で列挙する。

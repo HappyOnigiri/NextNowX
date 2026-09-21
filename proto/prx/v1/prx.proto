@@ -290,9 +290,10 @@ enum GithubAuthMethodType {
 }
 
 // TaskPromptKind は task をどのプロンプトテンプレートで展開したかを表す。
-// 選択の材料は実装計画の有無だけである。
+// 要求で指定でき、未指定のときだけサーバーが実装計画の有無から導出する。
+// 単一 task と batch のどちらの要求でも同じ 2 値を使う。
 enum TaskPromptKind {
-  // TASK_PROMPT_KIND_UNSPECIFIED はサーバーが返さず、リクエストのフィールドでもない。
+  // TASK_PROMPT_KIND_UNSPECIFIED は要求では導出を意味し、応答には現れない。
   TASK_PROMPT_KIND_UNSPECIFIED = 0;
   // TASK_PROMPT_KIND_DESIGN は実装計画の作成をエージェントに求める。
   TASK_PROMPT_KIND_DESIGN = 1;
@@ -436,6 +437,8 @@ message PromptTemplateOverrides {
   string implementation = 2;
   // batch は複数 task の一括実装に使う上書き。空文字列は継承。
   string batch = 3;
+  // batch_design は複数 task の一括設計に使う上書き。空文字列は継承。
+  string batch_design = 4;
 }
 
 // PromptTemplateOverridesUpdate は上書きを種類ごとに部分更新する。
@@ -445,8 +448,10 @@ message PromptTemplateOverridesUpdate {
   optional string design = 1;
   // implementation は実装テンプレートの変更。未設定は変更なし。
   optional string implementation = 2;
-  // batch は一括テンプレートの変更。未設定は変更なし。
+  // batch は一括実装テンプレートの変更。未設定は変更なし。
   optional string batch = 3;
+  // batch_design は一括設計テンプレートの変更。未設定は変更なし。
+  optional string batch_design = 4;
 }
 
 // TaskLabelOverride は scope が明示した task ラベルの文字と色を表す。
@@ -1251,9 +1256,11 @@ message PromptTemplates {
   string design = 1;
   // implementation はすでに実装計画がある task に使う。
   string implementation = 2;
-  // batch は複数の task を 1 つのプロンプトで引き渡すときに使う。個々の task から
-  // 導出せず、呼び出し側が batch を要求したことで選ばれる。
+  // batch は複数の task を 1 つのプロンプトでまとめて実装させるときに使う。個々の
+  // task から導出せず、呼び出し側が batch を要求したことで選ばれる。
   string batch = 3;
+  // batch_design は複数の task を 1 つのプロンプトでまとめて設計させるときに使う。
+  string batch_design = 4;
 }
 
 // GetPromptTemplatesRequest は保存されたエージェント用テンプレートを要求する。
@@ -1272,11 +1279,12 @@ message GetPromptTemplatesResponse {
   // built_in は PRX に同梱するテンプレート。復元を提示するエディタは、書き込みが
   // 終わるまで空欄にせず、ここに入っている文面を表示できる。
   PromptTemplates built_in = 4;
-  // batch_supported_placeholders は batch テンプレートの置換語彙。batch には task
-  // 用の placeholder を展開する元になる単一の task がないため、task の語彙より
-  // 小さい。
+  // batch_supported_placeholders は batch テンプレートの置換語彙で、batch と
+  // batch_design が共有する。batch には task 用の placeholder を展開する元になる
+  // 単一の task がないため、task の語彙より小さい。
   repeated string batch_supported_placeholders = 5;
   // batch_required_placeholder は batch テンプレートが必ず使う唯一の placeholder。
+  // batch と batch_design で共通である。
   string batch_required_placeholder = 6;
 }
 
@@ -1287,8 +1295,12 @@ message UpdatePromptTemplatesRequest {
   string design = 1;
   // implementation は実装計画がある task 用のテンプレートを置き換える。
   string implementation = 2;
-  // batch は複数の task を 1 つのプロンプトで引き渡す用のテンプレートを置き換える。
+  // batch は複数の task を 1 つのプロンプトでまとめて実装させるテンプレートを
+  // 置き換える。
   string batch = 3;
+  // batch_design は複数の task を 1 つのプロンプトでまとめて設計させるテンプレートを
+  // 置き換える。
+  string batch_design = 4;
 }
 
 // UpdatePromptTemplatesResponse は書き込みの結果できたテンプレートを返す。
@@ -1301,6 +1313,8 @@ message UpdatePromptTemplatesResponse {
 message GetTaskPromptRequest {
   // task_id は task の公開識別子。
   string task_id = 1;
+  // kind はどのテンプレートで展開するかを選ぶ。未指定なら実装計画の有無から導出する。
+  TaskPromptKind kind = 2;
 }
 
 // GetTaskPromptResponse は task 1 件分の展開済みエージェントプロンプトを返す。
@@ -1319,6 +1333,9 @@ message GetBatchPromptRequest {
   string feature_id = 1;
   // task_ids は対象の task を、プロンプトに並べたい順で列挙する。
   repeated string task_ids = 2;
+  // kind は一括設計と一括実装のどちらのテンプレートで展開するかを選ぶ。
+  // 未指定は一括実装を意味する。
+  TaskPromptKind kind = 3;
 }
 
 // GetBatchPromptResponse は展開済みの batch プロンプトを返す。
@@ -1329,6 +1346,8 @@ message GetBatchPromptResponse {
   repeated string task_ids = 2;
   // prompt は展開済みの batch テンプレートで、他のエージェントにそのまま渡せる。
   string prompt = 3;
+  // kind はどの batch テンプレートからプロンプトができたかを示す。
+  TaskPromptKind kind = 4;
 }
 
 // SyncRequest は GitHub から更新する pull request を選ぶ。

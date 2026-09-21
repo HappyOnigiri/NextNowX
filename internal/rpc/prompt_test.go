@@ -458,3 +458,167 @@ func TestRPCLanguageConfigSwitchesTheBuiltInTemplates(t *testing.T) {
 		t.Fatalf("unsupported language error=%v", err)
 	}
 }
+
+// 種類はリクエストで選べる。計画の有無に合わない種類も描けないと、WebUI の
+// タブは片方しか出せない。
+func TestRPCTaskPromptHonoursTheRequestedKind(t *testing.T) {
+	ctx := context.Background()
+	client := newPromptClient(t)
+	taskID := createPromptTask(t, client)
+
+	if _, err := client.UpdatePromptTemplates(ctx, connect.NewRequest(&prxv1.UpdatePromptTemplatesRequest{
+		Design:         "Design {{task_id}}\n",
+		Implementation: "Implement {{task_id}}\n",
+	})); err != nil {
+		t.Fatal(err)
+	}
+
+	// 計画がなくても implementation を選べる。
+	implementation, err := client.GetTaskPrompt(ctx, connect.NewRequest(&prxv1.GetTaskPromptRequest{
+		TaskId: taskID, Kind: prxv1.TaskPromptKind_TASK_PROMPT_KIND_IMPLEMENTATION,
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if implementation.Msg.GetKind() != prxv1.TaskPromptKind_TASK_PROMPT_KIND_IMPLEMENTATION ||
+		implementation.Msg.GetPrompt() != "Implement "+taskID+"\n" {
+		t.Fatalf("implementation prompt=%+v", implementation.Msg)
+	}
+
+	if _, err := client.AddDocument(ctx, connect.NewRequest(&prxv1.AddDocumentRequest{
+		TaskId:               taskID,
+		Title:                "Plan",
+		Source:               &prxv1.AddDocumentRequest_Markdown{Markdown: "# Plan\n"},
+		IsImplementationPlan: true,
+	})); err != nil {
+		t.Fatal(err)
+	}
+
+	// 計画があっても design を選べる。
+	design, err := client.GetTaskPrompt(ctx, connect.NewRequest(&prxv1.GetTaskPromptRequest{
+		TaskId: taskID, Kind: prxv1.TaskPromptKind_TASK_PROMPT_KIND_DESIGN,
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if design.Msg.GetKind() != prxv1.TaskPromptKind_TASK_PROMPT_KIND_DESIGN ||
+		design.Msg.GetPrompt() != "Design "+taskID+"\n" {
+		t.Fatalf("design prompt=%+v", design.Msg)
+	}
+
+	// 未指定は従来どおり計画の有無から導出する。
+	derived, err := client.GetTaskPrompt(ctx, connect.NewRequest(&prxv1.GetTaskPromptRequest{TaskId: taskID}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if derived.Msg.GetKind() != prxv1.TaskPromptKind_TASK_PROMPT_KIND_IMPLEMENTATION {
+		t.Fatalf("derived prompt=%+v", derived.Msg)
+	}
+}
+
+// 一括の種類は batch と batch_design を切り替える。未指定は従来どおり実装用で、
+// CLI と既存のクライアントの挙動を変えない。
+func TestRPCBatchPromptHonoursTheRequestedKind(t *testing.T) {
+	ctx := context.Background()
+	client := newPromptClient(t)
+	featureID, taskIDs := createBatchFeature(t, client, "Batch", "First task")
+
+	english := prompt.DefaultTemplates(prompt.LanguageEnglish)
+	stored, err := client.GetPromptTemplates(ctx, connect.NewRequest(&prxv1.GetPromptTemplatesRequest{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stored.Msg.GetTemplates().GetBatchDesign() != english.BatchDesign ||
+		stored.Msg.GetBuiltIn().GetBatchDesign() != english.BatchDesign {
+		t.Fatalf("batch design template=%q, want the built-in template",
+			stored.Msg.GetTemplates().GetBatchDesign())
+	}
+
+	if _, err := client.UpdatePromptTemplates(ctx, connect.NewRequest(&prxv1.UpdatePromptTemplatesRequest{
+		Design:         english.Design,
+		Implementation: english.Implementation,
+		Batch:          "Batch {{feature_id}}\n{{task_list}}\n",
+		BatchDesign:    "Design batch {{feature_id}}\n{{task_list}}\n",
+	})); err != nil {
+		t.Fatal(err)
+	}
+
+	design, err := client.GetBatchPrompt(ctx, connect.NewRequest(&prxv1.GetBatchPromptRequest{
+		FeatureId: featureID, TaskIds: taskIDs, Kind: prxv1.TaskPromptKind_TASK_PROMPT_KIND_DESIGN,
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "Design batch " + featureID + "\n- " + taskIDs[0] + ": First task\n"
+	if design.Msg.GetPrompt() != want ||
+		design.Msg.GetKind() != prxv1.TaskPromptKind_TASK_PROMPT_KIND_DESIGN {
+		t.Fatalf("batch design prompt=%+v, want %q", design.Msg, want)
+	}
+
+	implementation, err := client.GetBatchPrompt(ctx, connect.NewRequest(&prxv1.GetBatchPromptRequest{
+		FeatureId: featureID, TaskIds: taskIDs,
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(implementation.Msg.GetPrompt(), "Batch "+featureID) ||
+		implementation.Msg.GetKind() != prxv1.TaskPromptKind_TASK_PROMPT_KIND_IMPLEMENTATION {
+		t.Fatalf("batch prompt=%+v", implementation.Msg)
+	}
+}
+
+// 言語を切り替えると batch_design も日本語の組み込み文面へ移る。未カスタマイズの
+// 環境が 1 種類だけ英語のまま取り残されてはならない。
+func TestRPCLanguageConfigSwitchesTheBatchDesignTemplate(t *testing.T) {
+	ctx := context.Background()
+	client := newPromptClient(t)
+	if _, err := client.UpdateLanguageConfig(ctx, connect.NewRequest(&prxv1.UpdateLanguageConfigRequest{
+		Language: string(prompt.LanguageJapanese),
+	})); err != nil {
+		t.Fatal(err)
+	}
+	stored, err := client.GetPromptTemplates(ctx, connect.NewRequest(&prxv1.GetPromptTemplatesRequest{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	japanese := prompt.DefaultTemplates(prompt.LanguageJapanese)
+	if stored.Msg.GetTemplates().GetBatchDesign() != japanese.BatchDesign {
+		t.Fatalf("batch design template=%q, want the japanese built-in template",
+			stored.Msg.GetTemplates().GetBatchDesign())
+	}
+}
+
+// project と feature の上書きは 4 種類目も独立して解決する。
+func TestRPCBatchDesignOverrideResolvesAtFeatureScope(t *testing.T) {
+	ctx := context.Background()
+	client := newPromptClient(t)
+	featureID, taskIDs := createBatchFeature(t, client, "Batch", "First task")
+
+	featureBatchDesign := "Feature design {{feature_id}}\n{{task_list}}\n"
+	if _, err := client.UpdateFeature(ctx, connect.NewRequest(&prxv1.UpdateFeatureRequest{
+		Id:              featureID,
+		PromptOverrides: &prxv1.PromptTemplateOverridesUpdate{BatchDesign: &featureBatchDesign},
+	})); err != nil {
+		t.Fatal(err)
+	}
+	design, err := client.GetBatchPrompt(ctx, connect.NewRequest(&prxv1.GetBatchPromptRequest{
+		FeatureId: featureID, TaskIds: taskIDs, Kind: prxv1.TaskPromptKind_TASK_PROMPT_KIND_DESIGN,
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "Feature design " + featureID + "\n- " + taskIDs[0] + ": First task\n"
+	if design.Msg.GetPrompt() != want {
+		t.Fatalf("batch design prompt=%q, want %q", design.Msg.GetPrompt(), want)
+	}
+	// 実装用の一括は上書きしていないので、グローバルの組み込み文面のまま。
+	implementation, err := client.GetBatchPrompt(ctx, connect.NewRequest(&prxv1.GetBatchPromptRequest{
+		FeatureId: featureID, TaskIds: taskIDs,
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(implementation.Msg.GetPrompt(), "Implement the PRX tasks of feature "+featureID) {
+		t.Fatalf("batch prompt=%q", implementation.Msg.GetPrompt())
+	}
+}

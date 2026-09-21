@@ -81,6 +81,10 @@ func applyPromptOverrides(
 			target: &current.Implementation, name: "implementation",
 		},
 		{kind: prompt.KindBatch, value: update.Batch, target: &current.Batch, name: "batch"},
+		{
+			kind: prompt.KindBatchDesign, value: update.BatchDesign,
+			target: &current.BatchDesign, name: "batch_design",
+		},
 	} {
 		if item.value == nil {
 			continue

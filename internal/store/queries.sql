@@ -1,8 +1,8 @@
 -- name: CreateProject :one
 INSERT INTO projects (
   id, public_id, title, description, archived, created_at, updated_at,
-  prompt_design, prompt_implementation, prompt_batch, task_label_overrides_json
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *;
+  prompt_design, prompt_implementation, prompt_batch, prompt_batch_design, task_label_overrides_json
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *;
 
 -- name: GetProject :one
 SELECT * FROM projects WHERE id = ?;
@@ -15,7 +15,8 @@ SELECT * FROM projects ORDER BY archived, updated_at DESC, public_id;
 
 -- name: UpdateProject :one
 UPDATE projects SET title=?, description=?, archived=?, updated_at=?,
-  prompt_design=?, prompt_implementation=?, prompt_batch=?, task_label_overrides_json=? WHERE id=? RETURNING *;
+  prompt_design=?, prompt_implementation=?, prompt_batch=?, prompt_batch_design=?,
+  task_label_overrides_json=? WHERE id=? RETURNING *;
 
 -- name: DeleteProject :exec
 DELETE FROM projects WHERE id=?;
@@ -33,8 +34,8 @@ DELETE FROM documents WHERE project_id=?;
 -- name: CreateFeature :one
 INSERT INTO features (
   id, public_id, title, description, status, status_auto, archived, project_id, created_at, updated_at,
-  prompt_design, prompt_implementation, prompt_batch, task_label_overrides_json
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *;
+  prompt_design, prompt_implementation, prompt_batch, prompt_batch_design, task_label_overrides_json
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *;
 
 -- name: IncrementIDSequence :one
 UPDATE id_sequences SET next_value = next_value + 1 WHERE entity = ? RETURNING next_value;
@@ -51,7 +52,8 @@ SELECT * FROM features ORDER BY archived, updated_at DESC, public_id;
 -- name: UpdateFeature :one
 UPDATE features
 SET title=?, description=?, status=?, status_auto=?, archived=?, project_id=?, updated_at=?,
-  prompt_design=?, prompt_implementation=?, prompt_batch=?, task_label_overrides_json=?
+  prompt_design=?, prompt_implementation=?, prompt_batch=?, prompt_batch_design=?,
+  task_label_overrides_json=?
 WHERE id=? RETURNING *;
 
 -- name: DeleteFeature :exec

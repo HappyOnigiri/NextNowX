@@ -55,8 +55,13 @@ type Service interface {
 	ReadDocumentContent(ctx context.Context, id string) (string, error)
 
 	Debug(ctx context.Context) (domain.DebugReport, error)
-	GetTaskPrompt(ctx context.Context, taskID string) (prompt.Kind, string, error)
-	GetBatchPrompt(ctx context.Context, featureID string, taskIDs []string) (string, error)
+	GetTaskPrompt(ctx context.Context, taskID string, kind prompt.Kind) (prompt.Kind, string, error)
+	GetBatchPrompt(
+		ctx context.Context,
+		featureID string,
+		taskIDs []string,
+		kind prompt.Kind,
+	) (prompt.Kind, string, error)
 	Sync(ctx context.Context, featureID, taskID string) (int, int, error)
 	SyncIfDue(ctx context.Context) (bool, domain.GitHubSyncStatus, error)
 	SyncStatus(ctx context.Context) (domain.GitHubSyncStatus, error)

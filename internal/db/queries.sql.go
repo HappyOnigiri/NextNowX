@@ -178,8 +178,8 @@ func (q *Queries) CreateDocument(ctx context.Context, arg CreateDocumentParams) 
 const createFeature = `-- name: CreateFeature :one
 INSERT INTO features (
   id, public_id, title, description, status, status_auto, archived, project_id, created_at, updated_at,
-  prompt_design, prompt_implementation, prompt_batch, task_label_overrides_json
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, title, description, status, archived, created_at, updated_at, public_id, status_auto, project_id, prompt_design, prompt_implementation, prompt_batch, task_label_overrides_json
+  prompt_design, prompt_implementation, prompt_batch, prompt_batch_design, task_label_overrides_json
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, title, description, status, archived, created_at, updated_at, public_id, status_auto, project_id, prompt_design, prompt_implementation, prompt_batch, task_label_overrides_json, prompt_batch_design
 `
 
 type CreateFeatureParams struct {
@@ -196,6 +196,7 @@ type CreateFeatureParams struct {
 	PromptDesign           sql.NullString `json:"prompt_design"`
 	PromptImplementation   sql.NullString `json:"prompt_implementation"`
 	PromptBatch            sql.NullString `json:"prompt_batch"`
+	PromptBatchDesign      sql.NullString `json:"prompt_batch_design"`
 	TaskLabelOverridesJson sql.NullString `json:"task_label_overrides_json"`
 }
 
@@ -214,6 +215,7 @@ func (q *Queries) CreateFeature(ctx context.Context, arg CreateFeatureParams) (F
 		arg.PromptDesign,
 		arg.PromptImplementation,
 		arg.PromptBatch,
+		arg.PromptBatchDesign,
 		arg.TaskLabelOverridesJson,
 	)
 	var i Feature
@@ -232,6 +234,7 @@ func (q *Queries) CreateFeature(ctx context.Context, arg CreateFeatureParams) (F
 		&i.PromptImplementation,
 		&i.PromptBatch,
 		&i.TaskLabelOverridesJson,
+		&i.PromptBatchDesign,
 	)
 	return i, err
 }
@@ -239,8 +242,8 @@ func (q *Queries) CreateFeature(ctx context.Context, arg CreateFeatureParams) (F
 const createProject = `-- name: CreateProject :one
 INSERT INTO projects (
   id, public_id, title, description, archived, created_at, updated_at,
-  prompt_design, prompt_implementation, prompt_batch, task_label_overrides_json
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, public_id, title, description, archived, created_at, updated_at, prompt_design, prompt_implementation, prompt_batch, task_label_overrides_json
+  prompt_design, prompt_implementation, prompt_batch, prompt_batch_design, task_label_overrides_json
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, public_id, title, description, archived, created_at, updated_at, prompt_design, prompt_implementation, prompt_batch, task_label_overrides_json, prompt_batch_design
 `
 
 type CreateProjectParams struct {
@@ -254,6 +257,7 @@ type CreateProjectParams struct {
 	PromptDesign           sql.NullString `json:"prompt_design"`
 	PromptImplementation   sql.NullString `json:"prompt_implementation"`
 	PromptBatch            sql.NullString `json:"prompt_batch"`
+	PromptBatchDesign      sql.NullString `json:"prompt_batch_design"`
 	TaskLabelOverridesJson sql.NullString `json:"task_label_overrides_json"`
 }
 
@@ -269,6 +273,7 @@ func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (P
 		arg.PromptDesign,
 		arg.PromptImplementation,
 		arg.PromptBatch,
+		arg.PromptBatchDesign,
 		arg.TaskLabelOverridesJson,
 	)
 	var i Project
@@ -284,6 +289,7 @@ func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (P
 		&i.PromptImplementation,
 		&i.PromptBatch,
 		&i.TaskLabelOverridesJson,
+		&i.PromptBatchDesign,
 	)
 	return i, err
 }
@@ -505,7 +511,7 @@ func (q *Queries) GetDocument(ctx context.Context, id string) (Document, error) 
 }
 
 const getFeature = `-- name: GetFeature :one
-SELECT id, title, description, status, archived, created_at, updated_at, public_id, status_auto, project_id, prompt_design, prompt_implementation, prompt_batch, task_label_overrides_json FROM features WHERE id = ?
+SELECT id, title, description, status, archived, created_at, updated_at, public_id, status_auto, project_id, prompt_design, prompt_implementation, prompt_batch, task_label_overrides_json, prompt_batch_design FROM features WHERE id = ?
 `
 
 func (q *Queries) GetFeature(ctx context.Context, id string) (Feature, error) {
@@ -526,12 +532,13 @@ func (q *Queries) GetFeature(ctx context.Context, id string) (Feature, error) {
 		&i.PromptImplementation,
 		&i.PromptBatch,
 		&i.TaskLabelOverridesJson,
+		&i.PromptBatchDesign,
 	)
 	return i, err
 }
 
 const getFeatureByPublicID = `-- name: GetFeatureByPublicID :one
-SELECT id, title, description, status, archived, created_at, updated_at, public_id, status_auto, project_id, prompt_design, prompt_implementation, prompt_batch, task_label_overrides_json FROM features WHERE public_id = ?
+SELECT id, title, description, status, archived, created_at, updated_at, public_id, status_auto, project_id, prompt_design, prompt_implementation, prompt_batch, task_label_overrides_json, prompt_batch_design FROM features WHERE public_id = ?
 `
 
 func (q *Queries) GetFeatureByPublicID(ctx context.Context, publicID string) (Feature, error) {
@@ -552,6 +559,7 @@ func (q *Queries) GetFeatureByPublicID(ctx context.Context, publicID string) (Fe
 		&i.PromptImplementation,
 		&i.PromptBatch,
 		&i.TaskLabelOverridesJson,
+		&i.PromptBatchDesign,
 	)
 	return i, err
 }
@@ -622,7 +630,7 @@ func (q *Queries) GetImplementationPlanDocument(ctx context.Context, taskID sql.
 }
 
 const getProject = `-- name: GetProject :one
-SELECT id, public_id, title, description, archived, created_at, updated_at, prompt_design, prompt_implementation, prompt_batch, task_label_overrides_json FROM projects WHERE id = ?
+SELECT id, public_id, title, description, archived, created_at, updated_at, prompt_design, prompt_implementation, prompt_batch, task_label_overrides_json, prompt_batch_design FROM projects WHERE id = ?
 `
 
 func (q *Queries) GetProject(ctx context.Context, id string) (Project, error) {
@@ -640,12 +648,13 @@ func (q *Queries) GetProject(ctx context.Context, id string) (Project, error) {
 		&i.PromptImplementation,
 		&i.PromptBatch,
 		&i.TaskLabelOverridesJson,
+		&i.PromptBatchDesign,
 	)
 	return i, err
 }
 
 const getProjectByPublicID = `-- name: GetProjectByPublicID :one
-SELECT id, public_id, title, description, archived, created_at, updated_at, prompt_design, prompt_implementation, prompt_batch, task_label_overrides_json FROM projects WHERE public_id = ?
+SELECT id, public_id, title, description, archived, created_at, updated_at, prompt_design, prompt_implementation, prompt_batch, task_label_overrides_json, prompt_batch_design FROM projects WHERE public_id = ?
 `
 
 func (q *Queries) GetProjectByPublicID(ctx context.Context, publicID string) (Project, error) {
@@ -663,6 +672,7 @@ func (q *Queries) GetProjectByPublicID(ctx context.Context, publicID string) (Pr
 		&i.PromptImplementation,
 		&i.PromptBatch,
 		&i.TaskLabelOverridesJson,
+		&i.PromptBatchDesign,
 	)
 	return i, err
 }
@@ -880,7 +890,7 @@ func (q *Queries) ListDocuments(ctx context.Context) ([]ListDocumentsRow, error)
 }
 
 const listFeatures = `-- name: ListFeatures :many
-SELECT id, title, description, status, archived, created_at, updated_at, public_id, status_auto, project_id, prompt_design, prompt_implementation, prompt_batch, task_label_overrides_json FROM features ORDER BY archived, updated_at DESC, public_id
+SELECT id, title, description, status, archived, created_at, updated_at, public_id, status_auto, project_id, prompt_design, prompt_implementation, prompt_batch, task_label_overrides_json, prompt_batch_design FROM features ORDER BY archived, updated_at DESC, public_id
 `
 
 func (q *Queries) ListFeatures(ctx context.Context) ([]Feature, error) {
@@ -907,6 +917,7 @@ func (q *Queries) ListFeatures(ctx context.Context) ([]Feature, error) {
 			&i.PromptImplementation,
 			&i.PromptBatch,
 			&i.TaskLabelOverridesJson,
+			&i.PromptBatchDesign,
 		); err != nil {
 			return nil, err
 		}
@@ -922,7 +933,7 @@ func (q *Queries) ListFeatures(ctx context.Context) ([]Feature, error) {
 }
 
 const listFeaturesByProject = `-- name: ListFeaturesByProject :many
-SELECT id, title, description, status, archived, created_at, updated_at, public_id, status_auto, project_id, prompt_design, prompt_implementation, prompt_batch, task_label_overrides_json FROM features WHERE project_id=? ORDER BY updated_at DESC, public_id
+SELECT id, title, description, status, archived, created_at, updated_at, public_id, status_auto, project_id, prompt_design, prompt_implementation, prompt_batch, task_label_overrides_json, prompt_batch_design FROM features WHERE project_id=? ORDER BY updated_at DESC, public_id
 `
 
 func (q *Queries) ListFeaturesByProject(ctx context.Context, projectID string) ([]Feature, error) {
@@ -949,6 +960,7 @@ func (q *Queries) ListFeaturesByProject(ctx context.Context, projectID string) (
 			&i.PromptImplementation,
 			&i.PromptBatch,
 			&i.TaskLabelOverridesJson,
+			&i.PromptBatchDesign,
 		); err != nil {
 			return nil, err
 		}
@@ -1024,7 +1036,7 @@ func (q *Queries) ListImplementationPlanTaskIDs(ctx context.Context) ([]sql.Null
 }
 
 const listProjects = `-- name: ListProjects :many
-SELECT id, public_id, title, description, archived, created_at, updated_at, prompt_design, prompt_implementation, prompt_batch, task_label_overrides_json FROM projects ORDER BY archived, updated_at DESC, public_id
+SELECT id, public_id, title, description, archived, created_at, updated_at, prompt_design, prompt_implementation, prompt_batch, task_label_overrides_json, prompt_batch_design FROM projects ORDER BY archived, updated_at DESC, public_id
 `
 
 func (q *Queries) ListProjects(ctx context.Context) ([]Project, error) {
@@ -1048,6 +1060,7 @@ func (q *Queries) ListProjects(ctx context.Context) ([]Project, error) {
 			&i.PromptImplementation,
 			&i.PromptBatch,
 			&i.TaskLabelOverridesJson,
+			&i.PromptBatchDesign,
 		); err != nil {
 			return nil, err
 		}
@@ -1275,8 +1288,9 @@ func (q *Queries) UpdateDocument(ctx context.Context, arg UpdateDocumentParams) 
 const updateFeature = `-- name: UpdateFeature :one
 UPDATE features
 SET title=?, description=?, status=?, status_auto=?, archived=?, project_id=?, updated_at=?,
-  prompt_design=?, prompt_implementation=?, prompt_batch=?, task_label_overrides_json=?
-WHERE id=? RETURNING id, title, description, status, archived, created_at, updated_at, public_id, status_auto, project_id, prompt_design, prompt_implementation, prompt_batch, task_label_overrides_json
+  prompt_design=?, prompt_implementation=?, prompt_batch=?, prompt_batch_design=?,
+  task_label_overrides_json=?
+WHERE id=? RETURNING id, title, description, status, archived, created_at, updated_at, public_id, status_auto, project_id, prompt_design, prompt_implementation, prompt_batch, task_label_overrides_json, prompt_batch_design
 `
 
 type UpdateFeatureParams struct {
@@ -1290,6 +1304,7 @@ type UpdateFeatureParams struct {
 	PromptDesign           sql.NullString `json:"prompt_design"`
 	PromptImplementation   sql.NullString `json:"prompt_implementation"`
 	PromptBatch            sql.NullString `json:"prompt_batch"`
+	PromptBatchDesign      sql.NullString `json:"prompt_batch_design"`
 	TaskLabelOverridesJson sql.NullString `json:"task_label_overrides_json"`
 	ID                     string         `json:"id"`
 }
@@ -1306,6 +1321,7 @@ func (q *Queries) UpdateFeature(ctx context.Context, arg UpdateFeatureParams) (F
 		arg.PromptDesign,
 		arg.PromptImplementation,
 		arg.PromptBatch,
+		arg.PromptBatchDesign,
 		arg.TaskLabelOverridesJson,
 		arg.ID,
 	)
@@ -1325,13 +1341,15 @@ func (q *Queries) UpdateFeature(ctx context.Context, arg UpdateFeatureParams) (F
 		&i.PromptImplementation,
 		&i.PromptBatch,
 		&i.TaskLabelOverridesJson,
+		&i.PromptBatchDesign,
 	)
 	return i, err
 }
 
 const updateProject = `-- name: UpdateProject :one
 UPDATE projects SET title=?, description=?, archived=?, updated_at=?,
-  prompt_design=?, prompt_implementation=?, prompt_batch=?, task_label_overrides_json=? WHERE id=? RETURNING id, public_id, title, description, archived, created_at, updated_at, prompt_design, prompt_implementation, prompt_batch, task_label_overrides_json
+  prompt_design=?, prompt_implementation=?, prompt_batch=?, prompt_batch_design=?,
+  task_label_overrides_json=? WHERE id=? RETURNING id, public_id, title, description, archived, created_at, updated_at, prompt_design, prompt_implementation, prompt_batch, task_label_overrides_json, prompt_batch_design
 `
 
 type UpdateProjectParams struct {
@@ -1342,6 +1360,7 @@ type UpdateProjectParams struct {
 	PromptDesign           sql.NullString `json:"prompt_design"`
 	PromptImplementation   sql.NullString `json:"prompt_implementation"`
 	PromptBatch            sql.NullString `json:"prompt_batch"`
+	PromptBatchDesign      sql.NullString `json:"prompt_batch_design"`
 	TaskLabelOverridesJson sql.NullString `json:"task_label_overrides_json"`
 	ID                     string         `json:"id"`
 }
@@ -1355,6 +1374,7 @@ func (q *Queries) UpdateProject(ctx context.Context, arg UpdateProjectParams) (P
 		arg.PromptDesign,
 		arg.PromptImplementation,
 		arg.PromptBatch,
+		arg.PromptBatchDesign,
 		arg.TaskLabelOverridesJson,
 		arg.ID,
 	)
@@ -1371,6 +1391,7 @@ func (q *Queries) UpdateProject(ctx context.Context, arg UpdateProjectParams) (P
 		&i.PromptImplementation,
 		&i.PromptBatch,
 		&i.TaskLabelOverridesJson,
+		&i.PromptBatchDesign,
 	)
 	return i, err
 }

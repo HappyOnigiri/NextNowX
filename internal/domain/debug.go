@@ -176,6 +176,7 @@ type DebugConfigPrompts struct {
 	Design         DebugConfigPrompt `json:"design"`
 	Implementation DebugConfigPrompt `json:"implementation"`
 	Batch          DebugConfigPrompt `json:"batch"`
+	BatchDesign    DebugConfigPrompt `json:"batch_design"`
 }
 
 // DebugConfigInput は domain の外で集めた設定情報を運ぶ。domain は設定パッケージを

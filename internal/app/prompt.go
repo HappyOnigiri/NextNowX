@@ -11,7 +11,12 @@ import (
 
 // GetTaskPrompt は global、所属 project、feature のテンプレートを種類ごとに
 // 解決してから、現在の task を描画する。CLI と RPC が同じ結果を使う入口である。
-func (s *Service) GetTaskPrompt(ctx context.Context, taskID string) (prompt.Kind, string, error) {
+// kind が空なら実装計画の有無から導出する。
+func (s *Service) GetTaskPrompt(
+	ctx context.Context,
+	taskID string,
+	kind prompt.Kind,
+) (prompt.Kind, string, error) {
 	snapshot, err := s.Snapshot(ctx)
 	if err != nil {
 		return "", "", err
@@ -28,14 +33,20 @@ func (s *Service) GetTaskPrompt(ctx context.Context, taskID string) (prompt.Kind
 	if err != nil {
 		return "", "", err
 	}
-	return prompt.Render(task, templates, language)
+	return prompt.Render(task, kind, templates, language)
 }
 
 // GetBatchPrompt は指定された feature の task 群を検証し、task prompt と同じ
-// 種類別解決結果を使って一括 prompt を描画する。
-func (s *Service) GetBatchPrompt(ctx context.Context, featureID string, taskIDs []string) (string, error) {
+// 種類別解決結果を使って一括 prompt を描画する。kind が batch 系でなければ
+// 一括実装に落とす。
+func (s *Service) GetBatchPrompt(
+	ctx context.Context,
+	featureID string,
+	taskIDs []string,
+	kind prompt.Kind,
+) (prompt.Kind, string, error) {
 	if len(taskIDs) == 0 {
-		return "", domain.NewError(
+		return "", "", domain.NewError(
 			domain.DomainErrorCodeInvalidParent,
 			"a batch prompt needs at least one task of feature %q",
 			featureID,
@@ -43,20 +54,20 @@ func (s *Service) GetBatchPrompt(ctx context.Context, featureID string, taskIDs 
 	}
 	feature, err := s.ResolveFeature(ctx, featureID)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	snapshot, err := s.Snapshot(ctx)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	tasks := make([]domain.Task, 0, len(taskIDs))
 	for _, id := range taskIDs {
 		task, ok := snapshotTask(snapshot, id)
 		if !ok {
-			return "", domain.NewError(domain.DomainErrorCodeNotFound, "task %q was not found", id)
+			return "", "", domain.NewError(domain.DomainErrorCodeNotFound, "task %q was not found", id)
 		}
 		if task.FeatureID != feature.ID {
-			return "", domain.NewError(
+			return "", "", domain.NewError(
 				domain.DomainErrorCodeInvalidParent,
 				"task %q does not belong to feature %q",
 				id,
@@ -66,13 +77,13 @@ func (s *Service) GetBatchPrompt(ctx context.Context, featureID string, taskIDs 
 		tasks = append(tasks, task)
 	}
 	if err := requirePromptBlockers(tasks); err != nil {
-		return "", err
+		return "", "", err
 	}
 	templates, language, err := s.resolvePromptTemplates(ctx, feature)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	return prompt.RenderBatch(feature.ID, tasks, templates, language)
+	return prompt.RenderBatch(feature.ID, tasks, kind, templates, language)
 }
 
 func (s *Service) resolvePromptTemplates(
