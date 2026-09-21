@@ -88,6 +88,8 @@ func protoUpdateDisabledReason(reason domain.UpdateDisabledReason) prxv1.UpdateD
 		return prxv1.UpdateDisabledReason_UPDATE_DISABLED_REASON_DEVELOPMENT_BUILD
 	case domain.UpdateDisabledDemo:
 		return prxv1.UpdateDisabledReason_UPDATE_DISABLED_REASON_DEMO
+	case domain.UpdateDisabledExcludedFromBuild:
+		return prxv1.UpdateDisabledReason_UPDATE_DISABLED_REASON_EXCLUDED_FROM_BUILD
 	case domain.UpdateEnabled:
 		return prxv1.UpdateDisabledReason_UPDATE_DISABLED_REASON_UNSPECIFIED
 	default:

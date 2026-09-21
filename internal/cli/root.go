@@ -205,11 +205,11 @@ func (s *state) addCommands(root *cobra.Command) {
 		s.validateCommand(),
 		s.debugCommand(),
 		s.setupCommand(),
-		s.updateCommand(),
 		s.serveCommand(),
 		s.daemonCommand(),
 		s.openCommand(),
 	)
+	s.addUpdateCommand(root)
 }
 
 // helpCommand は既定の help コマンドを置き換える。既定版は未知のトピックでも stdout に

@@ -123,8 +123,12 @@ func (s *Service) ApplyUpdate(ctx context.Context, version string) (domain.Updat
 }
 
 // updateDisabledReason は機能全体の有効性を決める。開発ビルドは配布物ではなく、
-// demo は一時環境で実ネットワークにも出ない。
+// demo は一時環境で実ネットワークにも出ない。ビルド時の除外を先に見るのは、
+// provider 未注入が「利用不能」という失敗として記録されるより先に返すためである。
 func (s *Service) updateDisabledReason() domain.UpdateDisabledReason {
+	if reason := updateBuildDisabledReason(); reason != domain.UpdateEnabled {
+		return reason
+	}
 	switch {
 	case domain.IsDevelopmentBuild(updateBuildVersion()):
 		return domain.UpdateDisabledDevelopmentBuild
@@ -136,10 +140,15 @@ func (s *Service) updateDisabledReason() domain.UpdateDisabledReason {
 }
 
 func updateDisabledError(reason domain.UpdateDisabledReason) error {
-	if reason == domain.UpdateDisabledDemo {
-		return domain.NewError(domain.DomainErrorCodeUpdateUnavailable, "updates are disabled in demo mode")
+	message := "updates are disabled for development builds"
+	switch reason {
+	case domain.UpdateDisabledDemo:
+		message = "updates are disabled in demo mode"
+	case domain.UpdateDisabledExcludedFromBuild:
+		message = "updates are not included in this build"
+	case domain.UpdateEnabled, domain.UpdateDisabledDevelopmentBuild:
 	}
-	return domain.NewError(domain.DomainErrorCodeUpdateUnavailable, "updates are disabled for development builds")
+	return domain.NewError(domain.DomainErrorCodeUpdateUnavailable, "%s", message)
 }
 
 func (s *Service) updateCheckRepository() (UpdateCheckStateRepository, error) {

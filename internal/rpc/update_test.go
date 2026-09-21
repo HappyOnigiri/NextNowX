@@ -100,6 +100,11 @@ func TestUpdateStatusRPCReportsTheDisabledReason(t *testing.T) {
 			want:   prxv1.UpdateDisabledReason_UPDATE_DISABLED_REASON_DEMO,
 		},
 		{
+			name:   "excluded from build",
+			reason: domain.UpdateDisabledExcludedFromBuild,
+			want:   prxv1.UpdateDisabledReason_UPDATE_DISABLED_REASON_EXCLUDED_FROM_BUILD,
+		},
+		{
 			name:   "enabled",
 			reason: domain.UpdateEnabled,
 			want:   prxv1.UpdateDisabledReason_UPDATE_DISABLED_REASON_UNSPECIFIED,

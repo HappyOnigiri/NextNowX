@@ -17,9 +17,7 @@ import (
 	"github.com/HappyOnigiri/PRX/internal/domain"
 	githubprovider "github.com/HappyOnigiri/PRX/internal/github"
 	"github.com/HappyOnigiri/PRX/internal/launchd"
-	"github.com/HappyOnigiri/PRX/internal/release"
 	"github.com/HappyOnigiri/PRX/internal/store"
-	"github.com/HappyOnigiri/PRX/internal/update"
 )
 
 func newOpenService(_ io.Writer) cli.OpenService {
@@ -87,9 +85,7 @@ func newOpenService(_ io.Writer) cli.OpenService {
 		service.SetDaemonInspector(func(context.Context) domain.DebugDaemonInput {
 			return daemon.Inspect(launchd.New(), prx.Version()).DebugInput(options.Demo)
 		})
-		// 更新の確認と実行は配布元だけを相手にする。demo と開発ビルドでは app 側が
-		// 機能ごと無効にするので、ここでは実装の差し替えだけを行う。
-		service.SetUpdateSources(release.New(), update.New())
+		setUpdateSources(service)
 		service.SetProcessInfo(app.ProcessInfo{
 			Mode:               "cli",
 			Demo:               options.Demo,
