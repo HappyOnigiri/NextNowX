@@ -91,7 +91,10 @@ func protoTaskLabelAppearances(values domain.TaskLabelAppearances) *prxv1.TaskLa
 
 func protoPromptTemplateOverrides(v domain.PromptTemplateOverrides) *prxv1.PromptTemplateOverrides {
 	return &prxv1.PromptTemplateOverrides{
-		Design: v.Design, Implementation: v.Implementation, Batch: v.Batch,
+		Design:         v.Design,
+		Implementation: v.Implementation,
+		Batch:          v.Batch,
+		BatchDesign:    v.BatchDesign,
 	}
 }
 
@@ -113,6 +116,10 @@ func domainPromptTemplateOverridesUpdate(
 	if value.Batch != nil {
 		v := value.GetBatch()
 		result.Batch = &v
+	}
+	if value.BatchDesign != nil {
+		v := value.GetBatchDesign()
+		result.BatchDesign = &v
 	}
 	return result
 }

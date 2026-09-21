@@ -1,25 +1,26 @@
-import { ClipboardCopy, Square, SquareCheckBig, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ClipboardCopy, Square, SquareCheckBig } from "lucide-react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getBatchPrompt } from "../api";
-import { type Task } from "../gen/prx/v1/prx_pb";
-import {
-  batchCandidates,
-  isSelectable,
-  prunedSelection,
-  type BatchCandidate,
-} from "./batchPromptTasks";
+import { TaskPromptKind, type Task } from "../gen/prx/v1/prx_pb";
+import { isSelectable, type BatchPromptKind } from "./batchPromptTasks";
 import { IconButton } from "./IconButton";
+import { PromptDialogHead } from "./PromptDialogHead";
+import { PromptPreview } from "./PromptPreview";
+import { TabList, TabPanel } from "./TabList";
+import { useBatchSelection, type BatchSelection } from "./useBatchSelection";
 import { useCloseOnEscape } from "./useCloseOnEscape";
+import { useDialogFocusTrap } from "./useDialogFocusTrap";
+import { usePromptPreview } from "./usePromptPreview";
 
-type CopyStatus =
-  | { case: "idle" }
-  | { case: "copied"; count: number }
-  | { case: "failed"; message: string };
+const batchTabs: readonly BatchPromptKind[] = ["design", "implementation"];
 
-// BatchPromptDialog は複数のタスクを 1 つのプロンプトにまとめて
-// エージェントへ渡す。本文はコピー時にサーバーが生成する。
-// docs/design/agent-prompts.md を参照。
+// 選択のたびにサーバーへ求めず、連続したクリックが落ち着いてから 1 回描く。
+const previewDelayMilliseconds = 250;
+
+// BatchPromptDialog は複数の task を 1 つのプロンプトにまとめて渡す。タブが
+// 設計と実装のどちらを回すかを決め、それが候補のベース集合とテンプレートの
+// 両方を選ぶ。docs/design/agent-prompts.md を参照。
 export function BatchPromptDialog({
   featureId,
   tasks,
@@ -30,124 +31,102 @@ export function BatchPromptDialog({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
-  // ブロック中タスクを候補に含めるかはこの受け渡し限りの判断で、
-  // 保持する設定ではないため、開くたびにオフから始める。
-  const [includeBlocked, setIncludeBlocked] = useState(false);
-  const candidates = useMemo(
-    () => batchCandidates(tasks, includeBlocked),
-    [tasks, includeBlocked],
-  );
-  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
-  const [status, setStatus] = useState<CopyStatus>({ case: "idle" });
-  const [pending, setPending] = useState(false);
-  const allSelected =
-    candidates.length > 0 && selected.size === candidates.length;
+  const selection = useBatchSelection(tasks);
+  const { kind, targets } = selection;
+  // コピーの結果はそのとき選んでいた task のもの。選択が変われば用済みになる。
+  const [copied, setCopied] = useState<{ key: string; count?: number }>();
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const { dialogRef, onKeyDown } = useDialogFocusTrap<HTMLElement>(closeRef);
 
   useCloseOnEscape(onClose);
 
-  function toggle(taskId: string) {
-    setSelected((current) => {
-      const next = new Set(current);
-      // タスクを外すとその上に積まれた作業が土台を失うので、
-      // 選択を残さず刈り込む。
-      if (next.delete(taskId)) return prunedSelection(candidates, next);
-      next.add(taskId);
-      return next;
-    });
-  }
-
-  function toggleAll() {
-    // 候補はすべて同時に選べる。バッチで運べないブロッカーを持つものは
-    // 候補の時点で除外済み。
-    setSelected(
-      allSelected
-        ? new Set()
-        : new Set(candidates.map((candidate) => candidate.task.id)),
-    );
-  }
-
-  function changeIncludeBlocked(include: boolean) {
-    setIncludeBlocked(include);
-    setSelected((current) =>
-      prunedSelection(batchCandidates(tasks, include), current),
-    );
-  }
-
-  async function copyPrompts() {
-    // リストの並びが読み手に見える順序なので、コピーはチェックした順ではなく
-    // その並びに従う。
-    const targets = candidates.filter((candidate) =>
-      selected.has(candidate.task.id),
-    );
-    setPending(true);
-    setStatus({ case: "idle" });
-    try {
-      const response = await getBatchPrompt(
+  const key =
+    targets.length === 0 ? "" : `${kind}\u0000${targets.join("\u0000")}`;
+  const preview = usePromptPreview(
+    key,
+    () =>
+      getBatchPrompt(
         featureId,
-        targets.map((candidate) => candidate.task.id),
-      );
-      try {
-        await navigator.clipboard.writeText(response.prompt);
-      } catch {
-        setStatus({ case: "failed", message: t("batchPrompt.failed") });
-        return;
-      }
-      setStatus({ case: "copied", count: targets.length });
-    } catch (error) {
-      // サーバーは原因となったタスクやテンプレートを示すので、
-      // メッセージはそのまま表示する価値がある。
-      setStatus({
-        case: "failed",
-        message:
-          error instanceof Error ? error.message : t("batchPrompt.failed"),
-      });
-    } finally {
-      setPending(false);
+        targets,
+        kind === "design"
+          ? TaskPromptKind.DESIGN
+          : TaskPromptKind.IMPLEMENTATION,
+      ).then((response) => response.prompt),
+    t("batchPrompt.failed"),
+    previewDelayMilliseconds,
+  );
+
+  async function copyPrompt() {
+    if (preview.case !== "ready") return;
+    try {
+      await navigator.clipboard.writeText(preview.body);
+    } catch {
+      setCopied({ key });
+      return;
     }
+    setCopied({ key, count: targets.length });
   }
+
+  const outcome = copied?.key === key ? copied : undefined;
 
   return (
-    <div className="scrim" role="presentation">
+    <div className="scrim" role="presentation" onKeyDown={onKeyDown}>
       <section
+        ref={dialogRef}
         className="dialog batch-prompt-dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby="batch-prompt-title"
       >
-        <header className="batch-prompt-head">
-          <div>
-            <h2 id="batch-prompt-title">{t("batchPrompt.title")}</h2>
-            <p className="dialog-lead">{t("batchPrompt.description")}</p>
-          </div>
-          <IconButton
-            icon={X}
-            label={t("common.close")}
-            variant="secondary"
-            iconOnly
-            onClick={onClose}
-          />
-        </header>
-        <BatchPromptTaskList
-          candidates={candidates}
-          selected={selected}
-          allSelected={allSelected}
-          includeBlocked={includeBlocked}
-          onToggle={toggle}
-          onToggleAll={toggleAll}
-          onIncludeBlockedChange={changeIncludeBlocked}
+        <PromptDialogHead
+          className="batch-prompt-head"
+          closeRef={closeRef}
+          lead={t(`batchPrompt.${kind}Description`)}
+          onClose={onClose}
+          title={t("batchPrompt.title")}
+          titleId="batch-prompt-title"
         />
+        <TabList
+          tabs={batchTabs.map((id) => ({
+            id,
+            label: t(`batchPrompt.tab.${id}`),
+          }))}
+          active={kind}
+          onSelect={selection.changeKind}
+          idPrefix="batch-prompt"
+          className="settings-tabs"
+          tabClassName="settings-tab"
+          label={t("batchPrompt.tabsLabel")}
+        />
+        <TabPanel
+          active
+          className="batch-prompt-panel"
+          idPrefix="batch-prompt"
+          tab={kind}
+        >
+          <BatchPromptTaskList selection={selection} />
+          <PromptPreview
+            label={t("batchPrompt.preview")}
+            body={preview.case === "ready" ? preview.body : ""}
+            busy={preview.case === "loading"}
+            error={preview.case === "failed" ? preview.message : undefined}
+            placeholder={t("batchPrompt.previewEmpty")}
+          />
+        </TabPanel>
         <footer>
           <p className="batch-prompt-status" aria-live="polite">
-            {status.case === "copied" &&
-              t("batchPrompt.copied", { selected: status.count })}
-            {status.case === "failed" && status.message}
+            {outcome?.count !== undefined &&
+              t("batchPrompt.copied", { selected: outcome.count })}
+            {outcome?.count === undefined &&
+              outcome !== undefined &&
+              t("batchPrompt.failed")}
           </p>
           <IconButton
             icon={ClipboardCopy}
             label={t("batchPrompt.copy")}
             variant="primary"
-            disabled={pending || selected.size === 0}
-            onClick={() => void copyPrompts()}
+            disabled={preview.case !== "ready"}
+            onClick={() => void copyPrompt()}
           />
         </footer>
       </section>
@@ -155,52 +134,46 @@ export function BatchPromptDialog({
   );
 }
 
-function BatchPromptTaskList({
-  candidates,
-  selected,
-  allSelected,
-  includeBlocked,
-  onToggle,
-  onToggleAll,
-  onIncludeBlockedChange,
-}: {
-  candidates: BatchCandidate[];
-  selected: ReadonlySet<string>;
-  allSelected: boolean;
-  includeBlocked: boolean;
-  onToggle: (taskId: string) => void;
-  onToggleAll: () => void;
-  onIncludeBlockedChange: (include: boolean) => void;
-}) {
+function BatchPromptTaskList({ selection }: { selection: BatchSelection }) {
   const { t } = useTranslation();
-  // 着手可能なタスクがない feature では依存側が積む土台もないので、
-  // それらを表示する選択肢もリストごと省く。
-  if (candidates.length === 0)
-    return <p className="batch-prompt-empty">{t("batchPrompt.empty")}</p>;
+  const { candidates, kind, selected } = selection;
+  // 候補がないときもトグルは出す。表示を広げれば候補が現れることがあり、
+  // リストごと畳むとその手立てまで隠れてしまう。
   return (
     <div className="batch-prompt-body">
       <div className="batch-prompt-toolbar">
         <IconButton
-          icon={allSelected ? Square : SquareCheckBig}
+          icon={selection.allSelected ? Square : SquareCheckBig}
           label={
-            allSelected ? t("batchPrompt.clearAll") : t("batchPrompt.selectAll")
+            selection.allSelected
+              ? t("batchPrompt.clearAll")
+              : t("batchPrompt.selectAll")
           }
           variant="quiet"
           size="compact"
-          onClick={onToggleAll}
+          disabled={candidates.length === 0}
+          onClick={selection.toggleAll}
         />
-        {/* ブロック中タスクは行の操作ではなくチェックボックスにする。行が持つ
+        {/* 表示範囲の切り替えは行の操作ではなくチェックボックスにする。行が持つ
             選択に加わるのではなく、リスト全体の表示を切り替えるため。 */}
-        <label className="batch-prompt-include-blocked">
-          <input
-            type="checkbox"
-            checked={includeBlocked}
-            onChange={(event) => {
-              onIncludeBlockedChange(event.target.checked);
-            }}
+        {kind === "design" ? (
+          <BatchPromptToggle
+            checked={selection.includeDesigned}
+            label={t("batchPrompt.includeDesigned")}
+            onChange={selection.changeIncludeDesigned}
           />
-          {t("batchPrompt.includeBlocked")}
-        </label>
+        ) : (
+          <BatchPromptToggle
+            checked={selection.includeUndesigned}
+            label={t("batchPrompt.includeUndesigned")}
+            onChange={selection.changeIncludeUndesigned}
+          />
+        )}
+        <BatchPromptToggle
+          checked={selection.includeBlocked}
+          label={t("batchPrompt.includeBlocked")}
+          onChange={selection.changeIncludeBlocked}
+        />
         <span className="batch-prompt-count">
           {t("batchPrompt.selectedCount", {
             selected: selected.size,
@@ -208,37 +181,74 @@ function BatchPromptTaskList({
           })}
         </span>
       </div>
-      <ul className="batch-prompt-list">
-        {candidates.map((candidate) => (
-          <li key={candidate.task.id}>
-            {/* 行そのものが操作要素で、見た目ではアクセント枠と塗りが示す選択を
-                aria-pressed が伝える。docs/design/webui.md を参照。 */}
-            <button
-              type="button"
-              className="batch-prompt-task"
-              aria-pressed={selected.has(candidate.task.id)}
-              // ブロッカーを一緒に渡さないタスクは着手の土台がないので、
-              // それらが選ばれるまで選択できない。
-              disabled={!isSelectable(candidate, selected)}
-              onClick={() => {
-                onToggle(candidate.task.id);
-              }}
-            >
-              <span className="batch-prompt-task-title">
-                {candidate.task.title}
-              </span>
-              {candidate.pendingBlockerIds.length > 0 && (
-                <span className="batch-prompt-task-after">
-                  {t("batchPrompt.afterTasks", {
-                    tasks: candidate.pendingBlockerIds.join(", "),
-                  })}
+      {/* 実装計画がないタスクを候補に加えている間だけ、実装プロンプトが
+          まだない計画を読ませることを伝える。選べること自体は誤りではない
+          ので操作は止めない。 */}
+      {kind === "implementation" && selection.includeUndesigned && (
+        <p className="batch-prompt-notice" role="status">
+          {t("batchPrompt.undesignedNotice")}
+        </p>
+      )}
+      {candidates.length === 0 ? (
+        <p className="batch-prompt-empty">{t(`batchPrompt.${kind}Empty`)}</p>
+      ) : (
+        <ul className="batch-prompt-list">
+          {candidates.map((candidate) => (
+            <li key={candidate.task.id}>
+              {/* 行そのものが操作要素で、見た目ではアクセント枠と塗りが示す選択
+                  を aria-pressed が伝える。docs/design/webui.md を参照。 */}
+              <button
+                type="button"
+                className="batch-prompt-task"
+                aria-pressed={selected.has(candidate.task.id)}
+                // ブロッカーを一緒に渡さない task は着手の土台がないので、
+                // それらが選ばれるまで選択できない。
+                disabled={!isSelectable(candidate, selected)}
+                onClick={() => {
+                  selection.toggle(candidate.task.id);
+                }}
+              >
+                <span className="batch-prompt-task-title">
+                  {candidate.task.title}
                 </span>
-              )}
-              <span className="batch-prompt-task-id">{candidate.task.id}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
+                {candidate.pendingBlockerIds.length > 0 && (
+                  <span className="batch-prompt-task-after">
+                    {t("batchPrompt.afterTasks", {
+                      tasks: candidate.pendingBlockerIds.join(", "),
+                    })}
+                  </span>
+                )}
+                <span className="batch-prompt-task-id">
+                  {candidate.task.id}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
+  );
+}
+
+function BatchPromptToggle({
+  checked,
+  label,
+  onChange,
+}: {
+  checked: boolean;
+  label: string;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className="batch-prompt-include-blocked">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => {
+          onChange(event.target.checked);
+        }}
+      />
+      {label}
+    </label>
   );
 }

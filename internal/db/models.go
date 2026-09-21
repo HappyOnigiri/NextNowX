@@ -43,6 +43,7 @@ type Feature struct {
 	PromptImplementation   sql.NullString `json:"prompt_implementation"`
 	PromptBatch            sql.NullString `json:"prompt_batch"`
 	TaskLabelOverridesJson sql.NullString `json:"task_label_overrides_json"`
+	PromptBatchDesign      sql.NullString `json:"prompt_batch_design"`
 }
 
 type GithubRepositoryAuthCache struct {
@@ -80,6 +81,7 @@ type Project struct {
 	PromptImplementation   sql.NullString `json:"prompt_implementation"`
 	PromptBatch            sql.NullString `json:"prompt_batch"`
 	TaskLabelOverridesJson sql.NullString `json:"task_label_overrides_json"`
+	PromptBatchDesign      sql.NullString `json:"prompt_batch_design"`
 }
 
 type PullRequest struct {

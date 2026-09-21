@@ -118,6 +118,7 @@ type PromptTemplateOverrides struct {
 	Design         string `json:"design"`
 	Implementation string `json:"implementation"`
 	Batch          string `json:"batch"`
+	BatchDesign    string `json:"batch_design"`
 }
 
 // PromptTemplateOverridesUpdate は種類ごとの上書きを部分更新する。
@@ -126,6 +127,7 @@ type PromptTemplateOverridesUpdate struct {
 	Design         *string
 	Implementation *string
 	Batch          *string
+	BatchDesign    *string
 }
 
 type BlockedReasonCode string

@@ -41,6 +41,7 @@ func (s *Store) DebugInput() domain.DebugConfigInput {
 		Design:         debugPrompt(value.Prompts.Design, defaults.Design),
 		Implementation: debugPrompt(value.Prompts.Implementation, defaults.Implementation),
 		Batch:          debugPrompt(value.Prompts.Batch, defaults.Batch),
+		BatchDesign:    debugPrompt(value.Prompts.BatchDesign, defaults.BatchDesign),
 	}
 	return result
 }

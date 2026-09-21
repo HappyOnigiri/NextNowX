@@ -14,6 +14,7 @@ interface PromptDraft {
   design: string;
   implementation: string;
   batch: string;
+  batchDesign: string;
 }
 
 const panelMocks = vi.hoisted(() => ({
@@ -24,11 +25,17 @@ const panelMocks = vi.hoisted(() => ({
           design: string;
           implementation: string;
           batch: string;
+          batchDesign: string;
           supportedPlaceholders: string[];
           requiredPlaceholder: string;
           batchSupportedPlaceholders: string[];
           batchRequiredPlaceholder: string;
-          builtIn: { design: string; implementation: string; batch: string };
+          builtIn: {
+            design: string;
+            implementation: string;
+            batch: string;
+            batchDesign: string;
+          };
         }
       | undefined,
     isPending: false,
@@ -78,6 +85,7 @@ describe("PromptSettingsPanel", () => {
       design: "Design {{task_id}}",
       implementation: "Build {{task_id}}",
       batch: "Batch {{task_list}}",
+      batchDesign: "Batch design {{task_list}}",
       supportedPlaceholders: ["task_id", "feature_id"],
       requiredPlaceholder: "task_id",
       batchSupportedPlaceholders: ["task_list", "feature_id"],
@@ -86,6 +94,7 @@ describe("PromptSettingsPanel", () => {
         design: "Built-in design {{task_id}}",
         implementation: "Built-in build {{task_id}}",
         batch: "Built-in batch {{task_list}}",
+        batchDesign: "Built-in batch design {{task_list}}",
       },
     };
     panelMocks.templates.isPending = false;
@@ -119,6 +128,7 @@ describe("PromptSettingsPanel", () => {
       design: "Design {{task_id}}",
       implementation: "Build {{task_id}}",
       batch: "Batch {{task_group}}",
+      batchDesign: "Batch design {{task_group}}",
       supportedPlaceholders: ["task_ref", "milestone_id"],
       requiredPlaceholder: "task_ref",
       batchSupportedPlaceholders: ["task_group"],
@@ -127,6 +137,7 @@ describe("PromptSettingsPanel", () => {
         design: "Built-in design {{task_ref}}",
         implementation: "Built-in build {{task_ref}}",
         batch: "Built-in batch {{task_group}}",
+        batchDesign: "Built-in batch design {{task_group}}",
       },
     };
     renderPanel();
@@ -164,12 +175,16 @@ describe("PromptSettingsPanel", () => {
     fireEvent.change(screen.getByLabelText(/Batch implementation prompt/), {
       target: { value: "Group {{task_list}}" },
     });
+    fireEvent.change(screen.getByLabelText(/Batch design prompt/), {
+      target: { value: "Plan the group {{task_list}}" },
+    });
     await submitTemplateForm();
 
     expect(panelMocks.mutation.mutateAsync).toHaveBeenCalledWith({
       design: "Plan {{task_id}}",
       implementation: "Ship {{task_id}}",
       batch: "Group {{task_list}}",
+      batchDesign: "Plan the group {{task_list}}",
     });
     // 保存が済むと下書きはサーバーの写しと一致するので、保存はもう押せない。
     expect(saveButton()).toBeDisabled();
@@ -192,12 +207,16 @@ describe("PromptSettingsPanel", () => {
     expect(screen.getByLabelText(/Batch implementation prompt/)).toHaveValue(
       "Built-in batch {{task_list}}",
     );
+    expect(screen.getByLabelText(/Batch design prompt/)).toHaveValue(
+      "Built-in batch design {{task_list}}",
+    );
     await submitTemplateForm();
 
     expect(panelMocks.mutation.mutateAsync).toHaveBeenCalledWith({
       design: "Built-in design {{task_id}}",
       implementation: "Built-in build {{task_id}}",
       batch: "Built-in batch {{task_list}}",
+      batchDesign: "Built-in batch design {{task_list}}",
     });
   });
 
@@ -227,6 +246,7 @@ describe("PromptSettingsPanel", () => {
           design: "Plan {{task_id}}",
           implementation: "Build {{task_id}}",
           batch: "Batch {{task_list}}",
+          batchDesign: "Batch design {{task_list}}",
         },
       });
       return Promise.resolve();

@@ -22,7 +22,7 @@ func promptOverrideCommands(
 		Use:   "prompt",
 		Short: "Manage prompt template overrides",
 		Long: "Manage prompt template overrides for a project or feature.\n\n" +
-			"KIND is design, implementation, or batch. An unset kind inherits from its parent.",
+			"KIND is design, implementation, batch, or batch_design. An unset kind inherits from its parent.",
 	}
 	command.AddCommand(
 		promptOverrideSetCommand(write, set, resource),
@@ -124,12 +124,12 @@ func promptOverrideUnsetCommand(
 func parsePromptOverrideKind(value string) (prompt.Kind, error) {
 	normalized := strings.ToLower(strings.TrimSpace(value))
 	switch prompt.Kind(normalized) {
-	case prompt.KindDesign, prompt.KindImplementation, prompt.KindBatch:
+	case prompt.KindDesign, prompt.KindImplementation, prompt.KindBatch, prompt.KindBatchDesign:
 		return prompt.Kind(normalized), nil
 	default:
 		return "", domain.NewError(
 			domain.DomainErrorCodeInvalidPromptTemplate,
-			"prompt template kind must be design, implementation, or batch",
+			"prompt template kind must be design, implementation, batch, or batch_design",
 		)
 	}
 }
@@ -172,6 +172,8 @@ func promptOverrideUpdate(kind prompt.Kind, body *string) domain.PromptTemplateO
 		update.Implementation = body
 	case prompt.KindBatch:
 		update.Batch = body
+	case prompt.KindBatchDesign:
+		update.BatchDesign = body
 	}
 	return update
 }

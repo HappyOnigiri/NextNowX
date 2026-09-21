@@ -2425,6 +2425,30 @@ func TestBlackBoxPromptFollowsThePlanAndTheConfiguredTemplates(t *testing.T) {
 		t.Fatalf("prompt JSON=%+v, want the same body the text output printed", promptData)
 	}
 
+	// --kind は導出を上書きする。計画があっても設計プロンプトを取り出せないと、
+	// 一括設計の SubAgent が指示を受け取れない。
+	forcedDesign := run("prompt", "T-1", "--kind", "design")
+	if forcedDesign.exit != 0 || !strings.HasPrefix(forcedDesign.stdout, "Design PRX task T-1 of feature F-1.\n") {
+		t.Fatalf("forced design prompt=%q stderr=%q", forcedDesign.stdout, forcedDesign.stderr)
+	}
+	forcedKind := run("--json", "prompt", "T-1", "--kind", "design")
+	var forcedData struct {
+		Kind string `json:"kind"`
+	}
+	forcedResult := decodeResult(t, []byte(forcedKind.stdout), forcedKind.stdout)
+	if err := json.Unmarshal(forcedResult.Data, &forcedData); err != nil {
+		t.Fatal(err)
+	}
+	if forcedData.Kind != "design" {
+		t.Fatalf("forced kind=%q", forcedData.Kind)
+	}
+	badKind, _, exit := runCLIWithFixture(
+		t, binary, dbPath, "", "--config", configPath, "prompt", "T-1", "--kind", "batch",
+	)
+	if exit == 0 || badKind.ErrorCode != "invalid_prompt_template" {
+		t.Fatalf("batch kind result=%+v exit=%d", badKind, exit)
+	}
+
 	missing, _, exit := runCLIWithFixture(t, binary, dbPath, "", "--config", configPath, "prompt", "T-404")
 	if exit == 0 || missing.ErrorCode != "not_found" {
 		t.Fatalf("missing task result=%+v exit=%d", missing, exit)
@@ -2594,12 +2618,33 @@ func TestBlackBoxPromptOverridesRespectHierarchyAndReadOnly(t *testing.T) {
 		Design         string `json:"design"`
 		Implementation string `json:"implementation"`
 		Batch          string `json:"batch"`
+		BatchDesign    string `json:"batch_design"`
 	}
 	if err := json.Unmarshal(projectValue.PromptOverrides, &overrides); err != nil {
 		t.Fatal(err)
 	}
-	if overrides.Design != "Project design {{task_id}}\n" || overrides.Implementation != "" || overrides.Batch != "" {
+	if overrides.Design != "Project design {{task_id}}\n" || overrides.Implementation != "" ||
+		overrides.Batch != "" || overrides.BatchDesign != "" {
 		t.Fatalf("project prompt_overrides=%+v", overrides)
+	}
+
+	// batch_design は 4 つ目の KIND として設定・解除できる。
+	batchDesignPath := filepath.Join(root, "project-batch-design.txt")
+	if err := os.WriteFile(batchDesignPath, []byte("Project batch design {{task_list}}\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if result := run(
+		"", "project", "prompt", "set", "P-1", "batch_design", "--file", batchDesignPath,
+	); result.exit != 0 || result.stdout != "Set project prompt override P-1 (batch_design).\n" {
+		t.Fatalf("project batch_design set: %+v", result)
+	}
+	if result := run("", "project", "prompt", "unset", "P-1", "batch_design"); result.exit != 0 ||
+		result.stdout != "Unset project prompt override P-1 (batch_design).\n" {
+		t.Fatalf("project batch_design unset: %+v", result)
+	}
+	unknownKind := runJSON("project", "prompt", "set", "P-1", "batch-design", "--file", batchDesignPath)
+	if unknownKind.ErrorCode != "invalid_prompt_template" {
+		t.Fatalf("unknown kind result=%+v", unknownKind)
 	}
 
 	badPath := filepath.Join(root, "bad-prompt.txt")

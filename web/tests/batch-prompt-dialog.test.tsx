@@ -6,7 +6,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { TaskDisplayState } from "../src/gen/prx/v1/prx_pb";
+import { TaskDisplayState, TaskPromptKind } from "../src/gen/prx/v1/prx_pb";
 import { setDisplayLanguage } from "../src/i18n";
 import { BatchPromptDialog } from "../src/views/BatchPromptDialog";
 import { makeTask } from "./factories";
@@ -73,6 +73,21 @@ function includeBlocked() {
   return screen.getByLabelText("Include dependent tasks");
 }
 
+function preview(): HTMLElement {
+  return screen.getByLabelText("Prompt preview");
+}
+
+// 選択のたびにサーバーへ求めず、落ち着いてから 1 回だけ描く。コピーはその
+// 本文を渡すので、テストもプレビューが届くのを待ってから押す。
+async function awaitPreview(body: string) {
+  await waitFor(
+    () => {
+      expect(preview()).toHaveValue(body);
+    },
+    { timeout: 2000 },
+  );
+}
+
 function stubClipboard(writeText: ReturnType<typeof vi.fn>) {
   Object.defineProperty(navigator, "clipboard", {
     configurable: true,
@@ -123,6 +138,7 @@ describe("BatchPromptDialog", () => {
     // 見えていた順に batch を引き渡す。
     fireEvent.click(taskRow("Bill the order"));
     fireEvent.click(taskRow("Build API"));
+    await awaitPreview("Batch feature-1");
     fireEvent.click(screen.getByRole("button", { name: "Copy prompt" }));
 
     await waitFor(() => {
@@ -130,10 +146,11 @@ describe("BatchPromptDialog", () => {
         screen.getByText("Copied a prompt for 2 tasks."),
       ).toBeInTheDocument();
     });
-    expect(batchMocks.getBatchPrompt).toHaveBeenCalledWith("feature-1", [
-      "task-1",
-      "task-2",
-    ]);
+    expect(batchMocks.getBatchPrompt).toHaveBeenCalledWith(
+      "feature-1",
+      ["task-1", "task-2"],
+      TaskPromptKind.IMPLEMENTATION,
+    );
     expect(writeText).toHaveBeenCalledWith("Batch feature-1");
   });
 
@@ -231,6 +248,7 @@ describe("BatchPromptDialog", () => {
 
     fireEvent.click(includeBlocked());
     fireEvent.click(screen.getByRole("button", { name: "Select all" }));
+    await awaitPreview("Batch feature-1");
     fireEvent.click(screen.getByRole("button", { name: "Copy prompt" }));
 
     await waitFor(() => {
@@ -238,11 +256,11 @@ describe("BatchPromptDialog", () => {
         screen.getByText("Copied a prompt for 3 tasks."),
       ).toBeInTheDocument();
     });
-    expect(batchMocks.getBatchPrompt).toHaveBeenCalledWith("feature-1", [
-      "task-1",
-      "task-2",
-      "task-4",
-    ]);
+    expect(batchMocks.getBatchPrompt).toHaveBeenCalledWith(
+      "feature-1",
+      ["task-1", "task-2", "task-4"],
+      TaskPromptKind.IMPLEMENTATION,
+    );
   });
 
   // サーバーは原因の task やテンプレートを名指しするので、そのメッセージは
@@ -256,13 +274,18 @@ describe("BatchPromptDialog", () => {
     renderDialog();
 
     fireEvent.click(screen.getByRole("button", { name: "Select all" }));
-    fireEvent.click(screen.getByRole("button", { name: "Copy prompt" }));
 
-    await waitFor(() => {
-      expect(
-        screen.getByText('task "task-2" was not found'),
-      ).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(
+          screen.getByText('task "task-2" was not found'),
+        ).toBeInTheDocument();
+      },
+      { timeout: 2000 },
+    );
+    // プレビューが失敗したまま押せると、届かない本文をコピーしたと報告して
+    // しまう。
+    expect(screen.getByRole("button", { name: "Copy prompt" })).toBeDisabled();
     expect(writeText).not.toHaveBeenCalled();
   });
 
@@ -278,6 +301,7 @@ describe("BatchPromptDialog", () => {
     renderDialog();
 
     fireEvent.click(taskRow("Build API"));
+    await awaitPreview("Batch feature-1");
     fireEvent.click(screen.getByRole("button", { name: "Copy prompt" }));
 
     await waitFor(() => {
@@ -304,6 +328,124 @@ describe("BatchPromptDialog", () => {
     expect(screen.getByRole("button", { name: "Copy prompt" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(onClose).toHaveBeenCalled();
+  });
+
+  // 設計タブは実装計画のないタスクを扱う。実装タブの候補をそのまま出すと、
+  // 設計をまとめて回す手段がどこにもなくなる。
+  it("offers the undesigned tasks on the design tab", async () => {
+    batchMocks.getBatchPrompt.mockResolvedValue({
+      featureId: "feature-1",
+      taskIds: ["task-3"],
+      prompt: "Design batch feature-1",
+    });
+    stubClipboard(vi.fn().mockResolvedValue(undefined));
+    renderDialog();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Design" }));
+
+    expect(taskRow("Draft the schema")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Build API/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("0 of 1 selected")).toBeInTheDocument();
+
+    fireEvent.click(taskRow("Draft the schema"));
+    await awaitPreview("Design batch feature-1");
+    expect(batchMocks.getBatchPrompt).toHaveBeenCalledWith(
+      "feature-1",
+      ["task-3"],
+      TaskPromptKind.DESIGN,
+    );
+  });
+
+  // 設計済みのタスクも設計し直せる。トグルは設計タブにだけ出す。
+  it("adds the designed tasks to the design tab on request", () => {
+    renderDialog();
+    expect(
+      screen.queryByLabelText("Include designed tasks"),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Design" }));
+    fireEvent.click(screen.getByLabelText("Include designed tasks"));
+
+    expect(taskRow("Build API")).toBeInTheDocument();
+    expect(screen.getByText("0 of 3 selected")).toBeInTheDocument();
+  });
+
+  // 設計を経ていないタスクにも実装プロンプトを出せる。トグルは実装タブに
+  // だけ出し、選んでいる間は計画がないことを注意として示す。
+  it("adds the undesigned tasks to the implementation tab on request", async () => {
+    batchMocks.getBatchPrompt.mockResolvedValue({
+      featureId: "feature-1",
+      taskIds: ["task-3"],
+      prompt: "Implement batch feature-1",
+    });
+    stubClipboard(vi.fn().mockResolvedValue(undefined));
+    renderDialog();
+    expect(
+      screen.queryByText(/Tasks with no implementation plan are offered/),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText("Include tasks with no plan"));
+
+    expect(
+      screen.getByText(/Tasks with no implementation plan are offered/),
+    ).toBeInTheDocument();
+    expect(taskRow("Draft the schema")).toBeInTheDocument();
+    expect(screen.getByText("0 of 3 selected")).toBeInTheDocument();
+
+    fireEvent.click(taskRow("Draft the schema"));
+    await awaitPreview("Implement batch feature-1");
+    expect(batchMocks.getBatchPrompt).toHaveBeenCalledWith(
+      "feature-1",
+      ["task-3"],
+      TaskPromptKind.IMPLEMENTATION,
+    );
+  });
+
+  // 設計タブには実装計画がないタスクを加えるトグルを出さない。もともと
+  // それらを扱うためである。
+  it("keeps the undesigned toggle off the design tab", () => {
+    renderDialog();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Design" }));
+    expect(
+      screen.queryByLabelText("Include tasks with no plan"),
+    ).not.toBeInTheDocument();
+  });
+
+  // タブが候補集合を入れ替えるので、前のタブで選んだタスクは持ち越さない。
+  it("clears the selection and the toggles when the tab changes", () => {
+    renderDialog();
+
+    fireEvent.click(includeBlocked());
+    fireEvent.click(taskRow("Build API"));
+    expect(screen.getByText("1 of 3 selected")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Design" }));
+    expect(screen.getByText("0 of 1 selected")).toBeInTheDocument();
+    expect(includeBlocked()).not.toBeChecked();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Implementation" }));
+    expect(screen.getByText("0 of 2 selected")).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Include tasks with no plan"),
+    ).not.toBeChecked();
+  });
+
+  it("says when the design tab has nothing waiting", () => {
+    render(
+      <BatchPromptDialog
+        featureId="feature-1"
+        tasks={[makeTask({ id: "task-1", title: "Build API", ...designed })]}
+        onClose={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "Design" }));
+    expect(
+      screen.getByText("No task in this feature is waiting to be designed."),
+    ).toBeInTheDocument();
   });
 
   it("closes on Escape", () => {

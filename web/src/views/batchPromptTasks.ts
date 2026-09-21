@@ -8,23 +8,62 @@ export interface BatchCandidate {
   pendingBlockerIds: string[];
 }
 
-// batchCandidates はバッチが扱えるタスクを列挙する。設計済みのものと、要求が
-// あれば単一のブロッカーを同じバッチで運べるブロック中のもの。
+// BatchPromptKind は一括プロンプトのタブが選ぶ種類。候補のベース集合と、
+// サーバーへ要求するテンプレートの両方をこれが決める。
+export type BatchPromptKind = "design" | "implementation";
+
+export interface BatchCandidateOptions {
+  kind: BatchPromptKind;
+  // includeBlocked は未解決のブロッカーを同じバッチで運べるタスクも候補に含める。
+  includeBlocked: boolean;
+  // includeDesigned は設計タブでのみ効き、設計済みのタスクを再設計の候補に加える。
+  includeDesigned: boolean;
+  // includeUndesigned は実装タブでのみ効き、実装計画がないタスクを候補に加える。
+  includeUndesigned: boolean;
+}
+
+// undesigned は実装計画をまだ持たない表示状態。設計タブのベースであり、
+// 実装タブではトグルを入れたときだけ候補に加わる。
+function undesigned(task: Task): boolean {
+  return (
+    task.displayState === TaskDisplayState.NOT_STARTED ||
+    task.displayState === TaskDisplayState.DESIGNING
+  );
+}
+
+// baseTasks はタブごとの出発点を選ぶ。実装は設計済みのタスクを、設計は実装計画が
+// まだないタスクを扱い、トグルがもう一方の状態を足す。決着した表示状態は
+// どちらにも渡さない。
+function baseTasks(tasks: Task[], options: BatchCandidateOptions): Task[] {
+  if (options.kind === "implementation")
+    return tasks.filter(
+      (task) =>
+        task.displayState === TaskDisplayState.DESIGNED ||
+        (options.includeUndesigned && undesigned(task)),
+    );
+  return tasks.filter(
+    (task) =>
+      undesigned(task) ||
+      (options.includeDesigned &&
+        task.displayState === TaskDisplayState.DESIGNED),
+  );
+}
+
+// batchCandidates はバッチが扱えるタスクを列挙する。ベース集合はタブが決め、
+// 依存の扱いは設計でも実装でも同じ規則に従う。
 // docs/design/agent-prompts.md を参照。
 export function batchCandidates(
   tasks: Task[],
-  includeBlocked: boolean,
+  options: BatchCandidateOptions,
 ): BatchCandidate[] {
-  const designed = tasks.filter(
-    (task) => task.displayState === TaskDisplayState.DESIGNED,
-  );
-  if (!includeBlocked)
-    return designed
+  const base = baseTasks(tasks, options);
+  if (!options.includeBlocked)
+    return base
       .filter((task) => task.ready)
       .map((task) => ({ task, pendingBlockerIds: [] }));
-  const offered = coverableTaskIds(designed);
+  const offered = coverableTaskIds(base);
   return inDependencyOrder(
-    designed
+    base
       .filter((task) => offered.has(task.id))
       .map((task) => ({
         task,
@@ -36,12 +75,12 @@ export function batchCandidates(
 // coverableTaskIds は着手可能なタスクを起点に、集合内のタスクを待つものを
 // 追加できなくなるまで広げる。着手可能なタスクは未解決のブロッカーを
 // 持たないため、最初の走査で集合に入る。
-function coverableTaskIds(designed: Task[]): ReadonlySet<string> {
+function coverableTaskIds(base: Task[]): ReadonlySet<string> {
   const covered = new Set<string>();
   let grew = true;
   while (grew) {
     grew = false;
-    for (const task of designed) {
+    for (const task of base) {
       if (covered.has(task.id)) continue;
       if (task.pendingBlockerTaskIds.length > 1) continue;
       if (!task.pendingBlockerTaskIds.every((id) => covered.has(id))) continue;

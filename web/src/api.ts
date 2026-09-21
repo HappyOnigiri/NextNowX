@@ -37,6 +37,7 @@ import {
   SkipUpdateVersionRequestSchema,
   SyncGitHubIfDueRequestSchema,
   SyncRequestSchema,
+  TaskPromptKind,
   UpdateDocumentRequestSchema,
   UpdateFeatureRequestSchema,
   UpdateGitHubAuthMethodRequestSchema,
@@ -362,13 +363,16 @@ export async function getPromptTemplates(): Promise<PromptTemplateSettings> {
   };
 }
 
-// プロンプトは snapshot と一緒ではなく都度描画する。サーバーが選ぶテンプレート
-// は task に実装計画が今あるかで変わり、キャッシュ済みの snapshot はすでに実態
-// とずれている可能性があるため。
+// プロンプトは snapshot と一緒ではなく都度描画する。テンプレートも task も
+// サーバー側にあり、キャッシュ済みの snapshot はすでに実態とずれている可能性が
+// あるため。kind を省くとサーバーが実装計画の有無から選ぶ。
 export async function getTaskPrompt(
   taskId: string,
+  kind: TaskPromptKind = TaskPromptKind.UNSPECIFIED,
 ): Promise<GetTaskPromptResponse> {
-  return client.getTaskPrompt(create(GetTaskPromptRequestSchema, { taskId }));
+  return client.getTaskPrompt(
+    create(GetTaskPromptRequestSchema, { taskId, kind }),
+  );
 }
 
 // batch プロンプトも単一 task と同じ理由で、選択された task から都度描画する。
@@ -377,9 +381,10 @@ export async function getTaskPrompt(
 export async function getBatchPrompt(
   featureId: string,
   taskIds: string[],
+  kind: TaskPromptKind = TaskPromptKind.UNSPECIFIED,
 ): Promise<GetBatchPromptResponse> {
   return client.getBatchPrompt(
-    create(GetBatchPromptRequestSchema, { featureId, taskIds }),
+    create(GetBatchPromptRequestSchema, { featureId, taskIds, kind }),
   );
 }
 
@@ -388,6 +393,7 @@ export const promptMutations = {
     design: string;
     implementation: string;
     batch: string;
+    batchDesign: string;
   }) =>
     client.updatePromptTemplates(
       create(UpdatePromptTemplatesRequestSchema, input),

@@ -6,7 +6,7 @@ Manage prompt template overrides
 
 Manage prompt template overrides for a project or feature.
 
-KIND is design, implementation, or batch. An unset kind inherits from its parent.
+KIND is design, implementation, batch, or batch_design. An unset kind inherits from its parent.
 
 ### Options
 

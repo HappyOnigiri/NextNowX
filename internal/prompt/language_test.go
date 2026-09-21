@@ -78,7 +78,7 @@ func TestParseLanguageRejectsWhatIsNotABuiltInLanguage(t *testing.T) {
 // 実効言語は組み込みテンプレートの言語そのものである。設定が ja のとき、
 // レンダリングされたプロンプトは日本語で出なければならない。
 func TestDefaultTemplatesFollowTheEffectiveLanguage(t *testing.T) {
-	_, body, err := prompt.Render(designTask(), prompt.Templates{}, prompt.LanguageJapanese)
+	_, body, err := prompt.Render(designTask(), "", prompt.Templates{}, prompt.LanguageJapanese)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,9 @@ func TestDefaultTemplatesFollowTheEffectiveLanguage(t *testing.T) {
 	if !strings.Contains(body, "T-7") || strings.Contains(body, "{{") {
 		t.Fatalf("the japanese design prompt did not expand its placeholders: %q", body)
 	}
-	batch, err := prompt.RenderBatch("F-3", batchTasks(), prompt.Templates{}, prompt.LanguageJapanese)
+	_, batch, err := prompt.RenderBatch(
+		"F-3", batchTasks(), prompt.KindBatch, prompt.Templates{}, prompt.LanguageJapanese,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}

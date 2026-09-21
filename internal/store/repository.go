@@ -87,6 +87,7 @@ func (s *Store) CreateProject(ctx context.Context, title, description string) (d
 		PromptDesign:           nullString(""),
 		PromptImplementation:   nullString(""),
 		PromptBatch:            nullString(""),
+		PromptBatchDesign:      nullString(""),
 		TaskLabelOverridesJson: nullTaskLabelOverrides(nil),
 	})
 	if err != nil {
@@ -120,6 +121,7 @@ func (s *Store) UpdateProject(ctx context.Context, project domain.Project) (doma
 		PromptDesign:           nullString(project.PromptOverrides.Design),
 		PromptImplementation:   nullString(project.PromptOverrides.Implementation),
 		PromptBatch:            nullString(project.PromptOverrides.Batch),
+		PromptBatchDesign:      nullString(project.PromptOverrides.BatchDesign),
 		TaskLabelOverridesJson: nullTaskLabelOverrides(project.TaskLabelOverrides),
 		ID:                     storageID,
 	})
@@ -207,6 +209,7 @@ func (s *Store) CreateFeature(
 		PromptDesign:           nullString(""),
 		PromptImplementation:   nullString(""),
 		PromptBatch:            nullString(""),
+		PromptBatchDesign:      nullString(""),
 		TaskLabelOverridesJson: nullTaskLabelOverrides(nil),
 	}
 	value, err := q.CreateFeature(ctx, params)
@@ -258,6 +261,7 @@ func (s *Store) UpdateFeature(ctx context.Context, feature domain.Feature) (doma
 		PromptDesign:           nullString(feature.PromptOverrides.Design),
 		PromptImplementation:   nullString(feature.PromptOverrides.Implementation),
 		PromptBatch:            nullString(feature.PromptOverrides.Batch),
+		PromptBatchDesign:      nullString(feature.PromptOverrides.BatchDesign),
 		TaskLabelOverridesJson: nullTaskLabelOverrides(feature.TaskLabelOverrides),
 		ID:                     storageID,
 	}

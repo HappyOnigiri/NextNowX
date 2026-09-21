@@ -384,6 +384,7 @@ func TestPromptTemplatesLoadDefaultAndSurviveAWrite(t *testing.T) {
 		Design:         "Design {{task_id}}\nsecond line\n",
 		Implementation: "Implement {{task_id}} of {{feature_id}}",
 		Batch:          "Implement {{task_list}} of {{feature_id}}",
+		BatchDesign:    "Design {{task_list}} of {{feature_id}}",
 	}
 	if _, err := store.Update(func(settings *Config) error { return settings.SetPrompts(custom) }); err != nil {
 		t.Fatal(err)
@@ -446,8 +447,10 @@ func TestDefaultPromptTemplatesStayOutOfTheFile(t *testing.T) {
 	if !strings.Contains(string(body), "Design {{task_id}}") {
 		t.Fatalf("config file lost the customized design template:\n%s", body)
 	}
-	if strings.Contains(string(body), "implementation:") {
-		t.Fatalf("config file stored the built-in implementation template:\n%s", body)
+	for _, key := range []string{"implementation:", "batch:", "batch_design:"} {
+		if strings.Contains(string(body), key) {
+			t.Fatalf("config file stored the built-in %s template:\n%s", key, body)
+		}
 	}
 	reloaded, err := store.Load()
 	if err != nil {
@@ -695,7 +698,9 @@ func TestSwitchingLanguageKeepsUneditedTemplatesOutOfTheFile(t *testing.T) {
 	if loaded.Prompts.Design != "Design {{task_id}}\n" {
 		t.Fatalf("design=%q, want the customized template", loaded.Prompts.Design)
 	}
-	if loaded.Prompts.Implementation != prompt.DefaultTemplates(prompt.LanguageEnglish).Implementation {
+	english := prompt.DefaultTemplates(prompt.LanguageEnglish)
+	if loaded.Prompts.Implementation != english.Implementation ||
+		loaded.Prompts.Batch != english.Batch || loaded.Prompts.BatchDesign != english.BatchDesign {
 		t.Fatal("an unedited template did not follow the new language")
 	}
 }

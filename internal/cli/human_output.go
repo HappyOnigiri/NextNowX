@@ -128,7 +128,7 @@ func renderFeatureDetail(feature domain.Feature) humanRenderer {
 }
 
 func promptOverrideSummary(overrides domain.PromptTemplateOverrides) string {
-	values := make([]string, 0, 3)
+	values := make([]string, 0, 4)
 	if overrides.Design != "" {
 		values = append(values, "design")
 	}
@@ -137,6 +137,9 @@ func promptOverrideSummary(overrides domain.PromptTemplateOverrides) string {
 	}
 	if overrides.Batch != "" {
 		values = append(values, "batch")
+	}
+	if overrides.BatchDesign != "" {
+		values = append(values, "batch_design")
 	}
 	if len(values) == 0 {
 		return "none"

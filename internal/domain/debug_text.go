@@ -128,6 +128,7 @@ func writeDebugConfig(out *debugText, config DebugConfig) {
 	writeDebugConfigPrompt(out, "design", config.Prompts.Design)
 	writeDebugConfigPrompt(out, "implementation", config.Prompts.Implementation)
 	writeDebugConfigPrompt(out, "batch", config.Prompts.Batch)
+	writeDebugConfigPrompt(out, "batch_design", config.Prompts.BatchDesign)
 }
 
 // writeDebugConfigPrompt はテンプレート 1 件の概要を本文抜きで報告する。本文はユーザー

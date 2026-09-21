@@ -32,8 +32,18 @@ export const inspector = {
       deleteTaskConfirm: "Delete {{title}}?",
       prNotAttached: "PR not attached",
       implementationPlan: "Implementation plan",
-      copyDesignPrompt: "Copy design prompt",
-      copyImplementationPrompt: "Copy implementation prompt",
+      copyPrompt: "Copy task prompt",
+      copyPromptAction: "Copy prompt",
+      promptDialogTitle: "Copy task prompt",
+      promptDialogDescription:
+        "Pick the prompt to hand {{task}} to an agent. The default follows whether the task already has an implementation plan.",
+      promptTabsLabel: "Prompt kind",
+      promptTab: { design: "Design", implementation: "Implementation" },
+      promptPreview: "Prompt preview",
+      promptWithoutPlan:
+        "This task has no implementation plan yet. The built-in implementation prompt has the agent settle the approach itself, but a template you overrode may still expect a registered plan.",
+      promptWithPlan:
+        "This task already has an implementation plan, and registering a new one from the design prompt replaces it.",
       designPromptCopied: "Design prompt copied.",
       implementationPromptCopied: "Implementation prompt copied.",
       promptFailed: "The prompt could not be copied.",
@@ -74,8 +84,18 @@ export const inspector = {
       deleteTaskConfirm: "{{title}} を削除しますか？",
       prNotAttached: "PR は未設定です",
       implementationPlan: "実装プラン",
-      copyDesignPrompt: "設計プロンプトをコピー",
-      copyImplementationPrompt: "実装プロンプトをコピー",
+      copyPrompt: "タスクのプロンプトをコピー",
+      copyPromptAction: "プロンプトをコピー",
+      promptDialogTitle: "タスクのプロンプトをコピー",
+      promptDialogDescription:
+        "{{task}} をエージェントに渡すプロンプトを選びます。既定は実装プランの有無に従います。",
+      promptTabsLabel: "プロンプトの種類",
+      promptTab: { design: "設計", implementation: "実装" },
+      promptPreview: "プロンプトのプレビュー",
+      promptWithoutPlan:
+        "このタスクにはまだ実装プランがありません。組み込みの実装プロンプトはエージェントに自分で方針を決めさせますが、上書きしたテンプレートは計画がある前提のままかもしれません。",
+      promptWithPlan:
+        "このタスクにはすでに実装プランがあり、設計プロンプトで新しく登録すると置き換わります。",
       designPromptCopied: "設計プロンプトをコピーしました。",
       implementationPromptCopied: "実装プロンプトをコピーしました。",
       promptFailed: "プロンプトをコピーできませんでした。",

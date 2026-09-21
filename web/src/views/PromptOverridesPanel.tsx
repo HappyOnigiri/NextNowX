@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { getPromptTemplates, type PromptTemplateSettings } from "../api";
 import type { PromptTemplateOverrides } from "../gen/prx/v1/prx_pb";
 
-type PromptKind = "design" | "implementation" | "batch";
+type PromptKind = "design" | "implementation" | "batch" | "batchDesign";
 export type PromptValues = Record<PromptKind, string>;
 type PromptModes = Record<PromptKind, boolean>;
 
@@ -11,7 +11,14 @@ const promptKinds: readonly PromptKind[] = [
   "design",
   "implementation",
   "batch",
+  "batchDesign",
 ];
+
+// batch 系は task 用とは別の語彙で検証する。どちらの batch テンプレートにも
+// 展開元になる単一の task がないため。
+function isBatchKind(kind: PromptKind): boolean {
+  return kind === "batch" || kind === "batchDesign";
+}
 
 export interface PromptOverridesPanelProps {
   scope: "project" | "feature";
@@ -232,7 +239,7 @@ function PromptOverrideField({
         }}
       />
       <small>
-        {kind === "batch"
+        {isBatchKind(kind)
           ? t("promptOverrides.batchHint", {
               list: placeholderList(settings.batchSupportedPlaceholders),
               required: `{{${settings.batchRequiredPlaceholder}}}`,
@@ -252,6 +259,7 @@ function valuesOf(overrides?: PromptTemplateOverrides): PromptValues {
     design: overrides?.design ?? "",
     implementation: overrides?.implementation ?? "",
     batch: overrides?.batch ?? "",
+    batchDesign: overrides?.batchDesign ?? "",
   };
 }
 
@@ -261,6 +269,7 @@ function modesOf(overrides?: PromptTemplateOverrides): PromptModes {
     design: values.design !== "",
     implementation: values.implementation !== "",
     batch: values.batch !== "",
+    batchDesign: values.batchDesign !== "",
   };
 }
 
@@ -308,7 +317,7 @@ function validationError(
   if (new TextEncoder().encode(value).length > 8192)
     return { key: "promptOverrides.invalidTooLong" };
   const supported = new Set(
-    kind === "batch"
+    isBatchKind(kind)
       ? settings.batchSupportedPlaceholders
       : settings.supportedPlaceholders,
   );
@@ -321,10 +330,9 @@ function validationError(
         options: { placeholder },
       };
   }
-  const required =
-    kind === "batch"
-      ? settings.batchRequiredPlaceholder
-      : settings.requiredPlaceholder;
+  const required = isBatchKind(kind)
+    ? settings.batchRequiredPlaceholder
+    : settings.requiredPlaceholder;
   if (
     !placeholders.some(
       (placeholder) => placeholder.slice(2, -2).trim() === required,

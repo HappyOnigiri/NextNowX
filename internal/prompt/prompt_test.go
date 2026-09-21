@@ -16,7 +16,8 @@ func designTask() domain.Task {
 	}
 }
 
-func TestKindFollowsOnlyTheImplementationPlan(t *testing.T) {
+// 種類を指定しなかった呼び出しの既定は実装計画の有無だけで決まる。
+func TestDefaultKindFollowsOnlyTheImplementationPlan(t *testing.T) {
 	task := designTask()
 	if got := prompt.KindFor(task); got != prompt.KindDesign {
 		t.Fatalf("kind=%q, want %q", got, prompt.KindDesign)
@@ -38,7 +39,7 @@ func TestRenderExpandsEveryPlaceholderOfTheSelectedTemplate(t *testing.T) {
 		Design:         "design {{task_id}} {{feature_id}} {{task_title}} {{task_scope}}",
 		Implementation: "implement {{task_id}}",
 	}
-	kind, body, err := prompt.Render(designTask(), templates, prompt.LanguageEnglish)
+	kind, body, err := prompt.Render(designTask(), "", templates, prompt.LanguageEnglish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +55,7 @@ func TestRenderExpandsEveryPlaceholderOfTheSelectedTemplate(t *testing.T) {
 	// 失敗したと読めてしまう。
 	scopeless := designTask()
 	scopeless.Scope = "  "
-	_, body, err = prompt.Render(scopeless, templates, prompt.LanguageEnglish)
+	_, body, err = prompt.Render(scopeless, "", templates, prompt.LanguageEnglish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,7 +65,7 @@ func TestRenderExpandsEveryPlaceholderOfTheSelectedTemplate(t *testing.T) {
 
 	planned := designTask()
 	planned.HasImplementationPlan = true
-	kind, body, err = prompt.Render(planned, templates, prompt.LanguageEnglish)
+	kind, body, err = prompt.Render(planned, "", templates, prompt.LanguageEnglish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +75,7 @@ func TestRenderExpandsEveryPlaceholderOfTheSelectedTemplate(t *testing.T) {
 }
 
 func TestRenderFillsAnOmittedTemplateWithItsDefault(t *testing.T) {
-	kind, body, err := prompt.Render(designTask(), prompt.Templates{}, prompt.LanguageEnglish)
+	kind, body, err := prompt.Render(designTask(), "", prompt.Templates{}, prompt.LanguageEnglish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,6 +103,7 @@ func TestDefaultTemplatesSatisfyTheStoredTemplateRules(t *testing.T) {
 				"design":         defaults.Design,
 				"implementation": defaults.Implementation,
 				"batch":          defaults.Batch,
+				"batch_design":   defaults.BatchDesign,
 			} {
 				if len(template) > prompt.MaximumTemplateBytes {
 					t.Fatalf("default %s template is %d bytes", name, len(template))
@@ -136,7 +138,7 @@ func TestNormalizeRejectsTemplatesTheRendererCouldNotExpand(t *testing.T) {
 			if _, err := test.templates.Normalize(prompt.LanguageEnglish); err == nil || err.Error() != test.message {
 				t.Fatalf("error=%v, want %q", err, test.message)
 			}
-			if _, _, err := prompt.Render(designTask(), test.templates, prompt.LanguageEnglish); err == nil {
+			if _, _, err := prompt.Render(designTask(), "", test.templates, prompt.LanguageEnglish); err == nil {
 				t.Fatal("Render accepted a template Normalize rejects")
 			}
 		})
@@ -168,7 +170,7 @@ func batchTasks() []domain.Task {
 }
 
 func TestRenderBatchNamesEveryTaskInTheOrderItWasGiven(t *testing.T) {
-	body, err := prompt.RenderBatch("F-3", batchTasks(), prompt.Templates{
+	_, body, err := prompt.RenderBatch("F-3", batchTasks(), prompt.KindBatch, prompt.Templates{
 		Batch: "batch {{feature_id}}\n{{task_list}}",
 	}, prompt.LanguageEnglish)
 	if err != nil {
@@ -183,7 +185,9 @@ func TestRenderBatchNamesEveryTaskInTheOrderItWasGiven(t *testing.T) {
 // batch テンプレートはタスク用テンプレートと並べて保存されるため、一度も
 // カスタマイズしていないインストールには組み込みの文言が届き続ける必要がある。
 func TestRenderBatchFillsAnOmittedTemplateWithItsDefault(t *testing.T) {
-	body, err := prompt.RenderBatch("F-3", batchTasks(), prompt.Templates{}, prompt.LanguageEnglish)
+	_, body, err := prompt.RenderBatch(
+		"F-3", batchTasks(), prompt.KindBatch, prompt.Templates{}, prompt.LanguageEnglish,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -202,7 +206,7 @@ func TestRenderBatchFillsAnOmittedTemplateWithItsDefault(t *testing.T) {
 // 書きかけの編集をコミットする。どちらの言語でも残っていなければならない。
 func TestDefaultBatchTemplatesGiveEverySubAgentItsOwnWorktree(t *testing.T) {
 	for _, language := range []prompt.Language{prompt.LanguageEnglish, prompt.LanguageJapanese} {
-		body, err := prompt.RenderBatch("F-3", batchTasks(), prompt.Templates{}, language)
+		_, body, err := prompt.RenderBatch("F-3", batchTasks(), prompt.KindBatch, prompt.Templates{}, language)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -233,7 +237,9 @@ func TestNormalizeRejectsABatchTemplateOutsideItsOwnVocabulary(t *testing.T) {
 			if _, err := templates.Normalize(prompt.LanguageEnglish); err == nil || err.Error() != test.message {
 				t.Fatalf("error=%v, want %q", err, test.message)
 			}
-			if _, err := prompt.RenderBatch("F-3", batchTasks(), templates, prompt.LanguageEnglish); err == nil {
+			if _, _, err := prompt.RenderBatch(
+				"F-3", batchTasks(), prompt.KindBatch, templates, prompt.LanguageEnglish,
+			); err == nil {
 				t.Fatal("RenderBatch accepted a template Normalize rejects")
 			}
 		})
@@ -282,5 +288,149 @@ func TestResolveRejectsAnInvalidOverrideWithItsScope(t *testing.T) {
 	)
 	if err == nil || !strings.Contains(err.Error(), "project.prompt_overrides.design") {
 		t.Fatalf("error=%v, want project scope", err)
+	}
+}
+
+// 呼び出し元が種類を選べるので、計画のないタスクにも implementation を、計画の
+// あるタスクにも design を描ける。これがないと WebUI のタブは何も選べない。
+func TestRenderUsesTheRequestedKindInsteadOfTheDerivedOne(t *testing.T) {
+	templates := prompt.Templates{
+		Design:         "design {{task_id}}",
+		Implementation: "implement {{task_id}}",
+	}
+	planned := designTask()
+	planned.HasImplementationPlan = true
+	for name, test := range map[string]struct {
+		task domain.Task
+		kind prompt.Kind
+		want string
+	}{
+		"implementation for a task without a plan": {
+			task: designTask(), kind: prompt.KindImplementation, want: "implement T-7",
+		},
+		"design for a task with a plan": {
+			task: planned, kind: prompt.KindDesign, want: "design T-7",
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			kind, body, err := prompt.Render(test.task, test.kind, templates, prompt.LanguageEnglish)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if kind != test.kind || body != test.want {
+				t.Fatalf("kind=%q body=%q, want %q %q", kind, body, test.kind, test.want)
+			}
+		})
+	}
+	// batch 系はタスク 1 件のプロンプトを持たないので、導出へ落として
+	// batch テンプレートが単一タスクに漏れ出さないようにする。
+	kind, body, err := prompt.Render(designTask(), prompt.KindBatch, templates, prompt.LanguageEnglish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if kind != prompt.KindDesign || body != "design T-7" {
+		t.Fatalf("kind=%q body=%q", kind, body)
+	}
+}
+
+// 一括設計は一括実装とは別のテンプレートを使う。実装用の文面は「実装する」前提
+// で書かれており、設計をまとめて回す用途では破綻するためである。
+func TestRenderBatchSelectsTheRequestedBatchTemplate(t *testing.T) {
+	templates := prompt.Templates{
+		Batch:       "implement {{feature_id}}\n{{task_list}}",
+		BatchDesign: "design {{feature_id}}\n{{task_list}}",
+	}
+	kind, body, err := prompt.RenderBatch(
+		"F-3", batchTasks(), prompt.KindBatchDesign, templates, prompt.LanguageEnglish,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "design F-3\n- T-7: Add the checkout API\n- T-9: Bill the order"
+	if kind != prompt.KindBatchDesign || body != want {
+		t.Fatalf("kind=%q body=%q, want %q", kind, body, want)
+	}
+	// 未指定の呼び出しは従来どおり一括実装のままにする。
+	kind, body, err = prompt.RenderBatch("F-3", batchTasks(), "", templates, prompt.LanguageEnglish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if kind != prompt.KindBatch || !strings.HasPrefix(body, "implement F-3") {
+		t.Fatalf("kind=%q body=%q", kind, body)
+	}
+}
+
+// 組み込みの一括設計テンプレートは SubAgent を設計プロンプトへ向け、pull request
+// ではなく計画の登録で終わらせる。どちらの言語でも同じ条項が要る。
+func TestDefaultBatchDesignTemplatesSendEverySubAgentToTheDesignPrompt(t *testing.T) {
+	for _, language := range prompt.SupportedLanguages() {
+		_, body, err := prompt.RenderBatch(
+			"F-3", batchTasks(), prompt.KindBatchDesign, prompt.Templates{}, language,
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, want := range []string{
+			"prx prompt TASK_ID --kind design", "prx plan set TASK_ID --file PATH", "git worktree",
+		} {
+			if !strings.Contains(body, want) {
+				t.Fatalf("the %s batch design prompt does not mention %q: %q", language, want, body)
+			}
+		}
+		if strings.Contains(body, "{{") {
+			t.Fatalf("the %s batch design prompt kept a placeholder: %q", language, body)
+		}
+	}
+}
+
+// 実装プロンプトは計画のない task にも渡せるので、組み込みテンプレートは計画の
+// 取得が失敗したときの進め方を示していなければならない。
+func TestDefaultImplementationTemplatesHandleAMissingPlan(t *testing.T) {
+	for _, language := range prompt.SupportedLanguages() {
+		_, body, err := prompt.Render(
+			designTask(), prompt.KindImplementation, prompt.Templates{}, language,
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := "That is not an error to fix"
+		if language == prompt.LanguageJapanese {
+			want = "これは直すべきエラーではない"
+		}
+		if !strings.Contains(body, want) {
+			t.Fatalf("the %s implementation prompt does not mention %q: %q", language, want, body)
+		}
+	}
+}
+
+// 一括実装の SubAgent は種類を明示して prompt を取る。省くと、計画のない task に
+// 設計プロンプトが渡り、実装のつもりで設計が回る。
+func TestDefaultBatchTemplatesAskForTheImplementationPrompt(t *testing.T) {
+	for _, language := range prompt.SupportedLanguages() {
+		_, body, err := prompt.RenderBatch(
+			"F-3", batchTasks(), prompt.KindBatch, prompt.Templates{}, language,
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(body, "prx prompt TASK_ID --kind implementation") {
+			t.Fatalf("the %s batch prompt does not pin the prompt kind: %q", language, body)
+		}
+	}
+}
+
+// batch_design は batch と同じ語彙で検証する。上書きだけが別の語彙を持つと、
+// 設定 UI が提示する placeholder 一覧と保存の可否がずれる。
+func TestBatchDesignSharesTheBatchVocabulary(t *testing.T) {
+	templates := prompt.Templates{BatchDesign: "design {{task_list}} {{task_title}}"}
+	message := "prompts.batch_design: template uses unsupported placeholder {{task_title}}"
+	if _, err := templates.Normalize(prompt.LanguageEnglish); err == nil || err.Error() != message {
+		t.Fatalf("error=%v, want %q", err, message)
+	}
+	if err := prompt.ValidateOverride(prompt.KindBatchDesign, "design {{feature_id}}"); err == nil {
+		t.Fatal("ValidateOverride accepted a batch design override without {{task_list}}")
+	}
+	if err := prompt.ValidateOverride(prompt.KindBatchDesign, "design {{task_list}}"); err != nil {
+		t.Fatal(err)
 	}
 }

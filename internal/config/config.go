@@ -195,6 +195,7 @@ type yamlPrompts struct {
 	Design         string `yaml:"design,omitempty"`
 	Implementation string `yaml:"implementation,omitempty"`
 	Batch          string `yaml:"batch,omitempty"`
+	BatchDesign    string `yaml:"batch_design,omitempty"`
 }
 
 // MarshalYAML は組み込みの既定値と一致するテンプレートを出力しない。Normalize が
@@ -211,6 +212,9 @@ func (c Config) MarshalYAML() (any, error) {
 	}
 	if c.Prompts.Batch != defaults.Batch {
 		prompts.Batch = c.Prompts.Batch
+	}
+	if c.Prompts.BatchDesign != defaults.BatchDesign {
+		prompts.BatchDesign = c.Prompts.BatchDesign
 	}
 	result := yamlConfig{Version: c.Version, GitHub: c.GitHub, Server: c.Server}
 	if len(c.TaskLabels) > 0 {
@@ -782,6 +786,7 @@ func (c *Config) SetLanguage(value string) error {
 		{stored: &c.Prompts.Design, builtIn: defaults.Design},
 		{stored: &c.Prompts.Implementation, builtIn: defaults.Implementation},
 		{stored: &c.Prompts.Batch, builtIn: defaults.Batch},
+		{stored: &c.Prompts.BatchDesign, builtIn: defaults.BatchDesign},
 	} {
 		if *item.stored == item.builtIn {
 			*item.stored = ""

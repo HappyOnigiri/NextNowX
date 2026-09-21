@@ -217,6 +217,7 @@ describe("RPC API wrappers", () => {
       design: "Design {{task_id}}",
       implementation: "",
       batch: "Batch {{task_list}}",
+      batchDesign: "Batch design {{task_list}}",
     };
     const builtIn = {
       design: "Built-in design {{task_id}}",
@@ -251,12 +252,14 @@ describe("RPC API wrappers", () => {
       design: "Design {{task_id}}",
       implementation: "Build {{task_id}}",
       batch: "Batch {{task_list}}",
+      batchDesign: "Batch design {{task_list}}",
     });
     expect(apiMocks.client.updatePromptTemplates).toHaveBeenCalledWith(
       expect.objectContaining({
         design: "Design {{task_id}}",
         implementation: "Build {{task_id}}",
         batch: "Batch {{task_list}}",
+        batchDesign: "Batch design {{task_list}}",
       }),
     );
 
