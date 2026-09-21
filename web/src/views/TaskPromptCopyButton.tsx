@@ -1,5 +1,6 @@
 import { ClipboardCopy } from "lucide-react";
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { IconButton } from "./IconButton";
 import { TaskPromptDialog } from "./TaskPromptDialog";
@@ -33,15 +34,19 @@ export function TaskPromptCopyButton({
           setOpen(true);
         }}
       />
-      {open && (
-        <TaskPromptDialog
-          taskId={taskId}
-          hasImplementationPlan={hasImplementationPlan}
-          onClose={() => {
-            setOpen(false);
-          }}
-        />
-      )}
+      {/* ダイアログは body へ出す。グラフのノードは transform を持ち、その中の
+          スクリムは fixed でもノードの矩形に閉じ込められてしまうため。 */}
+      {open &&
+        createPortal(
+          <TaskPromptDialog
+            taskId={taskId}
+            hasImplementationPlan={hasImplementationPlan}
+            onClose={() => {
+              setOpen(false);
+            }}
+          />,
+          document.body,
+        )}
     </span>
   );
 }

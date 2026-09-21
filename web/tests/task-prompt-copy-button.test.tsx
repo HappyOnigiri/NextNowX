@@ -49,6 +49,18 @@ describe("TaskPromptCopyButton", () => {
     cleanup();
   });
 
+  // グラフのノードは transform を持つので、その中に置いたスクリムは fixed でも
+  // ノードの矩形に閉じ込められる。ダイアログはボタンの外、body の直下に出す。
+  it("renders the dialog outside the button", () => {
+    promptMocks.getTaskPrompt.mockResolvedValue({ prompt: "Design T-1" });
+    const { container } = renderButton(false);
+    openDialog();
+
+    const dialog = screen.getByRole("dialog");
+    expect(container.contains(dialog)).toBe(false);
+    expect(dialog.closest(".scrim")?.parentElement).toBe(document.body);
+  });
+
   // 既定のタブはサーバーの導出と同じ。これまでどおりのプロンプトはタブを
   // 触らずにコピーできる。
   it("previews the design prompt of a task that has no plan", async () => {
