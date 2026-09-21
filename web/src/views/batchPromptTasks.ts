@@ -18,19 +18,32 @@ export interface BatchCandidateOptions {
   includeBlocked: boolean;
   // includeDesigned は設計タブでのみ効き、設計済みのタスクを再設計の候補に加える。
   includeDesigned: boolean;
+  // includeUndesigned は実装タブでのみ効き、実装計画がないタスクを候補に加える。
+  includeUndesigned: boolean;
 }
 
-// baseTasks はタブごとの出発点を選ぶ。実装は設計済みのタスクだけを扱い、設計は
-// 実装計画がまだないタスクを扱う。決着した表示状態はどちらにも渡さない。
+// undesigned は実装計画をまだ持たない表示状態。設計タブのベースであり、
+// 実装タブではトグルを入れたときだけ候補に加わる。
+function undesigned(task: Task): boolean {
+  return (
+    task.displayState === TaskDisplayState.NOT_STARTED ||
+    task.displayState === TaskDisplayState.DESIGNING
+  );
+}
+
+// baseTasks はタブごとの出発点を選ぶ。実装は設計済みのタスクを、設計は実装計画が
+// まだないタスクを扱い、トグルがもう一方の状態を足す。決着した表示状態は
+// どちらにも渡さない。
 function baseTasks(tasks: Task[], options: BatchCandidateOptions): Task[] {
   if (options.kind === "implementation")
     return tasks.filter(
-      (task) => task.displayState === TaskDisplayState.DESIGNED,
+      (task) =>
+        task.displayState === TaskDisplayState.DESIGNED ||
+        (options.includeUndesigned && undesigned(task)),
     );
   return tasks.filter(
     (task) =>
-      task.displayState === TaskDisplayState.NOT_STARTED ||
-      task.displayState === TaskDisplayState.DESIGNING ||
+      undesigned(task) ||
       (options.includeDesigned &&
         task.displayState === TaskDisplayState.DESIGNED),
   );

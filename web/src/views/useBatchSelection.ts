@@ -11,6 +11,7 @@ export interface BatchSelection {
   kind: BatchPromptKind;
   includeBlocked: boolean;
   includeDesigned: boolean;
+  includeUndesigned: boolean;
   candidates: BatchCandidate[];
   selected: ReadonlySet<string>;
   allSelected: boolean;
@@ -20,6 +21,7 @@ export interface BatchSelection {
   changeKind: (kind: BatchPromptKind) => void;
   changeIncludeBlocked: (include: boolean) => void;
   changeIncludeDesigned: (include: boolean) => void;
+  changeIncludeUndesigned: (include: boolean) => void;
   toggle: (taskId: string) => void;
   toggleAll: () => void;
 }
@@ -29,15 +31,22 @@ export interface BatchSelection {
 export function useBatchSelection(tasks: Task[]): BatchSelection {
   // 既定は従来どおりの一括実装。このボタンで運ばれてきた作業がそれである。
   const [kind, setKind] = useState<BatchPromptKind>("implementation");
-  // どちらのトグルもこの受け渡し限りの判断で保持する設定ではないため、
+  // どのトグルもこの受け渡し限りの判断で保持する設定ではないため、
   // 開くたび、そしてタブを移るたびにオフから始める。
   const [includeBlocked, setIncludeBlocked] = useState(false);
   const [includeDesigned, setIncludeDesigned] = useState(false);
+  const [includeUndesigned, setIncludeUndesigned] = useState(false);
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
 
   const candidates = useMemo(
-    () => batchCandidates(tasks, { kind, includeBlocked, includeDesigned }),
-    [tasks, kind, includeBlocked, includeDesigned],
+    () =>
+      batchCandidates(tasks, {
+        kind,
+        includeBlocked,
+        includeDesigned,
+        includeUndesigned,
+      }),
+    [tasks, kind, includeBlocked, includeDesigned, includeUndesigned],
   );
   const targets = useMemo(
     () =>
@@ -50,6 +59,7 @@ export function useBatchSelection(tasks: Task[]): BatchSelection {
   function prune(options: {
     includeBlocked: boolean;
     includeDesigned: boolean;
+    includeUndesigned: boolean;
   }) {
     setSelected((current) =>
       prunedSelection(batchCandidates(tasks, { kind, ...options }), current),
@@ -60,6 +70,7 @@ export function useBatchSelection(tasks: Task[]): BatchSelection {
     kind,
     includeBlocked,
     includeDesigned,
+    includeUndesigned,
     candidates,
     selected,
     allSelected: candidates.length > 0 && selected.size === candidates.length,
@@ -70,15 +81,20 @@ export function useBatchSelection(tasks: Task[]): BatchSelection {
       setKind(next);
       setIncludeBlocked(false);
       setIncludeDesigned(false);
+      setIncludeUndesigned(false);
       setSelected(new Set());
     },
     changeIncludeBlocked: (include) => {
       setIncludeBlocked(include);
-      prune({ includeBlocked: include, includeDesigned });
+      prune({ includeBlocked: include, includeDesigned, includeUndesigned });
     },
     changeIncludeDesigned: (include) => {
       setIncludeDesigned(include);
-      prune({ includeBlocked, includeDesigned: include });
+      prune({ includeBlocked, includeDesigned: include, includeUndesigned });
+    },
+    changeIncludeUndesigned: (include) => {
+      setIncludeUndesigned(include);
+      prune({ includeBlocked, includeDesigned, includeUndesigned: include });
     },
     toggle: (taskId) => {
       setSelected((current) => {

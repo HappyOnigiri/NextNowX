@@ -156,11 +156,17 @@ function BatchPromptTaskList({ selection }: { selection: BatchSelection }) {
         />
         {/* 表示範囲の切り替えは行の操作ではなくチェックボックスにする。行が持つ
             選択に加わるのではなく、リスト全体の表示を切り替えるため。 */}
-        {kind === "design" && (
+        {kind === "design" ? (
           <BatchPromptToggle
             checked={selection.includeDesigned}
             label={t("batchPrompt.includeDesigned")}
             onChange={selection.changeIncludeDesigned}
+          />
+        ) : (
+          <BatchPromptToggle
+            checked={selection.includeUndesigned}
+            label={t("batchPrompt.includeUndesigned")}
+            onChange={selection.changeIncludeUndesigned}
           />
         )}
         <BatchPromptToggle
@@ -175,6 +181,14 @@ function BatchPromptTaskList({ selection }: { selection: BatchSelection }) {
           })}
         </span>
       </div>
+      {/* 実装計画がないタスクを候補に加えている間だけ、実装プロンプトが
+          まだない計画を読ませることを伝える。選べること自体は誤りではない
+          ので操作は止めない。 */}
+      {kind === "implementation" && selection.includeUndesigned && (
+        <p className="batch-prompt-notice" role="status">
+          {t("batchPrompt.undesignedNotice")}
+        </p>
+      )}
       {candidates.length === 0 ? (
         <p className="batch-prompt-empty">{t(`batchPrompt.${kind}Empty`)}</p>
       ) : (

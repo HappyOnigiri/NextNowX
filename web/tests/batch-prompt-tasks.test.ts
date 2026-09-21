@@ -43,12 +43,14 @@ function ids(
   options?: Partial<{
     includeBlocked: boolean;
     includeDesigned: boolean;
+    includeUndesigned: boolean;
   }>,
 ): string[] {
   return batchCandidates(tasks(), {
     kind,
     includeBlocked: options?.includeBlocked ?? false,
     includeDesigned: options?.includeDesigned ?? false,
+    includeUndesigned: options?.includeUndesigned ?? false,
   }).map((candidate) => candidate.task.id);
 }
 
@@ -79,12 +81,30 @@ describe("batchCandidates", () => {
     ]);
   });
 
+  it("adds the undesigned tasks to the implementation tab on request", () => {
+    expect(ids("implementation", { includeUndesigned: true })).toEqual([
+      "task-1",
+      "task-2",
+      "task-3",
+    ]);
+  });
+
+  // 実装計画がないものを加えるトグルは設計タブには効かない。設計タブは
+  // もともとそれらを扱う。
+  it("ignores the undesigned toggle on the design tab", () => {
+    expect(ids("design", { includeUndesigned: true })).toEqual([
+      "task-2",
+      "task-3",
+    ]);
+  });
+
   // 依存の扱いは設計でも実装でも同じ。設計の順序にも blocker の計画が要る。
   it("orders a blocked design candidate behind its blocker", () => {
     const candidates = batchCandidates(tasks(), {
       kind: "design",
       includeBlocked: true,
       includeDesigned: false,
+      includeUndesigned: false,
     });
     expect(candidates.map((candidate) => candidate.task.id)).toEqual([
       "task-2",
@@ -104,6 +124,7 @@ describe("batchCandidates", () => {
       kind: "design",
       includeBlocked: true,
       includeDesigned: false,
+      includeUndesigned: false,
     });
     const kept = prunedSelection(candidates, new Set(["task-5"]));
     expect([...kept]).toEqual([]);

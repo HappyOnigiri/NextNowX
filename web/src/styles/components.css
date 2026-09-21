@@ -1278,7 +1278,8 @@
 
 /* 選んだ種類がタスクの状態に合わないことだけを伝える。操作は止めないので、
    エラーの赤ではなく注意の色を使う。 */
-.task-prompt-notice {
+.task-prompt-notice,
+.batch-prompt-notice {
   flex: 0 0 auto;
   margin: 0;
   padding: 8px 10px;

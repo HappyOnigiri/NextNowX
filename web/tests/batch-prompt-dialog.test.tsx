@@ -372,6 +372,48 @@ describe("BatchPromptDialog", () => {
     expect(screen.getByText("0 of 3 selected")).toBeInTheDocument();
   });
 
+  // 設計を経ていないタスクにも実装プロンプトを出せる。トグルは実装タブに
+  // だけ出し、選んでいる間は計画がないことを注意として示す。
+  it("adds the undesigned tasks to the implementation tab on request", async () => {
+    batchMocks.getBatchPrompt.mockResolvedValue({
+      featureId: "feature-1",
+      taskIds: ["task-3"],
+      prompt: "Implement batch feature-1",
+    });
+    stubClipboard(vi.fn().mockResolvedValue(undefined));
+    renderDialog();
+    expect(
+      screen.queryByText(/Tasks with no implementation plan are offered/),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText("Include tasks with no plan"));
+
+    expect(
+      screen.getByText(/Tasks with no implementation plan are offered/),
+    ).toBeInTheDocument();
+    expect(taskRow("Draft the schema")).toBeInTheDocument();
+    expect(screen.getByText("0 of 3 selected")).toBeInTheDocument();
+
+    fireEvent.click(taskRow("Draft the schema"));
+    await awaitPreview("Implement batch feature-1");
+    expect(batchMocks.getBatchPrompt).toHaveBeenCalledWith(
+      "feature-1",
+      ["task-3"],
+      TaskPromptKind.IMPLEMENTATION,
+    );
+  });
+
+  // 設計タブには実装計画がないタスクを加えるトグルを出さない。もともと
+  // それらを扱うためである。
+  it("keeps the undesigned toggle off the design tab", () => {
+    renderDialog();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Design" }));
+    expect(
+      screen.queryByLabelText("Include tasks with no plan"),
+    ).not.toBeInTheDocument();
+  });
+
   // タブが候補集合を入れ替えるので、前のタブで選んだタスクは持ち越さない。
   it("clears the selection and the toggles when the tab changes", () => {
     renderDialog();
@@ -386,6 +428,9 @@ describe("BatchPromptDialog", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "Implementation" }));
     expect(screen.getByText("0 of 2 selected")).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Include tasks with no plan"),
+    ).not.toBeChecked();
   });
 
   it("says when the design tab has nothing waiting", () => {

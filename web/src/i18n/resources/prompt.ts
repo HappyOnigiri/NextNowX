@@ -62,6 +62,9 @@ export const prompt = {
       clearAll: "Clear selection",
       includeBlocked: "Include dependent tasks",
       includeDesigned: "Include designed tasks",
+      includeUndesigned: "Include tasks with no plan",
+      undesignedNotice:
+        "Tasks with no implementation plan are offered. The implementation prompt points the agent at a plan the task does not have yet.",
       afterTasks: "after {{tasks}}",
       selectedCount: "{{selected}} of {{total}} selected",
       preview: "Prompt preview",
@@ -135,6 +138,9 @@ export const prompt = {
       clearAll: "選択を解除",
       includeBlocked: "依存タスクも含める",
       includeDesigned: "設計済みのタスクも含める",
+      includeUndesigned: "実装計画がないタスクも含める",
+      undesignedNotice:
+        "実装計画がないタスクも候補に出しています。実装プロンプトは、そのタスクがまだ持っていない計画をエージェントに読ませます。",
       afterTasks: "{{tasks}} の後",
       selectedCount: "{{total}} 件中 {{selected}} 件を選択",
       preview: "プロンプトのプレビュー",
