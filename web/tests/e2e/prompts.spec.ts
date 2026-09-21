@@ -258,3 +258,66 @@ test("copies one batch design prompt for the undesigned tasks", async ({
   expect(copied).toContain("prx plan set TASK_ID --file PATH");
   await batchDialog.getByRole("button", { name: "Close" }).click();
 });
+
+// モーダルは画面いっぱいに開き、一覧とプレビューがその高さを分け合う。低い
+// ウィンドウでも互いに重ならず、入り切らない分はパネルのスクロールに落ちる。
+test("keeps the batch prompt list and preview apart at small viewports", async ({
+  page,
+}) => {
+  const title = `E2E batch layout ${crypto.randomUUID()}`;
+
+  await page.goto("/projects/P-1?features=active");
+  await page.getByRole("button", { name: "Create feature" }).click();
+  const featureDialog = page.getByRole("form", { name: "Create feature" });
+  await featureDialog.getByLabel("Title").fill(title);
+  await featureDialog.getByRole("button", { name: "Create feature" }).click();
+  await expect(page.getByRole("heading", { name: title })).toBeVisible();
+
+  for (const taskTitle of ["E2E layout first", "E2E layout second"]) {
+    await page.getByRole("button", { name: "Add task" }).first().click();
+    const taskDialog = page.getByRole("form", { name: "Create task" });
+    await taskDialog.getByLabel("Title").fill(taskTitle);
+    await taskDialog.getByRole("button", { name: "Add task" }).click();
+    await expect(
+      page.locator(".task-node").filter({ hasText: taskTitle }),
+    ).toBeVisible();
+  }
+
+  // 計画のないタスクを実装タブに出すと、注意も加わってパネルが最も混み合う。
+  await page.getByRole("button", { name: "Copy batch prompt" }).click();
+  const batchDialog = page.getByRole("dialog", { name: "Copy batch prompt" });
+  await batchDialog.getByLabel("Include tasks with no plan").check();
+  await batchDialog.getByRole("button", { name: "Select all" }).click();
+  await expect(batchDialog.getByLabel("Prompt preview")).toContainText(
+    "prx prompt TASK_ID --kind implementation",
+  );
+
+  const panel = batchDialog.locator(".batch-prompt-panel");
+  for (const height of [900, 800, 700, 600]) {
+    await page.setViewportSize({ width: 1280, height });
+    const list = await batchDialog.locator(".batch-prompt-list").boundingBox();
+    const preview = await batchDialog
+      .locator(".prompt-preview-body")
+      .boundingBox();
+    const panelBox = await panel.boundingBox();
+    const footer = await batchDialog.locator("footer").boundingBox();
+    if (!list || !preview || !panelBox || !footer)
+      throw new Error("a box is missing");
+    expect(
+      list.y + list.height,
+      `the list overlaps the preview at ${height}`,
+    ).toBeLessThanOrEqual(preview.y + 1);
+    // パネルより下は描かれないので、入り切らない分はスクロールで辿る。
+    expect(
+      panelBox.y + panelBox.height,
+      `the panel overlaps the footer at ${height}`,
+    ).toBeLessThanOrEqual(footer.y + 1);
+    expect(list.height, `the list collapsed at ${height}`).toBeGreaterThan(40);
+    const reachable = await panel.evaluate(
+      (node) =>
+        node.scrollHeight <= node.clientHeight ||
+        getComputedStyle(node).overflowY === "auto",
+    );
+    expect(reachable, `the panel clips content at ${height}`).toBe(true);
+  }
+});

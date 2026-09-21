@@ -1240,7 +1240,8 @@
 }
 
 /* タブとフッタの間はパネルが占める。リストとプレビューがその中で高さを分け、
-   ダイアログ自身の寸法は選択の増減で変わらない。 */
+   ダイアログ自身の寸法は選択の増減で変わらない。どちらの下限も入らない高さでは
+   パネルごとスクロールさせる。重ねて描くより、辿れるほうがましである。 */
 .batch-prompt-panel,
 .task-prompt-panel {
   display: flex;
@@ -1248,11 +1249,15 @@
   flex-direction: column;
   gap: 12px;
   min-height: 0;
+  overflow-y: auto;
   padding-top: 16px;
 }
 
+/* 下限は min-content で親へ伝える。min-height: 0 のままだと一覧とプレビューが
+   親の箱からはみ出し、互いに重なって描かれる。 */
 .batch-prompt-panel .batch-prompt-body {
   flex: 1 1 40%;
+  min-height: min-content;
 }
 
 .task-prompt-dialog {
@@ -1310,7 +1315,7 @@
   display: flex;
   flex: 1 1 60%;
   flex-direction: column;
-  min-height: 0;
+  min-height: min-content;
 }
 
 .prompt-preview-body {
