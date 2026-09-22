@@ -60,7 +60,8 @@ opt-out の手段は 2 つある。`prx setup --no-sample-data` と環境変数 
 opt-out のときはデータベースを開かない。
 
 文言は実効言語（en / ja）で出し分ける。実効言語の決め方は [agent-prompts.md](agent-prompts.md) にある。
-投入したときだけ標準出力へ英語 1 行を出す。詳細は [cli-contract.md](cli-contract.md) にある。
+その実行の実効言語は `prx setup` が最初に尋ねる言語の選択で決まる（[daemon.md](daemon.md)）。投入は文言を DB へ書くので、後から `language` を変えても入れ直しは起きない。
+投入したときだけ標準出力へ実効言語で 1 行を出す。詳細は [cli-contract.md](cli-contract.md) にある。
 
 サンプルに pull request は含めない。pull request を紐づけると直後に同期が走るので（[github-sync.md](github-sync.md)）、実在しないリポジトリの同期エラーと stale が初回から残る。
 document は URL でもローカルファイルでもなくインラインの Markdown にする。どちらも環境によって開けなくなる。

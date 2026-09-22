@@ -4,7 +4,11 @@ Choose how PRX should start
 
 ### Synopsis
 
-Choose how PRX should start. On macOS, the setup walk can register the LaunchAgent, start the background server, and open the WebUI. When it creates the database, setup adds a small sample project.
+Choose how PRX should start.
+
+Setup first asks for a language and saves it as the language setting; its questions, its progress messages, and the sample data follow that choice.
+On macOS, the setup walk can register the LaunchAgent, start the background server, and open the WebUI.
+When it creates the database, setup adds a small sample project.
 
 ```
 prx setup [flags]

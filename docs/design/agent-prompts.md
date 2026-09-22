@@ -17,8 +17,10 @@ task prompt や batch prompt のレンダリングは、task の状態・readine
 project・feature の上書き本文は言語で切り替えない。ユーザーが書いた文字列であり、PRX が翻訳するものではないためである。
 組み込みの既定値と一致するかの判定も実効言語の既定値に対して行う。そのため未カスタマイズの環境は、言語を切り替えてもファイルにテンプレートを書き出さず、その言語の文面の更新に追従し続ける。言語を切り替えた時点で既定値のままだったテンプレートは、新しい言語の既定値へ移る。
 `prx config language` は設定した値と実効言語を表示し、`prx config language update auto|en|ja` が値を書き込む。
+`prx setup` も `language` を書く。最初に `en` / `ja` を尋ね、選択を現在の実効言語と同じでも保存する（[daemon.md](daemon.md)）。
 
 `prx daemon` を LaunchAgent から起動した場合、ロケール変数が渡らず `auto` の判定がターミナルからの `prx prompt` と食い違うことがある。WebUI の表示はサーバの実効言語に従うので画面とプロンプトはずれないが、ターミナルとデーモンの間ではずれる。`en` か `ja` を明示すれば解消する。
+`prx setup` を端末から通した環境では `language` が `auto` でなくなるので、このずれは起きない。端末が無い環境で setup した場合、および setup の言語選択をキャンセルした場合は `auto` のまま残る。
 
 ## Task prompt
 

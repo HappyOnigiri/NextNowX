@@ -45,7 +45,7 @@ document は意図的な例外で、独立した公開識別子を持たない�
 そのため `document get`、`document update`、`document delete` に渡す識別子はストレージの識別子そのものである。
 この識別子は不透明であり、移行された document は UUID の形式ではない値を持つことがある。
 
-`prx setup` は、起動時にデータベースファイルを新規作成したときだけサンプルデータを投入し、投入したときだけ標準出力へ英語 1 行を出す。
+`prx setup` は、起動時にデータベースファイルを新規作成したときだけサンプルデータを投入し、投入したときだけ標準出力へ実効言語で 1 行を出す。
 投入を止める `--no-sample-data` は `prx setup` のローカルフラグで、環境変数 `PRX_NO_SAMPLE_DATA` は空でない値をすべて opt-out として扱う。
 投入の成否は終了ステータスに影響せず、失敗は stderr の警告 1 行になる。条件と背景は [persistence.md](persistence.md) にある。
 
