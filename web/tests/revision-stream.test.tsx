@@ -103,6 +103,7 @@ describe("useRevisionStream", () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
@@ -273,6 +274,8 @@ describe("useRevisionStream", () => {
   // 1 通目は接続のたびに必ず届く。これで試行回数が戻ると、1 通目の後に切れる
   // 障害のあいだ、全タブが最短間隔で永久に張り直し続ける。
   it("lengthens the backoff when each connection dies right after the first message", async () => {
+    // jitter の揺れで時間境界が動かないよう、最大値に固定する。
+    vi.spyOn(Math, "random").mockReturnValue(1);
     streamMocks.watchRevision.mockImplementation(async function* () {
       yield await Promise.resolve({ revision: 1n });
     });
