@@ -12,6 +12,8 @@ import (
 	"syscall"
 
 	"gopkg.in/yaml.v3"
+
+	"github.com/HappyOnigiri/nnx/internal/datadir"
 )
 
 // unknownFieldPattern は、どのフィールドにも対応しないキーに対して strict デコードが
@@ -40,11 +42,11 @@ func ResolvePath(override string) (string, error) {
 	if value := os.Getenv("NNX_CONFIG"); value != "" {
 		return filepath.Clean(value), nil
 	}
-	dir, err := os.UserConfigDir()
+	dir, err := datadir.Dir()
 	if err != nil {
 		return "", fmt.Errorf("resolve config directory: %w", err)
 	}
-	return filepath.Join(dir, "nnx", "config.yaml"), nil
+	return filepath.Join(dir, "config.yaml"), nil
 }
 
 func NewStore(path string) (*Store, error) {

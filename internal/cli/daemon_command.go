@@ -155,6 +155,11 @@ func (s *state) daemonInstallCommand() *cobra.Command {
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			manager := launchd.New()
+			// 旧 prx の常駐は観測より先に止める。観測が旧データの移行を起こすので、
+			// 旧常駐が開いたままのデータベースを動かさないためである。
+			if err := manager.RemoveLegacy(cmd.Context()); err != nil {
+				return daemonError(err)
+			}
 			before := daemon.Inspect(manager, nnx.Version())
 			if err := manager.Install(cmd.Context()); err != nil {
 				return daemonError(err)

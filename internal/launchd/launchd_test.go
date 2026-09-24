@@ -155,6 +155,39 @@ func TestInstallWritesAPrivatePlistAndBootstrapsIt(t *testing.T) {
 	}
 }
 
+// install と uninstall は旧 prx の LaunchAgent を登録解除して plist を消す。
+func TestInstallAndUninstallRemoveTheLegacyLaunchAgent(t *testing.T) {
+	for name, operation := range map[string]func(*Manager) error{
+		"install":   func(m *Manager) error { return m.Install(context.Background()) },
+		"uninstall": func(m *Manager) error { return m.Uninstall(context.Background()) },
+	} {
+		t.Run(name, func(t *testing.T) {
+			home := t.TempDir()
+			manager, recorded := newTestManager(t, home, nil)
+			legacy := filepath.Join(home, "Library", "LaunchAgents", "com.user.prx.plist")
+			if err := os.MkdirAll(filepath.Dir(legacy), 0o700); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(legacy, []byte("<plist/>"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if err := operation(manager); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := os.Stat(legacy); !errors.Is(err, os.ErrNotExist) {
+				t.Fatalf("legacy plist remains: %v", err)
+			}
+			first := (*recorded)[0].args
+			if len(first) != 3 || first[0] != "bootout" || first[2] != legacy {
+				t.Fatalf("launchctl calls=%+v", *recorded)
+			}
+			if err := manager.RemoveLegacy(context.Background()); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
 // TestPlistStatusRefusesAnUnsafePlist は symlink を Unknown + エラーにする。install が
 // 任意のファイルを 0600 で上書きしないための入口の検査である。
 func TestPlistStatusRefusesAnUnsafePlist(t *testing.T) {

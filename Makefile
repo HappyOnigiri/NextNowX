@@ -159,10 +159,12 @@ version-check: build
 
 # 配置したバイナリで常駐も作り直す。導入済みのときだけ実行するのは、常駐を望んでいない
 # 環境に LaunchAgent を登録しないためである。macOS 以外や未導入では案内だけ出して成功する。
+# 旧 prx の LaunchAgent があれば、観測より先に daemon install で nnx へ移す。
 install: build
 	install -d "$(INSTALL_DIR)"
 	install -m 0755 bin/nnx "$(INSTALL_DIR)/nnx"
-	@status="$$("$(INSTALL_DIR)/nnx" daemon --json 2>/dev/null)" || status=''; \
+	@if [ -f "$$HOME/Library/LaunchAgents/com.user.prx.plist" ]; then status='"installed":true'; \
+	else status="$$("$(INSTALL_DIR)/nnx" daemon --json 2>/dev/null)" || status=''; fi; \
 	case "$$status" in \
 	  *'"installed":true'*) \
 	    PATH="$(INSTALL_DIR):$$PATH" "$(INSTALL_DIR)/nnx" daemon install;; \

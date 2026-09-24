@@ -19,6 +19,10 @@ import (
 // Label は LaunchAgent の識別子で、plist 名と launchctl の対象名の両方に使う。
 const Label = "com.user.nnx"
 
+// LegacyLabel は改名前の prx が登録していた LaunchAgent の識別子。install と uninstall が
+// 見つけたら取り除き、旧バイナリの常駐が残り続けないようにする。
+const LegacyLabel = "com.user.prx"
+
 // plistTemplate は plist の全体。ProgramArguments は実行ファイルと `serve` の 2 要素だけ
 // なので、--addr も --demo も launchd 経由では渡らない。ThrottleInterval と各キーの理由は
 // docs/design/daemon.md を参照。
@@ -124,12 +128,14 @@ func (m *Manager) Managed() bool {
 }
 
 // PlistPath は LaunchAgent の位置を返す。
-func (m *Manager) PlistPath() (string, error) {
+func (m *Manager) PlistPath() (string, error) { return m.plistPathFor(Label) }
+
+func (m *Manager) plistPathFor(label string) (string, error) {
 	home, err := m.homeDir()
 	if err != nil {
 		return "", &Error{Kind: KindFailed, Op: "resolve home", Err: err}
 	}
-	return filepath.Join(home, "Library", "LaunchAgents", Label+".plist"), nil
+	return filepath.Join(home, "Library", "LaunchAgents", label+".plist"), nil
 }
 
 // LogPath は launchd が serve の stdout と stderr を書き込む先を返す。ローテーションは
@@ -260,6 +266,9 @@ func (m *Manager) Install(ctx context.Context) error {
 	if !m.Supported() {
 		return &Error{Kind: KindUnsupported, Op: "install", Err: ErrUnsupported}
 	}
+	if err := m.RemoveLegacy(ctx); err != nil {
+		return err
+	}
 	path, err := m.PlistPath()
 	if err != nil {
 		return err
@@ -318,14 +327,38 @@ func writeAtomically(path string, data []byte) error {
 }
 
 // Uninstall は登録を解除して plist を消す。service が既に居ない場合も成功にする。
+// 旧 prx の LaunchAgent が残っていれば、それも取り除く。
 func (m *Manager) Uninstall(ctx context.Context) error {
 	if !m.Supported() {
 		return &Error{Kind: KindUnsupported, Op: "uninstall", Err: ErrUnsupported}
+	}
+	if err := m.RemoveLegacy(ctx); err != nil {
+		return err
 	}
 	path, err := m.PlistPath()
 	if err != nil {
 		return err
 	}
+	return m.uninstallPlist(ctx, path)
+}
+
+// RemoveLegacy は旧 prx の LaunchAgent を登録解除して plist を消す。plist が無ければ
+// launchctl を呼ばずに成功する。macOS 以外では何もしない。
+func (m *Manager) RemoveLegacy(ctx context.Context) error {
+	if !m.Supported() {
+		return nil
+	}
+	path, err := m.plistPathFor(LegacyLabel)
+	if err != nil {
+		return err
+	}
+	if _, err := os.Lstat(path); errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	return m.uninstallPlist(ctx, path)
+}
+
+func (m *Manager) uninstallPlist(ctx context.Context, path string) error {
 	domain := fmt.Sprintf("gui/%d", m.uid)
 	output, runErr := m.run(ctx, "launchctl", "bootout", domain, path)
 	if runErr != nil && !serviceMissing(output) {

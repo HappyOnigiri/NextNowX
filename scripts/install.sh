@@ -9,6 +9,19 @@ fail() {
   exit 1
 }
 
+# 改名前の prx の常駐から実行された更新では、LaunchAgent の移行が呼び出し元の常駐を止め、
+# 出力先のパイプも閉じる。巻き添えで止まらないよう、出力を切り離した子プロセスで移してから待つ。
+migrate_legacy() {
+  local destination=$1 legacy_binary=$2 legacy_plist=$3 log=$4
+  (
+    if [ -e "$legacy_plist" ]; then
+      PATH="$(dirname "$destination"):$PATH" "$destination" daemon install
+    fi
+    rm -f "$legacy_binary"
+  ) < /dev/null > "$log" 2>&1 &
+  wait "$!"
+}
+
 # curl | bash の途中切断では配置処理を始めないよう、全体を読み込んでから呼ぶ。
 main() {
   [[ "$release_version" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] ||
@@ -21,11 +34,12 @@ main() {
   done
 
   local install_dir="$HOME/.local/bin" destination="$HOME/.local/bin/nnx"
+  local legacy_binary="$HOME/.local/bin/prx" legacy_plist="$HOME/Library/LaunchAgents/com.user.prx.plist"
   local asset=nnx-darwin-arm64
   local base_url="https://github.com/HappyOnigiri/nnx/releases/download/$release_version"
   local checksum checksum_name actual daemon_status='' initial_install=false
   [ ! -d "$destination" ] || fail "$destination is a directory"
-  if [ ! -e "$destination" ]; then
+  if [ ! -e "$destination" ] && [ ! -e "$legacy_binary" ]; then
     initial_install=true
   fi
 
@@ -56,6 +70,16 @@ main() {
   mv -f "$staged" "$destination"
   staged=''
   echo "Installed nnx $release_version to $destination"
+  if [ -e "$legacy_binary" ] || [ -e "$legacy_plist" ]; then
+    # 改名前の prx の `prx update` は、この行で置き換えを確かめる。
+    echo "Installed prx $release_version to $destination"
+    if migrate_legacy "$destination" "$legacy_binary" "$legacy_plist" "$scratch/legacy.log"; then
+      echo "Moved the legacy prx installation to nnx"
+    else
+      cat "$scratch/legacy.log" >&2
+      echo 'nnx install: could not move the legacy prx LaunchAgent; run nnx daemon install' >&2
+    fi
+  fi
 
   case ":${PATH:-}:" in
     *":$install_dir:"*) ;;

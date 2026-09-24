@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"syscall"
 	"time"
+
+	"github.com/HappyOnigiri/nnx/internal/datadir"
 )
 
 // SchemaVersion は記録の形式。読み手は将来の形式を無視できるよう、内容と一緒に保存する。
@@ -48,11 +50,11 @@ func Dir() (string, error) {
 	if override := os.Getenv(DirEnvironmentVariable); override != "" {
 		return filepath.Clean(override), nil
 	}
-	dir, err := os.UserConfigDir()
+	dir, err := datadir.Dir()
 	if err != nil {
 		return "", fmt.Errorf("resolve run state directory: %w", err)
 	}
-	return filepath.Join(dir, "nnx", "run"), nil
+	return filepath.Join(dir, "run"), nil
 }
 
 // Path は記録ファイルの位置を返す。

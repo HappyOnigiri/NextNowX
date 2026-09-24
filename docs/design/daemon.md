@@ -47,6 +47,13 @@ plist が symlink や通常ファイル以外のときは読み書きを拒否�
 書き込みは一時ファイルへ書いてから rename する。部分的に書かれた plist を launchd が読むと、登録されないまま install が成功してしまう。
 ログのローテーションは実装していない既知の負債である。
 
+## 改名前の LaunchAgent は install と uninstall が取り除く
+
+改名前の prx は `com.user.prx` を登録していた。`nnx daemon install`（`nnx setup` の登録を含む）と `nnx daemon uninstall` は、その plist があれば bootout してから削除する。
+残すと旧バイナリの常駐が同じポートとデータを使い続け、`nnx` の常駐と取り合う。
+`nnx daemon install` は旧 LaunchAgent の除去を常駐の観測より先に行う。観測が旧データの移行（[persistence.md](persistence.md)）を起こすので、旧常駐が開いたままのデータベースを動かさないためである。
+`make install` も旧 plist があれば `nnx daemon install` を実行する。
+
 ## 多重起動防止と稼働発見の真実は 1 つの flock である
 
 稼働記録は `<設定ディレクトリ>/nnx/run/serve.json` に置き、`NNX_RUN_DIR` で差し替えられる。

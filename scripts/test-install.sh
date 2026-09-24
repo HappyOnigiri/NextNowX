@@ -17,6 +17,10 @@ case "${1-}:${2-}" in
     fi
     printf '%s\n' "$NNX_INSTALL_TEST_DAEMON_STATUS"
     ;;
+  daemon:install)
+    touch "$HOME/daemon-installed"
+    rm -f "$HOME/Library/LaunchAgents/com.user.prx.plist"
+    ;;
   setup:)
     if [ "$NNX_INSTALL_TEST_SETUP_STATUS" = fail ]; then
       exit 1
@@ -141,3 +145,38 @@ run_case initial-setup-failure false '{"supported":true,"installed":false}' fail
 run_case initial-installed false '{"supported":true,"installed":true}' ok serve
 run_case initial-status-failure false fail ok serve
 run_case update-not-installed true '{"supported":true,"installed":false}' ok serve
+
+# 改名前の prx が入っていれば、nnx を入れたうえで旧バイナリと旧 LaunchAgent を移す。
+run_legacy_case() {
+  local name=$1 legacy_daemon=$2
+  local home="$root/$name/home" output="$root/$name/output"
+  mkdir -p "$home/.local/bin"
+  cp "$asset" "$home/.local/bin/prx"
+  if [ "$legacy_daemon" = true ]; then
+    mkdir -p "$home/Library/LaunchAgents"
+    echo '<plist/>' > "$home/Library/LaunchAgents/com.user.prx.plist"
+  fi
+  HOME="$home" PATH="$tool_directory:$PATH" NNX_INSTALL_TEST_ASSET="$asset" \
+    NNX_INSTALL_TEST_DAEMON_STATUS=fail NNX_INSTALL_TEST_SETUP_STATUS=fail \
+    bash "$installer" > "$output"
+  assert_contains "$output" "Installed nnx v0.0.0 to $home/.local/bin/nnx"
+  assert_contains "$output" "Installed prx v0.0.0 to $home/.local/bin/nnx"
+  assert_contains "$output" 'Moved the legacy prx installation to nnx'
+  assert_not_contains "$output" 'TUI setup completed'
+  [ -x "$home/.local/bin/nnx" ] && [ ! -e "$home/.local/bin/prx" ] || {
+    echo "$name: the legacy binary was not replaced" >&2
+    exit 1
+  }
+  if [ "$legacy_daemon" = true ]; then
+    [ -e "$home/daemon-installed" ] && [ ! -e "$home/Library/LaunchAgents/com.user.prx.plist" ] || {
+      echo "$name: the legacy LaunchAgent was not moved" >&2
+      exit 1
+    }
+  elif [ -e "$home/daemon-installed" ]; then
+    echo "$name: the LaunchAgent was installed without a legacy one" >&2
+    exit 1
+  fi
+}
+
+run_legacy_case legacy-with-daemon true
+run_legacy_case legacy-without-daemon false
