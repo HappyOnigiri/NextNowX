@@ -10,14 +10,14 @@ import (
 
 	"github.com/spf13/cobra"
 
-	nnx "github.com/HappyOnigiri/nnx"
-	"github.com/HappyOnigiri/nnx/internal/browser"
-	"github.com/HappyOnigiri/nnx/internal/config"
-	"github.com/HappyOnigiri/nnx/internal/daemon"
-	"github.com/HappyOnigiri/nnx/internal/launchd"
-	"github.com/HappyOnigiri/nnx/internal/prompt"
-	"github.com/HappyOnigiri/nnx/internal/runstate"
-	"github.com/HappyOnigiri/nnx/internal/tui"
+	nnx "github.com/HappyOnigiri/NextNowX"
+	"github.com/HappyOnigiri/NextNowX/internal/browser"
+	"github.com/HappyOnigiri/NextNowX/internal/config"
+	"github.com/HappyOnigiri/NextNowX/internal/daemon"
+	"github.com/HappyOnigiri/NextNowX/internal/launchd"
+	"github.com/HappyOnigiri/NextNowX/internal/prompt"
+	"github.com/HappyOnigiri/NextNowX/internal/runstate"
+	"github.com/HappyOnigiri/NextNowX/internal/tui"
 )
 
 // 以下は差し替えられるよう変数にする。go test の stdin は端末ではないため、テストは

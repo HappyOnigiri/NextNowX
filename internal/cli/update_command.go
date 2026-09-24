@@ -12,13 +12,13 @@ import (
 
 	"github.com/spf13/cobra"
 
-	nnx "github.com/HappyOnigiri/nnx"
-	"github.com/HappyOnigiri/nnx/internal/daemon"
-	"github.com/HappyOnigiri/nnx/internal/domain"
-	"github.com/HappyOnigiri/nnx/internal/launchd"
-	"github.com/HappyOnigiri/nnx/internal/release"
-	"github.com/HappyOnigiri/nnx/internal/tui"
-	"github.com/HappyOnigiri/nnx/internal/update"
+	nnx "github.com/HappyOnigiri/NextNowX"
+	"github.com/HappyOnigiri/NextNowX/internal/daemon"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/launchd"
+	"github.com/HappyOnigiri/NextNowX/internal/release"
+	"github.com/HappyOnigiri/NextNowX/internal/tui"
+	"github.com/HappyOnigiri/NextNowX/internal/update"
 )
 
 // 以下は差し替えられるよう変数にする。go test は配布元へ出られず、標準入力も端末ではない。

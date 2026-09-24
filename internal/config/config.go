@@ -14,8 +14,8 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/HappyOnigiri/nnx/internal/domain"
-	"github.com/HappyOnigiri/nnx/internal/prompt"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/prompt"
 )
 
 const (

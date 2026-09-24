@@ -7,8 +7,8 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/HappyOnigiri/nnx/internal/config"
-	"github.com/HappyOnigiri/nnx/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/config"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 func renderMessage(format string, args ...any) humanRenderer {

@@ -6,8 +6,8 @@ import (
 
 	"connectrpc.com/connect"
 
-	nnxv1 "github.com/HappyOnigiri/nnx/gen/nnx/v1"
-	"github.com/HappyOnigiri/nnx/internal/domain"
+	nnxv1 "github.com/HappyOnigiri/NextNowX/gen/nnx/v1"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 // GetUpdateStatus は保存済みの確認結果を返す。間引きが切れていれば application 層が

@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/HappyOnigiri/nnx/internal/app"
-	"github.com/HappyOnigiri/nnx/internal/config"
-	"github.com/HappyOnigiri/nnx/internal/domain"
-	"github.com/HappyOnigiri/nnx/internal/release"
-	"github.com/HappyOnigiri/nnx/internal/store"
+	"github.com/HappyOnigiri/NextNowX/internal/app"
+	"github.com/HappyOnigiri/NextNowX/internal/config"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/release"
+	"github.com/HappyOnigiri/NextNowX/internal/store"
 )
 
 type updateEnvironment struct {

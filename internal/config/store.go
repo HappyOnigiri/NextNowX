@@ -13,7 +13,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/HappyOnigiri/nnx/internal/datadir"
+	"github.com/HappyOnigiri/NextNowX/internal/datadir"
 )
 
 // unknownFieldPattern は、どのフィールドにも対応しないキーに対して strict デコードが

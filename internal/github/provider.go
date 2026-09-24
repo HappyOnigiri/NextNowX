@@ -15,7 +15,7 @@ import (
 
 	gh "github.com/google/go-github/v80/github"
 
-	"github.com/HappyOnigiri/nnx/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 type Provider interface {

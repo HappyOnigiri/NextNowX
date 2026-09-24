@@ -10,7 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/HappyOnigiri/nnx/internal/runstate"
+	"github.com/HappyOnigiri/NextNowX/internal/runstate"
 )
 
 type failingWriter struct{}

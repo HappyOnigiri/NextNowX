@@ -11,14 +11,14 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/HappyOnigiri/nnx/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 // 配布元を読む実装は noupdate タグのビルドから外す。ldflags の真偽値では URL の
 // 文字列がバイナリに残るので、コンパイル対象ごと外して残さない。
 
 // Repository は配布元。利用者が同期するリポジトリとは無関係なので設定で変えられない。
-const Repository = "HappyOnigiri/nnx"
+const Repository = "HappyOnigiri/NextNowX"
 
 // DefaultBaseURL は未認証で読む Releases API の位置。
 const DefaultBaseURL = "https://api.github.com/repos/" + Repository + "/releases"

@@ -5,7 +5,7 @@
 
 ## 配布元は固定で、確認は未認証で行う
 
-確認先は Next Now X 自身の配布元である `HappyOnigiri/nnx` の Releases だけで、設定で変えられない。
+確認先は Next Now X 自身の配布元である `HappyOnigiri/NextNowX` の Releases だけで、設定で変えられない。
 利用者が同期しているリポジトリとは無関係なので、`internal/github` が解決する資格情報は使わず、未認証の Releases API を読む。
 配布元へ利用者のトークンを送る理由がない。
 

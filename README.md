@@ -20,7 +20,7 @@ Register how the tasks depend on each other, and Next Now X separates the work y
 A prebuilt binary is published for Apple Silicon.
 
 ```sh
-curl -fsSL https://github.com/HappyOnigiri/nnx/releases/latest/download/install.sh | bash
+curl -fsSL https://github.com/HappyOnigiri/NextNowX/releases/latest/download/install.sh | bash
 ```
 
 Run the same command again to update, or run `nnx update` to check for a newer release and install it. The WebUI offers the same update when one is available.
@@ -30,8 +30,8 @@ Run the same command again to update, or run `nnx update` to check for a newer r
 Build from source; the same steps work on macOS. Windows is not supported natively.
 
 ```sh
-git clone https://github.com/HappyOnigiri/nnx.git
-cd nnx
+git clone https://github.com/HappyOnigiri/NextNowX.git
+cd NextNowX
 make install
 ```
 
@@ -64,7 +64,7 @@ See `nnx -h` and `nnx <command> -h` for commands and options.
 ## Uninstallation
 
 ```sh
-curl -fsSL https://github.com/HappyOnigiri/nnx/releases/latest/download/uninstall.sh | bash
+curl -fsSL https://github.com/HappyOnigiri/NextNowX/releases/latest/download/uninstall.sh | bash
 ```
 
 ## Development
@@ -86,5 +86,5 @@ make ci   # run every check before handing off a change
 ## Contributing
 
 Contributions are welcome!
-Share bug reports and ideas through [Issues](https://github.com/HappyOnigiri/nnx/issues), or send a [pull request](https://github.com/HappyOnigiri/nnx/pulls).
+Share bug reports and ideas through [Issues](https://github.com/HappyOnigiri/NextNowX/issues), or send a [pull request](https://github.com/HappyOnigiri/NextNowX/pulls).
 Documentation improvements and translations are welcome too.

@@ -12,14 +12,14 @@ import (
 
 	"connectrpc.com/connect"
 
-	nnxv1 "github.com/HappyOnigiri/nnx/gen/nnx/v1"
-	"github.com/HappyOnigiri/nnx/gen/nnx/v1/nnxv1connect"
-	"github.com/HappyOnigiri/nnx/internal/app"
-	"github.com/HappyOnigiri/nnx/internal/domain"
-	"github.com/HappyOnigiri/nnx/internal/filepicker"
-	githubprovider "github.com/HappyOnigiri/nnx/internal/github"
-	"github.com/HappyOnigiri/nnx/internal/rpc"
-	"github.com/HappyOnigiri/nnx/internal/store"
+	nnxv1 "github.com/HappyOnigiri/NextNowX/gen/nnx/v1"
+	"github.com/HappyOnigiri/NextNowX/gen/nnx/v1/nnxv1connect"
+	"github.com/HappyOnigiri/NextNowX/internal/app"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/filepicker"
+	githubprovider "github.com/HappyOnigiri/NextNowX/internal/github"
+	"github.com/HappyOnigiri/NextNowX/internal/rpc"
+	"github.com/HappyOnigiri/NextNowX/internal/store"
 )
 
 // newRPCProject は feature が所属すべき project を作る。主題が入れ物ではなく

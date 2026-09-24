@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/HappyOnigiri/nnx/internal/launchd"
-	"github.com/HappyOnigiri/nnx/internal/runstate"
+	"github.com/HappyOnigiri/NextNowX/internal/launchd"
+	"github.com/HappyOnigiri/NextNowX/internal/runstate"
 )
 
 func TestInspectReportsAnUnsupportedOperatingSystemWithoutTouchingTheDisk(t *testing.T) {

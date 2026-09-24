@@ -15,14 +15,14 @@ import (
 
 	"github.com/spf13/cobra"
 
-	nnx "github.com/HappyOnigiri/nnx"
-	"github.com/HappyOnigiri/nnx/internal/config"
-	"github.com/HappyOnigiri/nnx/internal/domain"
-	"github.com/HappyOnigiri/nnx/internal/launchd"
-	"github.com/HappyOnigiri/nnx/internal/revision"
-	"github.com/HappyOnigiri/nnx/internal/rpc"
-	"github.com/HappyOnigiri/nnx/internal/runstate"
-	"github.com/HappyOnigiri/nnx/internal/webui"
+	nnx "github.com/HappyOnigiri/NextNowX"
+	"github.com/HappyOnigiri/NextNowX/internal/config"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/launchd"
+	"github.com/HappyOnigiri/NextNowX/internal/revision"
+	"github.com/HappyOnigiri/NextNowX/internal/rpc"
+	"github.com/HappyOnigiri/NextNowX/internal/runstate"
+	"github.com/HappyOnigiri/NextNowX/internal/webui"
 )
 
 const (

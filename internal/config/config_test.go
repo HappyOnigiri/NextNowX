@@ -10,7 +10,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/HappyOnigiri/nnx/internal/prompt"
+	"github.com/HappyOnigiri/NextNowX/internal/prompt"
 )
 
 func TestNormalizeDefaultsAndRejectsUnsafeValues(t *testing.T) {

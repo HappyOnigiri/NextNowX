@@ -20,7 +20,7 @@
 面向 Apple Silicon 提供预编译的二进制文件。
 
 ```sh
-curl -fsSL https://github.com/HappyOnigiri/nnx/releases/latest/download/install.sh | bash
+curl -fsSL https://github.com/HappyOnigiri/NextNowX/releases/latest/download/install.sh | bash
 ```
 
 更新也使用同一条命令。也可以运行 `nnx update` 检查并安装更新。有新版本时，WebUI 中同样可以更新。
@@ -30,8 +30,8 @@ curl -fsSL https://github.com/HappyOnigiri/nnx/releases/latest/download/install.
 从源码构建，macOS 上也可以使用相同的步骤。不支持原生 Windows。
 
 ```sh
-git clone https://github.com/HappyOnigiri/nnx.git
-cd nnx
+git clone https://github.com/HappyOnigiri/NextNowX.git
+cd NextNowX
 make install
 ```
 
@@ -64,7 +64,7 @@ nnx prompt T-1 # 组装交给任务的指令
 ## 卸载
 
 ```sh
-curl -fsSL https://github.com/HappyOnigiri/nnx/releases/latest/download/uninstall.sh | bash
+curl -fsSL https://github.com/HappyOnigiri/NextNowX/releases/latest/download/uninstall.sh | bash
 ```
 
 ## 开发
@@ -86,5 +86,5 @@ make ci   # 在交付变更前运行全部检查
 ## 参与贡献
 
 欢迎参与贡献！
-你可以通过 [Issues](https://github.com/HappyOnigiri/nnx/issues) 报告问题或提出想法，也可以提交 [Pull Request](https://github.com/HappyOnigiri/nnx/pulls)。
+你可以通过 [Issues](https://github.com/HappyOnigiri/NextNowX/issues) 报告问题或提出想法，也可以提交 [Pull Request](https://github.com/HappyOnigiri/NextNowX/pulls)。
 同样欢迎改进文档和翻译。

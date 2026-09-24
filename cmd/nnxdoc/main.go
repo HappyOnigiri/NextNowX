@@ -9,7 +9,7 @@ import (
 
 	"github.com/spf13/cobra/doc"
 
-	"github.com/HappyOnigiri/nnx/internal/cli"
+	"github.com/HappyOnigiri/NextNowX/internal/cli"
 )
 
 func main() {

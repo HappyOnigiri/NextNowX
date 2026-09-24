@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package nnx.v1;
 
-option go_package = "github.com/HappyOnigiri/nnx/gen/nnx/v1;nnxv1";
+option go_package = "github.com/HappyOnigiri/NextNowX/gen/nnx/v1;nnxv1";
 
 // FeatureStatus は feature の保存されたライフサイクル状態。
 // auto 以外の値はすべて、導出より優先される手動の上書き。

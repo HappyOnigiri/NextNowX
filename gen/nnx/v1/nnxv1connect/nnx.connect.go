@@ -8,7 +8,7 @@ import (
 	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
-	v1 "github.com/HappyOnigiri/nnx/gen/nnx/v1"
+	v1 "github.com/HappyOnigiri/NextNowX/gen/nnx/v1"
 	http "net/http"
 	strings "strings"
 )

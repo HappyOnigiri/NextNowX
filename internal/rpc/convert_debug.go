@@ -3,8 +3,8 @@ package rpc
 import (
 	"time"
 
-	nnxv1 "github.com/HappyOnigiri/nnx/gen/nnx/v1"
-	"github.com/HappyOnigiri/nnx/internal/domain"
+	nnxv1 "github.com/HappyOnigiri/NextNowX/gen/nnx/v1"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 func protoDebugReport(v domain.DebugReport) *nnxv1.DebugReport {

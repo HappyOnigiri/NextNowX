@@ -5,9 +5,9 @@ import (
 	"errors"
 	"time"
 
-	nnx "github.com/HappyOnigiri/nnx"
-	"github.com/HappyOnigiri/nnx/internal/config"
-	"github.com/HappyOnigiri/nnx/internal/domain"
+	nnx "github.com/HappyOnigiri/NextNowX"
+	"github.com/HappyOnigiri/NextNowX/internal/config"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 const (

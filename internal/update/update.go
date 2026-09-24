@@ -16,12 +16,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/HappyOnigiri/nnx/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 // DefaultBaseURL はリリース資産の取得元。latest ではなく確認したタグを指すことで、
 // 確認した版と実際に入る版を一致させる。
-const DefaultBaseURL = "https://github.com/HappyOnigiri/nnx/releases/download"
+const DefaultBaseURL = "https://github.com/HappyOnigiri/NextNowX/releases/download"
 
 const (
 	// maxScriptBytes は取得するインストーラーの上限。

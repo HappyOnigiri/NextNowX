@@ -1,4 +1,4 @@
-module github.com/HappyOnigiri/nnx
+module github.com/HappyOnigiri/NextNowX
 
 go 1.27.1
 

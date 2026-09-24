@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/HappyOnigiri/nnx/internal/domain"
-	"github.com/HappyOnigiri/nnx/internal/release"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/release"
 )
 
 // 静的な provider は、実ネットワークへ出てはならない経路のために置く。

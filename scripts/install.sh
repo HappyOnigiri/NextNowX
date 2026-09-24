@@ -36,7 +36,7 @@ main() {
   local install_dir="$HOME/.local/bin" destination="$HOME/.local/bin/nnx"
   local legacy_binary="$HOME/.local/bin/prx" legacy_plist="$HOME/Library/LaunchAgents/com.user.prx.plist"
   local asset=nnx-darwin-arm64
-  local base_url="https://github.com/HappyOnigiri/nnx/releases/download/$release_version"
+  local base_url="https://github.com/HappyOnigiri/NextNowX/releases/download/$release_version"
   local checksum checksum_name actual daemon_status='' initial_install=false
   [ ! -d "$destination" ] || fail "$destination is a directory"
   if [ ! -e "$destination" ] && [ ! -e "$legacy_binary" ]; then

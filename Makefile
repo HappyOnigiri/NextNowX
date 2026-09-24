@@ -203,7 +203,7 @@ noupdate-check:
 	@directory="$$(mktemp -d)" || exit $$?; \
 	trap 'rm -rf "$$directory"' EXIT; \
 	$(GO) build -tags noupdate -trimpath -o "$$directory/nnx" ./cmd/nnx || exit $$?; \
-	for url in 'api.github.com/repos/HappyOnigiri/nnx/releases' 'github.com/HappyOnigiri/nnx/releases/download'; do \
+	for url in 'api.github.com/repos/HappyOnigiri/NextNowX/releases' 'github.com/HappyOnigiri/NextNowX/releases/download'; do \
 	  if strings -a "$$directory/nnx" | grep -qF "$$url"; then \
 	    echo "the noupdate build still contains $$url"; exit 1; \
 	  fi; \

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/HappyOnigiri/nnx/internal/app"
-	"github.com/HappyOnigiri/nnx/internal/domain"
-	"github.com/HappyOnigiri/nnx/internal/store"
+	"github.com/HappyOnigiri/NextNowX/internal/app"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/store"
 )
 
 // statusTask は、導出ステータスを検証する feature 用に作る task 1 件を表す。

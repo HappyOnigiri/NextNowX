@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/HappyOnigiri/nnx/internal/runstate"
+	"github.com/HappyOnigiri/NextNowX/internal/runstate"
 )
 
 // serverLog は子プロセスの stderr を安全に読める形で集める。exec は非 *os.File の

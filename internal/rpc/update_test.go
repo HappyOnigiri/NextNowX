@@ -8,9 +8,9 @@ import (
 
 	"connectrpc.com/connect"
 
-	nnxv1 "github.com/HappyOnigiri/nnx/gen/nnx/v1"
-	"github.com/HappyOnigiri/nnx/internal/domain"
-	"github.com/HappyOnigiri/nnx/internal/rpc"
+	nnxv1 "github.com/HappyOnigiri/NextNowX/gen/nnx/v1"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/rpc"
 )
 
 // updateService は更新の 3 つだけを差し替える。他の RPC は埋め込んだ interface が担う。

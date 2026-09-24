@@ -10,7 +10,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/HappyOnigiri/nnx/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 // MaximumTemplateBytes は保存されるテンプレート 1 件の上限。テンプレートは YAML・

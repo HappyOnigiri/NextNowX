@@ -3,9 +3,9 @@
 package main
 
 import (
-	"github.com/HappyOnigiri/nnx/internal/app"
-	"github.com/HappyOnigiri/nnx/internal/release"
-	"github.com/HappyOnigiri/nnx/internal/update"
+	"github.com/HappyOnigiri/NextNowX/internal/app"
+	"github.com/HappyOnigiri/NextNowX/internal/release"
+	"github.com/HappyOnigiri/NextNowX/internal/update"
 )
 
 // setUpdateSources は更新の確認と実行を行う実装を注入する。配布元だけを相手にする

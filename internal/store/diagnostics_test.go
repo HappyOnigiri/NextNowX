@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/HappyOnigiri/nnx/internal/store"
+	"github.com/HappyOnigiri/NextNowX/internal/store"
 )
 
 func TestStoreReportsResolvedPathAndSchemaVersions(t *testing.T) {

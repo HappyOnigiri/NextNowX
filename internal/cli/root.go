@@ -14,11 +14,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	nnx "github.com/HappyOnigiri/nnx"
-	"github.com/HappyOnigiri/nnx/internal/config"
-	"github.com/HappyOnigiri/nnx/internal/domain"
-	"github.com/HappyOnigiri/nnx/internal/launchd"
-	"github.com/HappyOnigiri/nnx/internal/runstate"
+	nnx "github.com/HappyOnigiri/NextNowX"
+	"github.com/HappyOnigiri/NextNowX/internal/config"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/launchd"
+	"github.com/HappyOnigiri/NextNowX/internal/runstate"
 )
 
 // automaticSyncTimeout は通常のコマンド実行前に走る日和見的な更新の上限。

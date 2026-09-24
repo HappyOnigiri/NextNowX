@@ -9,11 +9,11 @@ import (
 
 	"connectrpc.com/connect"
 
-	nnxv1 "github.com/HappyOnigiri/nnx/gen/nnx/v1"
-	"github.com/HappyOnigiri/nnx/gen/nnx/v1/nnxv1connect"
-	"github.com/HappyOnigiri/nnx/internal/config"
-	"github.com/HappyOnigiri/nnx/internal/domain"
-	"github.com/HappyOnigiri/nnx/internal/filepicker"
+	nnxv1 "github.com/HappyOnigiri/NextNowX/gen/nnx/v1"
+	"github.com/HappyOnigiri/NextNowX/gen/nnx/v1/nnxv1connect"
+	"github.com/HappyOnigiri/NextNowX/internal/config"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/filepicker"
 )
 
 // LocalFilePicker はファイルを読まずに、サーバーローカルのネイティブ選択ダイアログを開く。

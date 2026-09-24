@@ -11169,7 +11169,7 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"\x12GetPromptTemplates\x12!.nnx.v1.GetPromptTemplatesRequest\x1a\".nnx.v1.GetPromptTemplatesResponse\x12d\n" +
 	"\x15UpdatePromptTemplates\x12$.nnx.v1.UpdatePromptTemplatesRequest\x1a%.nnx.v1.UpdatePromptTemplatesResponse\x12L\n" +
 	"\rGetTaskPrompt\x12\x1c.nnx.v1.GetTaskPromptRequest\x1a\x1d.nnx.v1.GetTaskPromptResponse\x12O\n" +
-	"\x0eGetBatchPrompt\x12\x1d.nnx.v1.GetBatchPromptRequest\x1a\x1e.nnx.v1.GetBatchPromptResponseB.Z,github.com/HappyOnigiri/nnx/gen/nnx/v1;nnxv1b\x06proto3"
+	"\x0eGetBatchPrompt\x12\x1d.nnx.v1.GetBatchPromptRequest\x1a\x1e.nnx.v1.GetBatchPromptResponseB3Z1github.com/HappyOnigiri/NextNowX/gen/nnx/v1;nnxv1b\x06proto3"
 
 var (
 	file_nnx_v1_nnx_proto_rawDescOnce sync.Once

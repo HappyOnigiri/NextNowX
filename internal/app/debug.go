@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
-	nnx "github.com/HappyOnigiri/nnx"
-	"github.com/HappyOnigiri/nnx/internal/domain"
+	nnx "github.com/HappyOnigiri/NextNowX"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 // DiagnosticsRepository は実データベースを開いているとき SQLite repository が実装する。

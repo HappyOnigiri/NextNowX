@@ -20,7 +20,7 @@
 Apple Silicon 向けのバイナリを配布しています。
 
 ```sh
-curl -fsSL https://github.com/HappyOnigiri/nnx/releases/latest/download/install.sh | bash
+curl -fsSL https://github.com/HappyOnigiri/NextNowX/releases/latest/download/install.sh | bash
 ```
 
 更新も同じコマンドで行えます。`nnx update` でも新しいリリースを確認して更新できます。新しいリリースがあるときは WebUI からも更新できます。
@@ -30,8 +30,8 @@ curl -fsSL https://github.com/HappyOnigiri/nnx/releases/latest/download/install.
 ソースからビルドします。macOS でも同じ手順が使えます。Windows ネイティブには対応していません。
 
 ```sh
-git clone https://github.com/HappyOnigiri/nnx.git
-cd nnx
+git clone https://github.com/HappyOnigiri/NextNowX.git
+cd NextNowX
 make install
 ```
 
@@ -64,7 +64,7 @@ nnx prompt T-1 # タスクに渡す指示文を組み立てる
 ## アンインストール
 
 ```sh
-curl -fsSL https://github.com/HappyOnigiri/nnx/releases/latest/download/uninstall.sh | bash
+curl -fsSL https://github.com/HappyOnigiri/NextNowX/releases/latest/download/uninstall.sh | bash
 ```
 
 ## 開発
@@ -86,5 +86,5 @@ make ci   # 変更を引き渡す前のチェック一式を実行する
 ## コントリビュート
 
 コントリビュートを歓迎します！
-不具合報告やアイデアは [Issues](https://github.com/HappyOnigiri/nnx/issues) へ、改善は [Pull Request](https://github.com/HappyOnigiri/nnx/pulls) でお寄せください。
+不具合報告やアイデアは [Issues](https://github.com/HappyOnigiri/NextNowX/issues) へ、改善は [Pull Request](https://github.com/HappyOnigiri/NextNowX/pulls) でお寄せください。
 ドキュメントの改善や翻訳も歓迎です。

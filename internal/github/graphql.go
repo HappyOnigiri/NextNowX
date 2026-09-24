@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/HappyOnigiri/nnx/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 const graphQLBatchSize = 20

@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/HappyOnigiri/nnx/internal/config"
-	"github.com/HappyOnigiri/nnx/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/config"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 func TestWriteJSONReturnsDataObjectWithoutSuccessEnvelope(t *testing.T) {

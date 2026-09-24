@@ -15,9 +15,9 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"github.com/HappyOnigiri/nnx/internal/datadir"
-	"github.com/HappyOnigiri/nnx/internal/db"
-	"github.com/HappyOnigiri/nnx/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/datadir"
+	"github.com/HappyOnigiri/NextNowX/internal/db"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 //go:embed migrations/*.sql

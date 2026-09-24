@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/HappyOnigiri/nnx/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 func TestCanonicalVersionAcceptsStableReleasesOnly(t *testing.T) {

@@ -3,8 +3,8 @@ package rpc
 import (
 	"sort"
 
-	nnxv1 "github.com/HappyOnigiri/nnx/gen/nnx/v1"
-	"github.com/HappyOnigiri/nnx/internal/domain"
+	nnxv1 "github.com/HappyOnigiri/NextNowX/gen/nnx/v1"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 func protoProject(v domain.Project) *nnxv1.Project {

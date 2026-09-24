@@ -11,7 +11,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/HappyOnigiri/nnx/internal/config"
+	"github.com/HappyOnigiri/NextNowX/internal/config"
 )
 
 type Candidate struct {

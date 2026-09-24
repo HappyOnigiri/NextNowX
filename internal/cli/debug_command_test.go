@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/HappyOnigiri/nnx/internal/domain"
-	"github.com/HappyOnigiri/nnx/internal/runstate"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/runstate"
 )
 
 // レポートはデータベースを開けない実行のためにあるので、オープンの失敗が

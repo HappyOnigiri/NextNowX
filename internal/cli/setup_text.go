@@ -1,6 +1,6 @@
 package cli
 
-import "github.com/HappyOnigiri/nnx/internal/prompt"
+import "github.com/HappyOnigiri/NextNowX/internal/prompt"
 
 // setupOptionText は選択肢 1 つ分の文言。
 type setupOptionText struct {

@@ -7,7 +7,7 @@ import (
 
 	"connectrpc.com/connect"
 
-	nnxv1 "github.com/HappyOnigiri/nnx/gen/nnx/v1"
+	nnxv1 "github.com/HappyOnigiri/NextNowX/gen/nnx/v1"
 )
 
 // WatchRevision は現在のリビジョンを即座に 1 通目として送り、以後は変化と heartbeat を

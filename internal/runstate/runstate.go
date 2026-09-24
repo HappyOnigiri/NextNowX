@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/HappyOnigiri/nnx/internal/datadir"
+	"github.com/HappyOnigiri/NextNowX/internal/datadir"
 )
 
 // SchemaVersion は記録の形式。読み手は将来の形式を無視できるよう、内容と一緒に保存する。

@@ -6,7 +6,7 @@ package release
 import (
 	"context"
 
-	"github.com/HappyOnigiri/nnx/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 // Provider は配布元のリリース一覧を読む境界。

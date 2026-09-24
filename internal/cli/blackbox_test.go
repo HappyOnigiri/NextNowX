@@ -18,8 +18,8 @@ import (
 
 	"connectrpc.com/connect"
 
-	nnxv1 "github.com/HappyOnigiri/nnx/gen/nnx/v1"
-	"github.com/HappyOnigiri/nnx/gen/nnx/v1/nnxv1connect"
+	nnxv1 "github.com/HappyOnigiri/NextNowX/gen/nnx/v1"
+	"github.com/HappyOnigiri/NextNowX/gen/nnx/v1/nnxv1connect"
 )
 
 type resultEnvelope struct {

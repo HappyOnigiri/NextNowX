@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/HappyOnigiri/nnx/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 func TestTaskLabelNormalization(t *testing.T) {

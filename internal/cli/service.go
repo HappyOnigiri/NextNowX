@@ -4,8 +4,8 @@ import (
 	"context"
 	"io"
 
-	"github.com/HappyOnigiri/nnx/internal/domain"
-	"github.com/HappyOnigiri/nnx/internal/prompt"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/prompt"
 )
 
 // ServiceOptions は CLI が選んだ実行時の境界条件を運ぶ。パスの出所も含めるのは、

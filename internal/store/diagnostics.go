@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/HappyOnigiri/nnx/internal/db"
-	"github.com/HappyOnigiri/nnx/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/db"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 // migrationFile は埋め込みマイグレーション 1 件と、その名前が示すバージョン。

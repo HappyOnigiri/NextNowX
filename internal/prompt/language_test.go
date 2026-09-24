@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/HappyOnigiri/nnx/internal/prompt"
+	"github.com/HappyOnigiri/NextNowX/internal/prompt"
 )
 
 func TestResolveLanguagePrefersTheSettingOverTheEnvironment(t *testing.T) {

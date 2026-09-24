@@ -11,13 +11,13 @@ import (
 
 	"connectrpc.com/connect"
 
-	nnxv1 "github.com/HappyOnigiri/nnx/gen/nnx/v1"
-	"github.com/HappyOnigiri/nnx/gen/nnx/v1/nnxv1connect"
-	"github.com/HappyOnigiri/nnx/internal/app"
-	githubprovider "github.com/HappyOnigiri/nnx/internal/github"
-	"github.com/HappyOnigiri/nnx/internal/revision"
-	"github.com/HappyOnigiri/nnx/internal/rpc"
-	"github.com/HappyOnigiri/nnx/internal/store"
+	nnxv1 "github.com/HappyOnigiri/NextNowX/gen/nnx/v1"
+	"github.com/HappyOnigiri/NextNowX/gen/nnx/v1/nnxv1connect"
+	"github.com/HappyOnigiri/NextNowX/internal/app"
+	githubprovider "github.com/HappyOnigiri/NextNowX/internal/github"
+	"github.com/HappyOnigiri/NextNowX/internal/revision"
+	"github.com/HappyOnigiri/NextNowX/internal/rpc"
+	"github.com/HappyOnigiri/NextNowX/internal/store"
 )
 
 // newRevisionClient は WatchRevision だけを差し替えた構成を作る。newTestClient を

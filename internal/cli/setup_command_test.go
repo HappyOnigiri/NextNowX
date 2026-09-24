@@ -14,11 +14,11 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/HappyOnigiri/nnx/internal/daemon"
-	"github.com/HappyOnigiri/nnx/internal/launchd"
-	"github.com/HappyOnigiri/nnx/internal/prompt"
-	"github.com/HappyOnigiri/nnx/internal/runstate"
-	"github.com/HappyOnigiri/nnx/internal/tui"
+	"github.com/HappyOnigiri/NextNowX/internal/daemon"
+	"github.com/HappyOnigiri/NextNowX/internal/launchd"
+	"github.com/HappyOnigiri/NextNowX/internal/prompt"
+	"github.com/HappyOnigiri/NextNowX/internal/runstate"
+	"github.com/HappyOnigiri/NextNowX/internal/tui"
 )
 
 // TestSetupSettledMessage は分岐ごとの 1 行を両言語で確かめる。日本語の期待値を

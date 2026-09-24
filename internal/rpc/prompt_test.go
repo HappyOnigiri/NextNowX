@@ -11,13 +11,13 @@ import (
 
 	"connectrpc.com/connect"
 
-	nnxv1 "github.com/HappyOnigiri/nnx/gen/nnx/v1"
-	"github.com/HappyOnigiri/nnx/gen/nnx/v1/nnxv1connect"
-	"github.com/HappyOnigiri/nnx/internal/app"
-	"github.com/HappyOnigiri/nnx/internal/config"
-	"github.com/HappyOnigiri/nnx/internal/prompt"
-	"github.com/HappyOnigiri/nnx/internal/rpc"
-	"github.com/HappyOnigiri/nnx/internal/store"
+	nnxv1 "github.com/HappyOnigiri/NextNowX/gen/nnx/v1"
+	"github.com/HappyOnigiri/NextNowX/gen/nnx/v1/nnxv1connect"
+	"github.com/HappyOnigiri/NextNowX/internal/app"
+	"github.com/HappyOnigiri/NextNowX/internal/config"
+	"github.com/HappyOnigiri/NextNowX/internal/prompt"
+	"github.com/HappyOnigiri/NextNowX/internal/rpc"
+	"github.com/HappyOnigiri/NextNowX/internal/store"
 )
 
 func newPromptClient(t *testing.T) nnxv1connect.NNXServiceClient {

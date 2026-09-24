@@ -18,7 +18,7 @@ trap 'exit 143' TERM
 # WebUI は呼び出し側の web-build が生成済みで、この Go ビルドが internal/webui へ埋め込む。
 # CLI の表示は v なしなので、タグから接頭辞を落として埋め込む。
 CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 "$go_command" build -trimpath \
-  -ldflags "-s -w -X github.com/HappyOnigiri/nnx.releaseVersion=${release_version#v}" \
+  -ldflags "-s -w -X github.com/HappyOnigiri/NextNowX.releaseVersion=${release_version#v}" \
   -o "$scratch/nnx-darwin-arm64" ./cmd/nnx
 sed "s/@NNX_RELEASE_VERSION@/$release_version/g" "$script_directory/install.sh" > "$scratch/install.sh"
 cp "$script_directory/uninstall.sh" "$scratch/uninstall.sh"
