@@ -11,7 +11,7 @@ import {
   type Feature,
   type Project,
   type TaskLabelOverridesUpdate,
-} from "../gen/prx/v1/prx_pb";
+} from "../gen/nnx/v1/nnx_pb";
 import { useDomainMutation } from "../hooks";
 import { featureStatusLabel } from "../i18n/domain";
 import { ConfirmationDialog } from "./ConfirmationDialog";

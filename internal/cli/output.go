@@ -10,7 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 // SchemaVersion は CLI レスポンスのスキーマバージョン。診断レポートは CLI を

@@ -9,16 +9,16 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/HappyOnigiri/PRX/internal/config"
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/prompt"
+	"github.com/HappyOnigiri/NextNowX/internal/config"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/prompt"
 )
 
 func (s *state) configCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:     "config",
 		Short:   "Show or manage GitHub hosts and authentication",
-		Example: "prx config",
+		Example: "nnx config",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			store, err := s.configStore()
@@ -53,7 +53,7 @@ func (s *state) configSyncCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:     "sync",
 		Short:   "Show or manage automatic GitHub synchronization settings",
-		Example: "prx config sync",
+		Example: "nnx config sync",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			store, err := s.configStore()
@@ -84,7 +84,7 @@ func (s *state) configSyncUpdateCommand() *cobra.Command {
 				"INTERVAL_SECONDS is a whole number of seconds and must be at least %d.",
 			config.MinimumAutoSyncIntervalSeconds,
 		),
-		Example: "prx config sync update 3600 --json",
+		Example: "nnx config sync update 3600 --json",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			interval, err := strconv.ParseInt(args[0], 10, 64)
@@ -117,7 +117,7 @@ func (s *state) configLanguageCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:     "language",
 		Short:   "Show or manage the shared display and prompt language",
-		Example: "prx config language",
+		Example: "nnx config language",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			store, err := s.configStore()
@@ -141,7 +141,7 @@ func (s *state) configLanguageUpdateCommand() *cobra.Command {
 		Short: "Update the shared display and prompt language",
 		Long: fmt.Sprintf(
 			"Update the shared display and prompt language.\n\n"+
-				"LANGUAGE is %q, %q, or %q. With %[1]q, PRX reads LC_ALL, LC_MESSAGES, and LANG, "+
+				"LANGUAGE is %q, %q, or %q. With %[1]q, Next Now X reads LC_ALL, LC_MESSAGES, and LANG, "+
 				"and falls back to %[2]q.\n"+
 				"The language selects the built-in prompt templates and the WebUI display language. "+
 				"Templates you have customized keep the text you wrote.",
@@ -149,7 +149,7 @@ func (s *state) configLanguageUpdateCommand() *cobra.Command {
 			string(prompt.LanguageEnglish),
 			string(prompt.LanguageJapanese),
 		),
-		Example: "prx config language update ja",
+		Example: "nnx config language update ja",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			store, err := s.configStore()
@@ -184,7 +184,7 @@ func (s *state) configServerCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:     "server",
 		Short:   "Show or manage the local server listen port",
-		Example: "prx config server",
+		Example: "nnx config server",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			store, err := s.configStore()
@@ -208,15 +208,15 @@ func (s *state) configServerUpdateCommand() *cobra.Command {
 		Short: "Update the local server listen port",
 		Long: fmt.Sprintf(
 			"Update the local server listen port.\n\n"+
-				"PORT is %q or a port number between 1 and 65535. With %[1]q, PRX prefers %d and "+
+				"PORT is %q or a port number between 1 and 65535. With %[1]q, Next Now X prefers %d and "+
 				"falls back to an ephemeral port when it is already in use.\n"+
-				"The host is always loopback; use prx serve --addr to listen elsewhere.\n"+
+				"The host is always loopback; use nnx serve --addr to listen elsewhere.\n"+
 				"A server that is already running keeps its current port until it is restarted; "+
-				"run prx daemon restart to move the background server.",
+				"run nnx daemon restart to move the background server.",
 			config.ServerPortAutoValue,
 			defaultServePort,
 		),
-		Example: "prx config server update 7400",
+		Example: "nnx config server update 7400",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if _, err := config.ParseServerPort(args[0]); err != nil {
@@ -263,7 +263,7 @@ func (s *state) configPathCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:     "path",
 		Short:   "Show the resolved configuration path",
-		Example: "prx config path",
+		Example: "nnx config path",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			store, err := s.configStore()
@@ -279,7 +279,7 @@ func (s *state) configValidateCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:     "validate",
 		Short:   "Validate the GitHub configuration",
-		Example: "prx config validate",
+		Example: "nnx config validate",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			store, err := s.configStore()
@@ -300,7 +300,7 @@ func (s *state) configHostCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:     "host",
 		Short:   "List or manage configured GitHub hosts",
-		Example: "prx config host",
+		Example: "nnx config host",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			store, err := s.configStore()
@@ -330,7 +330,7 @@ func (s *state) configHostAddCommand() *cobra.Command {
 		Short: "Add a GitHub.com or Enterprise host",
 		Long: "Add a GitHub.com or Enterprise host.\n\n" +
 			"HOST is a hostname with an optional port.",
-		Example: "prx config host add ghe.example.com",
+		Example: "nnx config host add ghe.example.com",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			store, err := s.configStore()
@@ -362,7 +362,7 @@ func (s *state) configHostUpdateCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:     "update HOST",
 		Short:   "Update a configured GitHub host",
-		Example: "prx config host update ghe.example.com --api-url https://ghe.example.com/api/v3/",
+		Example: "nnx config host update ghe.example.com --api-url https://ghe.example.com/api/v3/",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			store, err := s.configStore()
@@ -414,7 +414,7 @@ func (s *state) configHostRemoveCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:     "remove HOST",
 		Short:   "Remove a configured GitHub host",
-		Example: "prx config host remove ghe.example.com",
+		Example: "nnx config host remove ghe.example.com",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			store, err := s.configStore()
@@ -435,7 +435,7 @@ func (s *state) configAuthCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:     "auth",
 		Short:   "List or manage host-scoped authentication methods",
-		Example: "prx config auth",
+		Example: "nnx config auth",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			store, err := s.configStore()
@@ -471,7 +471,7 @@ func (s *state) configAuthAddCommand() *cobra.Command {
 			"TYPE is keychain, environment, inline, or gh_cli.\n\n" +
 			"Each type needs its own credential flags: keychain needs --account and --service, " +
 			"environment needs --variable, and inline needs --token-stdin.",
-		Example: "prx config auth add work-gh github.com gh_cli",
+		Example: "nnx config auth add work-gh github.com gh_cli",
 		Args:    cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			token, err := readConfigToken(cmd, tokenStdin)
@@ -506,7 +506,7 @@ func (s *state) configAuthUpdateCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:     "update AUTH_METHOD_ID",
 		Short:   "Update a host-scoped authentication method",
-		Example: "prx config auth update work-gh --user octocat",
+		Example: "nnx config auth update work-gh --user octocat",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			token, err := readConfigToken(cmd, tokenStdin)
@@ -568,7 +568,7 @@ func (s *state) configAuthRemoveCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:     "remove AUTH_METHOD_ID",
 		Short:   "Remove an authentication method and its cached use",
-		Example: "prx config auth remove work-gh",
+		Example: "nnx config auth remove work-gh",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			store, err := s.configStore()
@@ -592,7 +592,7 @@ func (s *state) configAuthReorderCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:     "reorder AUTH_METHOD_ID...",
 		Short:   "Set authentication priority order",
-		Example: "prx config auth reorder ghe-environment ghe-cli",
+		Example: "nnx config auth reorder ghe-environment ghe-cli",
 		Args:    cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			store, err := s.configStore()

@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	githubprovider "github.com/HappyOnigiri/PRX/internal/github"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+	githubprovider "github.com/HappyOnigiri/NextNowX/internal/github"
 )
 
 type demoTask struct {
@@ -81,7 +81,7 @@ func (s *Service) InitializeDemo(ctx context.Context, markdownPath string) error
 		domain.DocumentParent{ProjectID: platform.ID},
 		domain.DocumentKindURL,
 		"Platform charter",
-		"https://example.com/prx-demo/platform-charter",
+		"https://example.com/nnx-demo/platform-charter",
 		"",
 		false,
 	); err != nil {
@@ -144,7 +144,7 @@ func (s *Service) createShowcaseDemo(ctx context.Context, markdownPath, projectI
 		domain.DocumentParent{FeatureID: showcase.ID},
 		domain.DocumentKindURL,
 		"Product brief",
-		"https://example.com/prx-demo/product-brief",
+		"https://example.com/nnx-demo/product-brief",
 		"",
 		false,
 	); err != nil {
@@ -380,7 +380,7 @@ func completedDemoTasks() []demoTask {
 			status:   domain.TaskStatusNotStarted,
 			assignee: []string{"Alice", "Bob", "Carol"}[index%3],
 			pr: &domain.PullRequest{
-				Host: "github.com", Owner: "prx-demo", Repository: "prx-demo-scale",
+				Host: "github.com", Owner: "nnx-demo", Repository: "nnx-demo-scale",
 				Number: int64(1001 + index), State: domain.PullRequestStateMerged,
 				ReviewState: domain.ReviewStateApproved, Mergeability: domain.MergeabilityMergeable,
 				CheckState: domain.CheckStateSuccess,
@@ -434,15 +434,15 @@ func showcaseManualTasks() []demoTask {
 
 func showcasePullRequestTasks() []demoTask {
 	values := []demoTask{
-		demoPullRequestTask("Merged server support", "Merged pull request", "prx-server", 101,
+		demoPullRequestTask("Merged server support", "Merged pull request", "nnx-server", 101,
 			domain.PullRequestStateMerged, false, domain.ReviewStateApproved, domain.MergeabilityMergeable, "Alice"),
-		demoPullRequestTask("Draft WebUI shell", "Draft pull request", "prx-web", 102,
+		demoPullRequestTask("Draft WebUI shell", "Draft pull request", "nnx-web", 102,
 			domain.PullRequestStateOpen, true, domain.ReviewStateNone, domain.MergeabilityMergeable, "Bob"),
 		// コンフリクトと修正依頼を同時に抱えるので、ブロックラベルが 2 個並ぶ。
 		demoPullRequestTask(
 			"Resolve graph conflict",
 			"Conflicting pull request under review",
-			"prx-graph",
+			"nnx-graph",
 			103,
 			domain.PullRequestStateOpen,
 			false,
@@ -450,22 +450,22 @@ func showcasePullRequestTasks() []demoTask {
 			domain.MergeabilityConflicting,
 			"Carol",
 		),
-		demoPullRequestTask("Address review feedback", "Changes requested, pushed since", "prx-cli", 104,
+		demoPullRequestTask("Address review feedback", "Changes requested, pushed since", "nnx-cli", 104,
 			domain.PullRequestStateOpen, false, domain.ReviewStateChangesRequested, domain.MergeabilityMergeable, ""),
-		demoPullRequestTask("Approved configuration", "Approved pull request", "prx-config", 105,
+		demoPullRequestTask("Approved configuration", "Approved pull request", "nnx-config", 105,
 			domain.PullRequestStateOpen, false, domain.ReviewStateApproved, domain.MergeabilityMergeable, "Alice"),
-		demoPullRequestTask("Await fixture review", "Review waiting", "prx-fixtures", 106,
+		demoPullRequestTask("Await fixture review", "Review waiting", "nnx-fixtures", 106,
 			domain.PullRequestStateOpen, false, domain.ReviewStateRequired, domain.MergeabilityMergeable, "Bob"),
-		demoPullRequestTask("Open integration work", "Open pull request", "prx-integrations", 107,
+		demoPullRequestTask("Open integration work", "Open pull request", "nnx-integrations", 107,
 			domain.PullRequestStateOpen, false, domain.ReviewStateNone, domain.MergeabilityMergeable, ""),
-		demoPullRequestTask("Stale external state", "A failed sync preserving its last result", "prx-external", 108,
+		demoPullRequestTask("Stale external state", "A failed sync preserving its last result", "nnx-external", 108,
 			domain.PullRequestStateUnknown, false, domain.ReviewStateUnknown, domain.MergeabilityUnknown, "Carol"),
 		// 方針の承認が下りるまでマージできないが実装は先に進むので、ブロックラベルが
 		// 3 個並ぶ。依存は showcase の依存関係で与える。
 		demoPullRequestTask(
 			"Rework blocked migration",
 			"Implemented ahead of the sign-off it waits on",
-			"prx-migrations",
+			"nnx-migrations",
 			109,
 			domain.PullRequestStateOpen,
 			false,
@@ -473,7 +473,7 @@ func showcasePullRequestTasks() []demoTask {
 			domain.MergeabilityConflicting,
 			"Alice",
 		),
-		demoPullRequestTask("Fix failing pipeline", "Failing CI on an approved pull request", "prx-pipeline", 110,
+		demoPullRequestTask("Fix failing pipeline", "Failing CI on an approved pull request", "nnx-pipeline", 110,
 			domain.PullRequestStateOpen, false, domain.ReviewStateApproved, domain.MergeabilityMergeable, "Bob"),
 	}
 	values[7].pr.Stale = true
@@ -509,14 +509,14 @@ func demoPullRequestTask(
 		title: title, scope: scope,
 		status: domain.TaskStatusNotStarted, assignee: assignee,
 		pr: &domain.PullRequest{
-			Host: "github.com", Owner: "prx-demo", Repository: repository,
+			Host: "github.com", Owner: "nnx-demo", Repository: repository,
 			Number: number, State: state, Draft: draft,
 			ReviewState: review, Mergeability: mergeability,
 		},
 	}
 }
 
-const demoMarkdown = `# PRX demo walkthrough
+const demoMarkdown = `# Next Now X demo walkthrough
 
 This file lives beside the temporary demo database and configuration.
 

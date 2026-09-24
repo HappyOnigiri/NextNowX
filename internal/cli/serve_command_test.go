@@ -15,9 +15,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/HappyOnigiri/PRX/internal/config"
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/launchd"
+	"github.com/HappyOnigiri/NextNowX/internal/config"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/launchd"
 )
 
 // stubListener は bind の成否だけを扱うテスト用の listener。実ポートを掴むテストは
@@ -132,7 +132,7 @@ func TestListenServeFallsBackOnlyForAddressInUse(t *testing.T) {
 // TestExecutableMatchesComparesInodeSizeAndModificationTime は 3 つの比較のどれが欠けても
 // 置換を見逃すことを確かめる。見逃すと古いサーバーが古い埋め込みスキーマで応答し続ける。
 func TestExecutableMatchesComparesInodeSizeAndModificationTime(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "prx")
+	path := filepath.Join(t.TempDir(), "nnx")
 	if err := os.WriteFile(path, []byte("binary"), 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -156,7 +156,7 @@ func TestExecutableMatchesComparesInodeSizeAndModificationTime(t *testing.T) {
 	if executableMatches(baseline, statExecutable(t, path)) {
 		t.Fatal("an executable with a new modification time was reported as matching")
 	}
-	replaced := filepath.Join(t.TempDir(), "prx")
+	replaced := filepath.Join(t.TempDir(), "nnx")
 	if err := os.WriteFile(replaced, []byte("binary"), 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -171,7 +171,7 @@ func TestExecutableMatchesComparesInodeSizeAndModificationTime(t *testing.T) {
 // TestWatchExecutablePathWarnsWhenTheServerIsNotManaged は管理外のサーバーが自己 kickstart
 // しないことを確かめる。置換側が flock を取れずに死ぬと、手動起動の 1 つだけが残る。
 func TestWatchExecutablePathWarnsWhenTheServerIsNotManaged(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "prx")
+	path := filepath.Join(t.TempDir(), "nnx")
 	if err := os.WriteFile(path, []byte("binary"), 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -243,7 +243,7 @@ func (r *stubRestarter) attemptCount() int {
 // TestWatchExecutablePathRetriesAfterAFailedRestart は依頼の失敗で監視が終わらないことを
 // 確かめる。終わってしまうと、以降の置換も検査されないまま古いサーバーが残り続ける。
 func TestWatchExecutablePathRetriesAfterAFailedRestart(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "prx")
+	path := filepath.Join(t.TempDir(), "nnx")
 	if err := os.WriteFile(path, []byte("binary"), 0o700); err != nil {
 		t.Fatal(err)
 	}

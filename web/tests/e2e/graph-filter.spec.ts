@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 const browserErrors: string[] = [];
-const e2ePort = process.env["PRX_E2E_PORT"];
+const e2ePort = process.env["NNX_E2E_PORT"];
 if (!e2ePort) throw new Error("Playwright did not capture the E2E server port");
 
 test.use({

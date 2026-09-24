@@ -8,11 +8,11 @@ import type {
   TaskLabelOverrideUpdate,
   TaskLabelOverrides,
   TaskLabelOverridesUpdate,
-} from "../gen/prx/v1/prx_pb";
+} from "../gen/nnx/v1/nnx_pb";
 import {
   TaskLabelOverrideUpdateSchema,
   TaskLabelOverridesUpdateSchema,
-} from "../gen/prx/v1/prx_pb";
+} from "../gen/nnx/v1/nnx_pb";
 import { useTaskLabelConfig, useTaskLabelConfigMutation } from "../hooks";
 import { StatusBadge } from "./StatusBadge";
 import { useRegisterSettingsSection } from "./settingsSections";

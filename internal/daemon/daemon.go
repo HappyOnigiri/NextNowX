@@ -1,20 +1,20 @@
 // Package daemon は LaunchAgent の登録状態と稼働中サーバーの記録を 1 つの観測にまとめる。
-// `prx daemon` と `prx debug` が同じ観測を読むので、両者の報告が食い違わない。
+// `nnx daemon` と `nnx debug` が同じ観測を読むので、両者の報告が食い違わない。
 package daemon
 
 import (
 	"errors"
 	"os"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/launchd"
-	"github.com/HappyOnigiri/PRX/internal/runstate"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/launchd"
+	"github.com/HappyOnigiri/NextNowX/internal/runstate"
 )
 
 // Status は常駐について外から観測できる事実。
 type Status struct {
 	Supported bool
-	// Installed は plist がディスク上にあることを表す。plist の内容が現在の PRX と
+	// Installed は plist がディスク上にあることを表す。plist の内容が現在の Next Now X と
 	// 一致するかは PlistStatus が持つ。
 	Installed   bool
 	PlistStatus launchd.PlistStatus
@@ -38,7 +38,7 @@ func Inspect(manager *launchd.Manager, version string) Status {
 		inspectLaunchAgent(manager, &result)
 	}
 	// 稼働記録は flock だけに依存するので OS を問わず読む。常駐が使えない OS でも
-	// `prx serve` は稼働記録を書き、その稼働は報告できる事実である。
+	// `nnx serve` は稼働記録を書き、その稼働は報告できる事実である。
 	running, state, err := runstate.Read()
 	if err != nil {
 		result.Error = err.Error()
@@ -74,7 +74,7 @@ func inspectLaunchAgent(manager *launchd.Manager, result *Status) {
 	case err == nil:
 		result.Installed = true
 	case errors.Is(err, os.ErrNotExist):
-		// 未導入は問題ではない。`prx serve` を手で使う運用も正当である。
+		// 未導入は問題ではない。`nnx serve` を手で使う運用も正当である。
 	default:
 		result.Error = err.Error()
 	}

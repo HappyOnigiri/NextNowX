@@ -8,7 +8,7 @@ import {
 } from "@testing-library/react";
 import type { PropsWithChildren } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DocumentKind } from "../src/gen/prx/v1/prx_pb";
+import { DocumentKind } from "../src/gen/nnx/v1/nnx_pb";
 import { DocumentDialog } from "../src/views/DocumentDialog";
 import { makeDocument } from "./factories";
 

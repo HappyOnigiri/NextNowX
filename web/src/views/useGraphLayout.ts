@@ -7,7 +7,7 @@ import type {
   PullRequest,
   Task,
   TaskLabelAppearances,
-} from "../gen/prx/v1/prx_pb";
+} from "../gen/nnx/v1/nnx_pb";
 import { isDependencyBlockedTask, isDormantTask } from "../task-attention";
 import { dependencyEdgeId, type DependencyEdgeRoute } from "./dependencyGraph";
 import { type TaskFlowNode, type TaskNodeDocument } from "./TaskNode";

@@ -18,9 +18,9 @@ import (
 var assets embed.FS
 
 const (
-	versionPlaceholder     = "__PRX_VERSION__"
-	demoPlaceholder        = "__PRX_DEMO__"
-	demoSessionPlaceholder = "__PRX_DEMO_SESSION__"
+	versionPlaceholder     = "__NNX_VERSION__"
+	demoPlaceholder        = "__NNX_DEMO__"
+	demoSessionPlaceholder = "__NNX_DEMO_SESSION__"
 )
 
 // newDemoSession はこのプロセスを表す ID を作る。WebUI は閉じた demo の警告をこの

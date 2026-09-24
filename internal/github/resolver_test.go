@@ -12,7 +12,7 @@ import (
 
 	gh "github.com/google/go-github/v80/github"
 
-	"github.com/HappyOnigiri/PRX/internal/config"
+	"github.com/HappyOnigiri/NextNowX/internal/config"
 )
 
 func TestResolverScopesCandidatesAndSkipsDuplicateCredentials(t *testing.T) {

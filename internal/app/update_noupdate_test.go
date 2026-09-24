@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/HappyOnigiri/PRX/internal/app"
-	"github.com/HappyOnigiri/PRX/internal/config"
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/store"
+	"github.com/HappyOnigiri/NextNowX/internal/app"
+	"github.com/HappyOnigiri/NextNowX/internal/config"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/store"
 )
 
 // 更新機能を外したビルドでは、注入があっても確認へ出ず、理由付きで無効を返す。

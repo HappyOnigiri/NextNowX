@@ -4,8 +4,8 @@ import (
 	"context"
 	"io"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/prompt"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/prompt"
 )
 
 // ServiceOptions は CLI が選んだ実行時の境界条件を運ぶ。パスの出所も含めるのは、
@@ -20,7 +20,7 @@ type ServiceOptions struct {
 }
 
 // ServiceOpenError はオープンに失敗したデータベースの場所を伝える。オープンが失敗した
-// ときこそ `prx debug` が実行される想定であり、解決済みのパスは読み手が最初に必要とする情報。
+// ときこそ `nnx debug` が実行される想定であり、解決済みのパスは読み手が最初に必要とする情報。
 type ServiceOpenError struct {
 	DatabasePath string
 	Err          error
@@ -95,14 +95,14 @@ type Service interface {
 		kind prompt.Kind,
 	) (prompt.Kind, string, error)
 	Snapshot(ctx context.Context) (domain.Snapshot, error)
-	// EnsureSampleData は `prx setup` だけが呼ぶ。判定と投入を分けないのは、
+	// EnsureSampleData は `nnx setup` だけが呼ぶ。判定と投入を分けないのは、
 	// 「新規作成されたか」と「投入してよいか」の間に隙間を作らないためである。
 	EnsureSampleData(ctx context.Context) (bool, error)
 	Sync(ctx context.Context, featureID, taskID string) (int, int, error)
 	SyncIfDue(ctx context.Context) (bool, domain.GitHubSyncStatus, error)
 	SyncStatus(ctx context.Context) (domain.GitHubSyncStatus, error)
-	// 更新の 3 つは `prx update` ではなく serve が公開する RPC のためにある。
-	// `prx update` はデータベースも設定も開かないので、この境界を通らない。
+	// 更新の 3 つは `nnx update` ではなく serve が公開する RPC のためにある。
+	// `nnx update` はデータベースも設定も開かないので、この境界を通らない。
 	GetUpdateStatus(ctx context.Context) (domain.UpdateStatus, error)
 	SkipUpdateVersion(ctx context.Context, version string) (domain.UpdateStatus, error)
 	ApplyUpdate(ctx context.Context, version string) (domain.UpdateResult, error)

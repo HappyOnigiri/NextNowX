@@ -17,7 +17,7 @@ import (
 const CLIResponseSchemaVersion = "2"
 
 // 診断出力の上限はレポートの大きさと順序を確定させ、失敗中のリポジトリが多いデータベースでも
-// 決定的な出力にする。すべてが必要な呼び出し側は代わりに `prx snapshot --json` を読む。
+// 決定的な出力にする。すべてが必要な呼び出し側は代わりに `nnx snapshot --json` を読む。
 const (
 	DebugMaxErrorGroups      = 5
 	DebugMaxTasksPerGroup    = 3
@@ -30,12 +30,12 @@ const (
 // コマンド間で 1 回分の間隔切れは正常だが、何度も続くなら更新が動いていない。
 const debugOverdueFactor = 3
 
-// DebugEnvironmentNames は PRX のパス解決や認証を変える環境変数。
+// DebugEnvironmentNames は Next Now X のパス解決や認証を変える環境変数。
 // 報告するのは設定の有無だけで、値は決して報告しない。
 var DebugEnvironmentNames = []string{
-	"PRX_DB",
-	"PRX_CONFIG",
-	"PRX_RUN_DIR",
+	"NNX_DB",
+	"NNX_CONFIG",
+	"NNX_RUN_DIR",
 	"GITHUB_TOKEN",
 	"GH_TOKEN",
 	"GH_HOST",
@@ -68,20 +68,20 @@ const (
 // WebUI のクリップボードで共通なので英語のままとし、WebUI は画面表示のラベルだけを訳す。
 var debugProblemSummaries = map[DebugProblemCode]string{
 	DebugProblemCodeStorageUnavailable:         "the database could not be opened, so most sections are unavailable",
-	DebugProblemCodeSchemaVersionAheadOfBinary: "the database was migrated by a newer PRX than this binary",
+	DebugProblemCodeSchemaVersionAheadOfBinary: "the database was migrated by a newer Next Now X than this binary",
 	DebugProblemCodeDatabaseNotWritable:        "the database file cannot be written, so every mutation will fail",
 	DebugProblemCodeDatabaseIntegrityErrors:    "stored dependency data failed validation",
 	DebugProblemCodeConfigUnreadable:           "the configuration could not be loaded, so GitHub cannot authenticate",
 	DebugProblemCodeConfigPermissionsTooOpen:   "the configuration file is readable by other accounts",
-	DebugProblemCodeConfigUnknownFields:        "the configuration contains fields PRX ignores and will drop",
+	DebugProblemCodeConfigUnknownFields:        "the configuration contains fields Next Now X ignores and will drop",
 	DebugProblemCodeNoAuthMethodForHost:        "pull requests exist on a host that has no credential method",
 	DebugProblemCodeGitHubSyncRunError:         "the latest recorded synchronization run failed",
 	DebugProblemCodeGitHubSyncOverdue:          "the automatic interval expired well before this report",
 	DebugProblemCodeGitHubSyncNeverCompleted:   "pull requests exist but no synchronization run has ever completed",
 	DebugProblemCodePullRequestsStale:          "at least one pull request is holding stale state",
-	DebugProblemCodeDaemonPlistStale:           "the installed LaunchAgent does not match this PRX binary",
+	DebugProblemCodeDaemonPlistStale:           "the installed LaunchAgent does not match this Next Now X binary",
 	DebugProblemCodeDaemonNotRunning:           "the LaunchAgent is installed but no server is running",
-	DebugProblemCodeDaemonBinaryOutdated:       "the running server started from a different PRX binary",
+	DebugProblemCodeDaemonBinaryOutdated:       "the running server started from a different Next Now X binary",
 }
 
 // DebugProblem は検出した 1 件の問題と、その根拠、および詳細を出力するコマンドを表す。
@@ -92,7 +92,7 @@ type DebugProblem struct {
 	NextCommand string           `json:"next_command,omitempty"`
 }
 
-// DebugBuild は実行中の PRX ビルドを表す。
+// DebugBuild は実行中の Next Now X ビルドを表す。
 type DebugBuild struct {
 	Version     string `json:"version"`
 	Development bool   `json:"development"`
@@ -373,7 +373,7 @@ func NewDebugDaemon(input DebugDaemonInput) DebugDaemon {
 // 共有する公開契約で、`current` と `stale` も同じ語彙を使う。
 const DebugPlistStatusUnknown = "unknown"
 
-// DebugPlistStatusStale は plist が現在の PRX と一致しないことを表す。
+// DebugPlistStatusStale は plist が現在の Next Now X と一致しないことを表す。
 const DebugPlistStatusStale = "stale"
 
 // DebugReport は診断レポート全体で、検出した問題を先頭に置く。
@@ -446,7 +446,7 @@ func NewDebugPaths(input DebugPathsInput) DebugPaths {
 	return result
 }
 
-// DebugEnvironmentVariables は PRX に関係する環境変数のうち設定済みのものを報告する。
+// DebugEnvironmentVariables は Next Now X に関係する環境変数のうち設定済みのものを報告する。
 // 環境の状態を説明する場所は診断レポートだけとする。
 func DebugEnvironmentVariables() []DebugEnvironmentVariable {
 	result := make([]DebugEnvironmentVariable, 0, len(DebugEnvironmentNames))
@@ -596,7 +596,7 @@ func DetectDebugProblems(report DebugReport, now time.Time) []DebugProblem {
 }
 
 // detectDebugDaemonProblems は導入済みの LaunchAgent についてだけ報告する。未導入は
-// 問題ではない。`prx serve` を手で使う運用も正当である。
+// 問題ではない。`nnx serve` を手で使う運用も正当である。
 func detectDebugDaemonProblems(report DebugReport) []DebugProblem {
 	problems := make([]DebugProblem, 0, 3)
 	daemon := report.Daemon
@@ -607,8 +607,8 @@ func detectDebugDaemonProblems(report DebugReport) []DebugProblem {
 		problems = append(problems, DebugProblem{
 			Code:        DebugProblemCodeDaemonPlistStale,
 			Target:      daemon.PlistPath,
-			Evidence:    "the LaunchAgent was written by a different PRX binary or path",
-			NextCommand: "prx daemon install",
+			Evidence:    "the LaunchAgent was written by a different Next Now X binary or path",
+			NextCommand: "nnx daemon install",
 		})
 	}
 	if !daemon.Running {
@@ -616,7 +616,7 @@ func detectDebugDaemonProblems(report DebugReport) []DebugProblem {
 			Code:        DebugProblemCodeDaemonNotRunning,
 			Target:      daemon.PlistPath,
 			Evidence:    "no process holds the run state lock",
-			NextCommand: "prx daemon start",
+			NextCommand: "nnx daemon start",
 		})
 		return problems
 	}
@@ -625,7 +625,7 @@ func detectDebugDaemonProblems(report DebugReport) []DebugProblem {
 			Code:        DebugProblemCodeDaemonBinaryOutdated,
 			Target:      daemon.Address,
 			Evidence:    fmt.Sprintf("the server reports version %s", daemon.Version),
-			NextCommand: "prx daemon restart",
+			NextCommand: "nnx daemon restart",
 		})
 	}
 	return problems
@@ -638,7 +638,7 @@ func detectDebugStorageProblems(report DebugReport) []DebugProblem {
 			Code:        DebugProblemCodeStorageUnavailable,
 			Target:      report.Paths.DatabasePath,
 			Evidence:    report.Storage.Error,
-			NextCommand: "prx debug --json",
+			NextCommand: "nnx debug --json",
 		})
 		return problems
 	}
@@ -651,7 +651,7 @@ func detectDebugStorageProblems(report DebugReport) []DebugProblem {
 				report.Storage.AppliedSchemaVersion,
 				report.Storage.EmbeddedSchemaVersion,
 			),
-			NextCommand: "install the PRX version that wrote this database",
+			NextCommand: "install the Next Now X version that wrote this database",
 		})
 	}
 	if file := report.Storage.DatabaseFile; file.Applicable && !file.Writable {
@@ -667,7 +667,7 @@ func detectDebugStorageProblems(report DebugReport) []DebugProblem {
 			Code:        DebugProblemCodeDatabaseIntegrityErrors,
 			Target:      report.Paths.DatabasePath,
 			Evidence:    fmt.Sprintf("%d integrity errors", len(report.Storage.IntegrityErrors)),
-			NextCommand: "prx validate",
+			NextCommand: "nnx validate",
 		})
 	}
 	if report.Records.PullRequests > 0 && report.GitHubSync.StalePullRequests > 0 {
@@ -678,7 +678,7 @@ func detectDebugStorageProblems(report DebugReport) []DebugProblem {
 				report.GitHubSync.StalePullRequests,
 				report.Records.PullRequests,
 			),
-			NextCommand: "prx stale",
+			NextCommand: "nnx stale",
 		})
 	}
 	return problems
@@ -691,7 +691,7 @@ func detectDebugConfigProblems(report DebugReport) []DebugProblem {
 			Code:        DebugProblemCodeConfigUnreadable,
 			Target:      report.Paths.ConfigPath,
 			Evidence:    strings.Join(report.Config.Errors, "; "),
-			NextCommand: "prx config validate",
+			NextCommand: "nnx config validate",
 		})
 	}
 	if mode := report.Paths.ConfigPermissions; mode != "" && !debugPermissionsArePrivate(mode) {
@@ -707,7 +707,7 @@ func detectDebugConfigProblems(report DebugReport) []DebugProblem {
 			Code:        DebugProblemCodeConfigUnknownFields,
 			Target:      report.Paths.ConfigPath,
 			Evidence:    fmt.Sprintf("%d warnings", len(report.Config.Warnings)),
-			NextCommand: "prx config validate",
+			NextCommand: "nnx config validate",
 		})
 	}
 	for _, host := range debugHostsWithoutCredentials(report) {
@@ -715,7 +715,7 @@ func detectDebugConfigProblems(report DebugReport) []DebugProblem {
 			Code:        DebugProblemCodeNoAuthMethodForHost,
 			Target:      host,
 			Evidence:    "pull requests exist on this host and no auth method is scoped to it",
-			NextCommand: "prx config auth",
+			NextCommand: "nnx config auth",
 		})
 	}
 	return problems
@@ -728,14 +728,14 @@ func detectDebugSyncProblems(report DebugReport, now time.Time) []DebugProblem {
 		problems = append(problems, DebugProblem{
 			Code:        DebugProblemCodeGitHubSyncRunError,
 			Evidence:    sync.Status.Error,
-			NextCommand: "prx sync status --json",
+			NextCommand: "nnx sync status --json",
 		})
 	}
 	if report.Records.PullRequests > 0 && sync.Status.LastUpdatedAt == nil {
 		problems = append(problems, DebugProblem{
 			Code:        DebugProblemCodeGitHubSyncNeverCompleted,
 			Evidence:    fmt.Sprintf("%d pull requests and no completed run", report.Records.PullRequests),
-			NextCommand: "prx sync",
+			NextCommand: "nnx sync",
 		})
 	}
 	overdueAfter := sync.Status.IntervalSeconds * debugOverdueFactor
@@ -748,7 +748,7 @@ func detectDebugSyncProblems(report DebugReport, now time.Time) []DebugProblem {
 				sync.SecondsSinceLastUpdate,
 				sync.Status.IntervalSeconds,
 			),
-			NextCommand: "prx sync",
+			NextCommand: "nnx sync",
 		})
 	}
 	return problems

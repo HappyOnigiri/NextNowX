@@ -1,5 +1,5 @@
-// Package launchd は macOS の LaunchAgent として `prx serve` を常駐させる。plist 全体を
-// PRX が所有し、byte 一致でその陳腐化を判定する。docs/design/daemon.md を参照。
+// Package launchd は macOS の LaunchAgent として `nnx serve` を常駐させる。plist 全体を
+// Next Now X が所有し、byte 一致でその陳腐化を判定する。docs/design/daemon.md を参照。
 package launchd
 
 import (
@@ -17,7 +17,11 @@ import (
 )
 
 // Label は LaunchAgent の識別子で、plist 名と launchctl の対象名の両方に使う。
-const Label = "com.user.prx"
+const Label = "com.user.nnx"
+
+// LegacyLabel は改名前の prx が登録していた LaunchAgent の識別子。install と uninstall が
+// 見つけたら取り除き、旧バイナリの常駐が残り続けないようにする。
+const LegacyLabel = "com.user.prx"
 
 // plistTemplate は plist の全体。ProgramArguments は実行ファイルと `serve` の 2 要素だけ
 // なので、--addr も --demo も launchd 経由では渡らない。ThrottleInterval と各キーの理由は
@@ -43,11 +47,11 @@ const plistTemplate = `<?xml version="1.0" encoding="UTF-8"?>
 
 // ErrUnsupported は LaunchAgent を扱えない OS を表す。コマンドは全 OS で登録するので、
 // 対応の有無は実行時にこのエラーで判定する。
-var ErrUnsupported = errors.New("the PRX daemon requires macOS")
+var ErrUnsupported = errors.New("the Next Now X daemon requires macOS")
 
-// ErrServiceMissing は launchctl が PRX の LaunchAgent を認識していないことを示す。
-// 呼び出し側は操作不能な launchctl のエラーではなく `prx daemon install` を案内できる。
-var ErrServiceMissing = errors.New("the PRX LaunchAgent is not installed")
+// ErrServiceMissing は launchctl が Next Now X の LaunchAgent を認識していないことを示す。
+// 呼び出し側は操作不能な launchctl のエラーではなく `nnx daemon install` を案内できる。
+var ErrServiceMissing = errors.New("the Next Now X LaunchAgent is not installed")
 
 // Kind は、launchctl の出力を晒さずに呼び出し側が提示できる失敗の分類。
 type Kind string
@@ -69,7 +73,7 @@ func (e *Error) Error() string { return fmt.Sprintf("launchd %s %s: %v", e.Op, e
 
 func (e *Error) Unwrap() error { return e.Err }
 
-// PlistStatus は現在の PRX から LaunchAgent を再生成できるかを示す。plist の不在や
+// PlistStatus は現在の Next Now X から LaunchAgent を再生成できるかを示す。plist の不在や
 // 読み取り不能は Unknown とし、未導入を stale と誤判定しない。
 type PlistStatus string
 
@@ -124,12 +128,14 @@ func (m *Manager) Managed() bool {
 }
 
 // PlistPath は LaunchAgent の位置を返す。
-func (m *Manager) PlistPath() (string, error) {
+func (m *Manager) PlistPath() (string, error) { return m.plistPathFor(Label) }
+
+func (m *Manager) plistPathFor(label string) (string, error) {
 	home, err := m.homeDir()
 	if err != nil {
 		return "", &Error{Kind: KindFailed, Op: "resolve home", Err: err}
 	}
-	return filepath.Join(home, "Library", "LaunchAgents", Label+".plist"), nil
+	return filepath.Join(home, "Library", "LaunchAgents", label+".plist"), nil
 }
 
 // LogPath は launchd が serve の stdout と stderr を書き込む先を返す。ローテーションは
@@ -139,14 +145,14 @@ func (m *Manager) LogPath() (string, error) {
 	if err != nil {
 		return "", &Error{Kind: KindFailed, Op: "resolve home", Err: err}
 	}
-	return filepath.Join(home, "Library", "Logs", "prx", "serve.log"), nil
+	return filepath.Join(home, "Library", "Logs", "nnx", "serve.log"), nil
 }
 
-// ResolveBinary は LaunchAgent が起動する prx を返す。PATH 上のコマンドを優先し、
+// ResolveBinary は LaunchAgent が起動する nnx を返す。PATH 上のコマンドを優先し、
 // 開発ビルドやテストバイナリでは os.Executable にフォールバックする。既存 plist の
 // 診断も同じ解決を使い、install と判定の対象を揃える。
 func (m *Manager) ResolveBinary() (string, error) {
-	if binary, err := m.lookPath("prx"); err == nil {
+	if binary, err := m.lookPath("nnx"); err == nil {
 		return binary, nil
 	}
 	binary, err := m.executable()
@@ -185,7 +191,7 @@ func xmlEscapeText(value string) (string, error) {
 }
 
 // PlistStatus はディスク上の LaunchAgent 全体を、現在の install が書く内容と比較する。
-// plist 全体を PRX が所有するので byte 単位で比較し、差分は install の再実行で直す。
+// plist 全体を Next Now X が所有するので byte 単位で比較し、差分は install の再実行で直す。
 func (m *Manager) PlistStatus() (PlistStatus, error) {
 	if !m.Supported() {
 		return PlistUnknown, &Error{Kind: KindUnsupported, Op: "inspect plist", Err: ErrUnsupported}
@@ -260,6 +266,9 @@ func (m *Manager) Install(ctx context.Context) error {
 	if !m.Supported() {
 		return &Error{Kind: KindUnsupported, Op: "install", Err: ErrUnsupported}
 	}
+	if err := m.RemoveLegacy(ctx); err != nil {
+		return err
+	}
 	path, err := m.PlistPath()
 	if err != nil {
 		return err
@@ -295,7 +304,7 @@ func writeAtomically(path string, data []byte) error {
 	if err := rejectUnsafePlist(path); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
-	temporary, err := os.CreateTemp(filepath.Dir(path), ".prx-plist-*")
+	temporary, err := os.CreateTemp(filepath.Dir(path), ".nnx-plist-*")
 	if err != nil {
 		return &Error{Kind: KindFailed, Op: "create plist", Err: err}
 	}
@@ -318,14 +327,38 @@ func writeAtomically(path string, data []byte) error {
 }
 
 // Uninstall は登録を解除して plist を消す。service が既に居ない場合も成功にする。
+// 旧 prx の LaunchAgent が残っていれば、それも取り除く。
 func (m *Manager) Uninstall(ctx context.Context) error {
 	if !m.Supported() {
 		return &Error{Kind: KindUnsupported, Op: "uninstall", Err: ErrUnsupported}
+	}
+	if err := m.RemoveLegacy(ctx); err != nil {
+		return err
 	}
 	path, err := m.PlistPath()
 	if err != nil {
 		return err
 	}
+	return m.uninstallPlist(ctx, path)
+}
+
+// RemoveLegacy は旧 prx の LaunchAgent を登録解除して plist を消す。plist が無ければ
+// launchctl を呼ばずに成功する。macOS 以外では何もしない。
+func (m *Manager) RemoveLegacy(ctx context.Context) error {
+	if !m.Supported() {
+		return nil
+	}
+	path, err := m.plistPathFor(LegacyLabel)
+	if err != nil {
+		return err
+	}
+	if _, err := os.Lstat(path); errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	return m.uninstallPlist(ctx, path)
+}
+
+func (m *Manager) uninstallPlist(ctx context.Context, path string) error {
 	domain := fmt.Sprintf("gui/%d", m.uid)
 	output, runErr := m.run(ctx, "launchctl", "bootout", domain, path)
 	if runErr != nil && !serviceMissing(output) {

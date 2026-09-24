@@ -20,7 +20,7 @@ import {
   syncIfDue,
   watchRevision,
 } from "../src/api";
-import { TaskLabelOverridesUpdateSchema } from "../src/gen/prx/v1/prx_pb";
+import { TaskLabelOverridesUpdateSchema } from "../src/gen/nnx/v1/nnx_pb";
 import { makeSnapshot } from "./factories";
 
 const apiMocks = vi.hoisted(() => {
@@ -167,11 +167,11 @@ describe("RPC API wrappers", () => {
     const report = { problems: [] };
     apiMocks.client.getDebugReport.mockResolvedValueOnce({
       report,
-      text: "PRX diagnostic report\n",
+      text: "Next Now X diagnostic report\n",
     });
     await expect(getDebugReport()).resolves.toEqual({
       report,
-      text: "PRX diagnostic report\n",
+      text: "Next Now X diagnostic report\n",
     });
 
     apiMocks.client.getDebugReport.mockResolvedValueOnce({ report: undefined });
@@ -429,11 +429,11 @@ describe("RPC API wrappers", () => {
       }),
     );
 
-    await mutations.attachPR("task-1", "https://github.com/acme/prx/pull/42");
+    await mutations.attachPR("task-1", "https://github.com/acme/nnx/pull/42");
     expect(apiMocks.client.attachPullRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         taskId: "task-1",
-        url: "https://github.com/acme/prx/pull/42",
+        url: "https://github.com/acme/nnx/pull/42",
       }),
     );
     await mutations.detachPR("task-1");

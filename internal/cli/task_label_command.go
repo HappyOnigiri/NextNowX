@@ -6,8 +6,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/HappyOnigiri/PRX/internal/config"
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/config"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 func parseTaskLabelKey(raw string) (domain.TaskLabelKey, error) {
@@ -66,7 +66,7 @@ func (s *state) configLabelCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:     "label",
 		Short:   "Show or manage global task label overrides",
-		Example: "prx config label set status.in_progress --text Working",
+		Example: "nnx config label set status.in_progress --text Working",
 		Args:    cobra.NoArgs,
 	}
 	command.AddCommand(s.configLabelSetCommand(), s.configLabelUnsetCommand())
@@ -78,7 +78,7 @@ func (s *state) configLabelSetCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:     "set KEY",
 		Short:   "Set a global task label text or color",
-		Example: "prx config label set status.in_progress --text Working",
+		Example: "nnx config label set status.in_progress --text Working",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			key, err := parseTaskLabelKey(args[0])
@@ -116,7 +116,7 @@ func (s *state) configLabelUnsetCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:     "unset KEY",
 		Short:   "Remove a global task label text or color override",
-		Example: "prx config label unset status.in_progress --text",
+		Example: "nnx config label unset status.in_progress --text",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			key, err := parseTaskLabelKey(args[0])
@@ -166,7 +166,7 @@ func (s *state) scopedLabelSetCommand(scope string) *cobra.Command {
 	command := &cobra.Command{
 		Use:     "set " + strings.ToUpper(scope) + "_ID KEY",
 		Short:   "Set a task label text or color override",
-		Example: "prx " + scope + " label set " + strings.ToUpper(scope) + "_ID status.in_progress --text Working",
+		Example: "nnx " + scope + " label set " + strings.ToUpper(scope) + "_ID status.in_progress --text Working",
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			key, err := parseTaskLabelKey(args[1])
@@ -210,7 +210,7 @@ func (s *state) scopedLabelUnsetCommand(scope string) *cobra.Command {
 	command := &cobra.Command{
 		Use:     "unset " + strings.ToUpper(scope) + "_ID KEY",
 		Short:   "Remove a task label text or color override",
-		Example: "prx " + scope + " label unset " + strings.ToUpper(scope) + "_ID status.in_progress --text",
+		Example: "nnx " + scope + " label unset " + strings.ToUpper(scope) + "_ID status.in_progress --text",
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			key, err := parseTaskLabelKey(args[1])

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TaskDisplayState, type Task } from "../src/gen/prx/v1/prx_pb";
+import { TaskDisplayState, type Task } from "../src/gen/nnx/v1/nnx_pb";
 import {
   batchCandidates,
   isSelectable,

@@ -3,7 +3,7 @@ import {
   PullRequestDisplayState,
   TaskBlockLabel,
   TaskDisplayState,
-} from "../src/gen/prx/v1/prx_pb";
+} from "../src/gen/nnx/v1/nnx_pb";
 import { filterTaskSearchResults, parseTaskSearch } from "../src/task-search";
 import {
   makeFeature,

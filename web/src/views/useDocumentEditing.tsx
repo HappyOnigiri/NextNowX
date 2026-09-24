@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { mutations } from "../api";
-import type { Document } from "../gen/prx/v1/prx_pb";
+import type { Document } from "../gen/nnx/v1/nnx_pb";
 import { useDomainMutation } from "../hooks";
 import { DocumentDialog } from "./DocumentDialog";
 import type { TaskNodeDocument } from "./TaskNode";

@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/HappyOnigiri/PRX/internal/app"
-	"github.com/HappyOnigiri/PRX/internal/config"
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/store"
+	"github.com/HappyOnigiri/NextNowX/internal/app"
+	"github.com/HappyOnigiri/NextNowX/internal/config"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/store"
 )
 
 func TestOpenReportsWhetherItCreatedTheDatabaseFile(t *testing.T) {
@@ -172,7 +172,7 @@ func TestEnsureSampleDataSkipsExistingDatabase(t *testing.T) {
 func openSampleDataService(t *testing.T) *app.Service {
 	t.Helper()
 	root := t.TempDir()
-	database, err := store.Open(context.Background(), filepath.Join(root, "prx.db"))
+	database, err := store.Open(context.Background(), filepath.Join(root, "nnx.db"))
 	if err != nil {
 		t.Fatal(err)
 	}

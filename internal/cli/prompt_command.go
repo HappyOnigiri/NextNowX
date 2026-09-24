@@ -6,11 +6,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/prompt"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/prompt"
 )
 
-// promptResponse は `prx prompt` の JSON 形式。kind を持たせるのは、呼び出し側が
+// promptResponse は `nnx prompt` の JSON 形式。kind を持たせるのは、呼び出し側が
 // task から導出し直さずに設計依頼と実装依頼を区別できるようにするため。
 type promptResponse struct {
 	TaskID string `json:"task_id"`
@@ -27,7 +27,7 @@ func (s *state) promptCommand() *cobra.Command {
 			"Without --kind, a task with no implementation plan gets the design prompt and a task " +
 			"with one gets the implementation prompt.\n" +
 			"The result resolves global, project, and feature overrides, so the WebUI copies the same text.",
-		Example: "prx prompt T-1\nprx prompt T-1 --kind design\nprx prompt T-1 --json",
+		Example: "nnx prompt T-1\nnnx prompt T-1 --kind design\nnnx prompt T-1 --json",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			requested, err := parseTaskPromptKind(kindFlag)

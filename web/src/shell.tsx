@@ -19,7 +19,7 @@ import {
   readDemoNoticeDismissed,
   writeDemoNoticeDismissed,
 } from "./demo";
-import type { Feature, Project } from "./gen/prx/v1/prx_pb";
+import type { Feature, Project } from "./gen/nnx/v1/nnx_pb";
 import {
   useAutoSync,
   useDisplayLanguage,
@@ -44,7 +44,7 @@ import { RailResizer } from "./views/RailResizer";
 import { SettingsDialog } from "./views/SettingsDialog";
 import { UpdateDialog } from "./views/UpdateDialog";
 
-const railId = "prx-rail";
+const railId = "nnx-rail";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const autoSync = useAutoSync(true);
@@ -104,7 +104,7 @@ function AppShellLayout({ children }: { children: ReactNode }) {
       <aside className="rail" id={railId}>
         <div className="rail-head">
           <Link to="/" className="brand" aria-label={t("nav.dashboard")}>
-            <span className="brand-mark">PRX</span>
+            <span className="brand-mark">Next Now X</span>
           </Link>
           <IconButton
             aria-controls={railId}

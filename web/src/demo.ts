@@ -1,6 +1,6 @@
-const demoPlaceholder = "__PRX_DEMO__";
-const demoSessionPlaceholder = "__PRX_DEMO_SESSION__";
-const dismissedSessionKey = "prx.webui.demoNoticeDismissedSession";
+const demoPlaceholder = "__NNX_DEMO__";
+const demoSessionPlaceholder = "__NNX_DEMO_SESSION__";
+const dismissedSessionKey = "nnx.webui.demoNoticeDismissedSession";
 
 function readInjected(name: string, placeholder: string): string {
   const injected = document
@@ -11,13 +11,13 @@ function readInjected(name: string, placeholder: string): string {
 }
 
 export function isDemoMode(): boolean {
-  return readInjected("prx-demo", demoPlaceholder) === "true";
+  return readInjected("nnx-demo", demoPlaceholder) === "true";
 }
 
 // 閉じた警告は demo を配信しているプロセスの ID に結び付ける。読み込み直しても
 // 同じ ID なので戻らず、サーバを起動し直すと ID が変わって戻る。
 export function readDemoNoticeDismissed(): boolean {
-  const session = readInjected("prx-demo-session", demoSessionPlaceholder);
+  const session = readInjected("nnx-demo-session", demoSessionPlaceholder);
   if (!session) return false;
   try {
     return localStorage.getItem(dismissedSessionKey) === session;
@@ -27,7 +27,7 @@ export function readDemoNoticeDismissed(): boolean {
 }
 
 export function writeDemoNoticeDismissed() {
-  const session = readInjected("prx-demo-session", demoSessionPlaceholder);
+  const session = readInjected("nnx-demo-session", demoSessionPlaceholder);
   if (!session) return;
   try {
     localStorage.setItem(dismissedSessionKey, session);

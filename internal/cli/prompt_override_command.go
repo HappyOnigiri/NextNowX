@@ -8,8 +8,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/prompt"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/prompt"
 )
 
 func promptOverrideCommands(
@@ -73,7 +73,7 @@ func promptOverrideSetCommand(
 	command := &cobra.Command{
 		Use:     "set " + strings.ToUpper(resource) + "_ID KIND",
 		Short:   "Set a prompt template override",
-		Example: "prx " + resource + " prompt set " + resource[:1] + "-1 design --file prompt.txt",
+		Example: "nnx " + resource + " prompt set " + resource[:1] + "-1 design --file prompt.txt",
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			kind, err := parsePromptOverrideKind(args[1])
@@ -104,7 +104,7 @@ func promptOverrideUnsetCommand(
 	command := &cobra.Command{
 		Use:     "unset " + strings.ToUpper(resource) + "_ID KIND",
 		Short:   "Remove a prompt template override",
-		Example: "prx " + resource + " prompt unset " + resource[:1] + "-1 design",
+		Example: "nnx " + resource + " prompt unset " + resource[:1] + "-1 design",
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			kind, err := parsePromptOverrideKind(args[1])

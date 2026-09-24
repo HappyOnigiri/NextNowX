@@ -11,9 +11,9 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/HappyOnigiri/PRX/internal/config"
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	githubprovider "github.com/HappyOnigiri/PRX/internal/github"
+	"github.com/HappyOnigiri/NextNowX/internal/config"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+	githubprovider "github.com/HappyOnigiri/NextNowX/internal/github"
 )
 
 const (
@@ -651,7 +651,7 @@ func (s *Service) DeleteDocument(ctx context.Context, id string) error {
 	return s.repository.DeleteDocument(ctx, id)
 }
 
-// ReadDocumentContent は、明示的に登録されたパスと PRX が保存した Markdown だけを読む。
+// ReadDocumentContent は、明示的に登録されたパスと Next Now X が保存した Markdown だけを読む。
 // サイズ上限により、プレビュー要求がサーバーやブラウザのメモリを
 // 無制限に消費するのを防ぐ。
 func (s *Service) ReadDocumentContent(ctx context.Context, id string) (string, error) {

@@ -1,6 +1,6 @@
 # Repository instructions
 
-PRX は、タスクと GitHub プルリクエストの依存グラフを扱うローカルファーストのツールである。React UI を埋め込んだ Go の CLI / サーバーと SQLite ストレージとして提供する。
+Next Now X は、タスクと GitHub プルリクエストの依存グラフを扱うローカルファーストのツールである。React UI を埋め込んだ Go の CLI / サーバーと SQLite ストレージとして提供する。
 
 - `docs/` に記載した CLI・JSON・状態の振る舞いは公開契約として扱う。変更するときは実装・テスト・ドキュメントを同時に更新する。
 - 恒久的な設計方針と背景は `docs/design/` に、自明でない検証方針は `docs/development.md` に、生成された CLI リファレンスは `docs/cli/` に置く。
@@ -16,9 +16,9 @@ PRX は、タスクと GitHub プルリクエストの依存グラフを扱う�
 - コメント、エージェント向け指示、`docs/` 配下のドキュメントは日本語で書く。既存の英語記述を編集するときも日本語に置き換える。
 - 識別子、型名、CLI のコマンド名やフラグ、JSON キー、設定キーは原語のまま残す。
 - CLI のヘルプ文言・標準出力・エラーメッセージは英語のままにする。`docs/cli/` の生成物と一致させるため、翻訳しない。
-- 例外は組み込みプロンプトテンプレートの本文、`prx setup` が投入するサンプルデータの本文、および `prx setup` の対話（問いかけと進行メッセージ）である。
+- 例外は組み込みプロンプトテンプレートの本文、`nnx setup` が投入するサンプルデータの本文、および `nnx setup` の対話（問いかけと進行メッセージ）である。
   これらだけは実効言語で英語版と日本語版を切り替え、両方の版を維持する。実効言語の決め方は `docs/design/agent-prompts.md` にある。
-  `prx setup` は最初に言語を尋ね、以降の問いかけ・進行メッセージ・サンプルデータをその言語で出す。
+  `nnx setup` は最初に言語を尋ね、以降の問いかけ・進行メッセージ・サンプルデータをその言語で出す。
   cobra のヘルプ文言、`Error:` として返るエラー、`Warning:` の警告、他コマンドの標準出力は英語のままにする。
 - WebUI の表示文字列は `web/src/i18n/` の en と ja の両方を維持する。
 - `README.md` は英語、`README.ja.md` は日本語、`README.zh-CN.md` は簡体字中国語で、内容を同期する。
@@ -39,13 +39,13 @@ PRX は、タスクと GitHub プルリクエストの依存グラフを扱う�
 | `docs/design/README.md` | プロダクトの方向性、およびこのディレクトリに記録がない詳細をどのソースが持つか |
 | `docs/design/architecture.md` | レイヤ構成、アダプタの責務、RPC 境界を越えるもの |
 | `docs/design/cli-contract.md` | CLI コマンドの形、出力モード、JSON スキーマ、識別子、変更操作のルール |
-| `docs/design/daemon.md` | LaunchAgent での常駐、多重起動防止と稼働発見、`prx daemon` と `prx open` |
-| `docs/design/diagnostics.md` | `prx debug` とその RPC |
+| `docs/design/daemon.md` | LaunchAgent での常駐、多重起動防止と稼働発見、`nnx daemon` と `nnx open` |
+| `docs/design/diagnostics.md` | `nnx debug` とその RPC |
 | `docs/design/agent-prompts.md` | エージェントのプロンプトテンプレート、その語彙、テンプレートの選択 |
 | `docs/design/domain.md` | 表示状態の導出、ステータスの意味、依存関係、プロジェクトの所属 |
 | `docs/design/archive.md` | アーカイブ済みのプロジェクトやフィーチャー、およびそれらが禁止する書き込み |
 | `docs/design/persistence.md` | ストレージ、設定ファイルと設定の置き場所、デモモード、ドキュメント、実装計画 |
-| `docs/design/updates.md` | 新しいリリースの確認、`prx update`、WebUI の案内、更新の実行 |
+| `docs/design/updates.md` | 新しいリリースの確認、`nnx update`、WebUI の案内、更新の実行 |
 | `docs/design/github-sync.md` | プルリクエストの同一性、同期の範囲、スケジューリング、失敗時の扱い |
 | `docs/design/github-credentials.md` | 認証情報の解決、フォールバック、シークレットの扱い |
 | `docs/design/security.md` | ローカルの信頼境界、サーバーの公開範囲、ローカルファイルへのアクセス |

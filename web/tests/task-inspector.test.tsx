@@ -18,7 +18,7 @@ import {
   TaskLabelAppearanceSchema,
   TaskLabelAppearancesSchema,
   TaskStatus,
-} from "../src/gen/prx/v1/prx_pb";
+} from "../src/gen/nnx/v1/nnx_pb";
 import { TaskInspector } from "../src/views/TaskInspector";
 import { makeDocument, makePullRequest, makeTask } from "./factories";
 
@@ -216,7 +216,7 @@ describe("TaskInspector", () => {
     expect(screen.getByText("GitHub data is old")).toBeInTheDocument();
     expect(screen.getByText("merged")).toBeInTheDocument();
     expect(screen.getByText("failing")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "acme/prx #42" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "acme/nnx #42" })).toHaveAttribute(
       "target",
       "_blank",
     );
@@ -329,13 +329,13 @@ describe("TaskInspector", () => {
     fireEvent.change(
       screen.getByPlaceholderText("https://github.com/org/repo/pull/42"),
       {
-        target: { value: "https://github.com/acme/prx/pull/99" },
+        target: { value: "https://github.com/acme/nnx/pull/99" },
       },
     );
     fireEvent.click(screen.getByRole("button", { name: "Attach" }));
     expect(mutationFor("attachPR").mutate).toHaveBeenCalledWith({
       taskId: task.id,
-      url: "https://github.com/acme/prx/pull/99",
+      url: "https://github.com/acme/nnx/pull/99",
     });
     expect(
       screen.getByRole("option", { name: "Completed" }),
@@ -463,7 +463,7 @@ describe("TaskInspector", () => {
     expect(screen.getByText("Archived task · read-only")).toBeInTheDocument();
     expect(screen.getByText("Historical scope")).toBeInTheDocument();
     expect(screen.queryByText("Archived blocker")).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "acme/prx #42" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "acme/nnx #42" })).toHaveAttribute(
       "target",
       "_blank",
     );

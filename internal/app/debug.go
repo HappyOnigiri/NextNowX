@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
-	prx "github.com/HappyOnigiri/PRX"
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	nnx "github.com/HappyOnigiri/NextNowX"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 // DiagnosticsRepository は実データベースを開いているとき SQLite repository が実装する。
@@ -91,7 +91,7 @@ func (s *Service) DatabasePath() string { return s.debugPathsInput().DatabasePat
 func (s *Service) Debug(ctx context.Context) (domain.DebugReport, error) {
 	now := s.currentTime()
 	report := domain.DebugReport{
-		Build:   domain.NewDebugBuild(prx.Version()),
+		Build:   domain.NewDebugBuild(nnx.Version()),
 		Runtime: domain.NewDebugRuntime(s.debugRuntimeInput(), now),
 		Daemon:  s.debugDaemon(ctx),
 		Paths:   domain.NewDebugPaths(s.debugPathsInput()),

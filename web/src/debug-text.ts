@@ -5,7 +5,7 @@ export interface QueryDiagnostic {
   state: string;
 }
 
-const versionMetaSelector = 'meta[name="prx-version"]';
+const versionMetaSelector = 'meta[name="nnx-version"]';
 
 // formatBrowserDebugSection は、サーバーが出力したレポートにブラウザしか知らな
 // い情報を追記する。ここの値はすべてこのタブの事実。全体が 1 つのレポートとして

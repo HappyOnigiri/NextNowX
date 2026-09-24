@@ -1,6 +1,6 @@
 export const shell = {
   en: {
-    app: { title: "PRX" },
+    app: { title: "Next Now X" },
     settings: {
       open: "Settings",
       title: "Settings",
@@ -45,8 +45,8 @@ export const shell = {
       },
     },
     nav: {
-      dashboard: "PRX dashboard",
-      primary: "PRX navigation",
+      dashboard: "Next Now X dashboard",
+      primary: "Next Now X navigation",
       projects: "Projects",
       newProject: "New project",
       overview: "Overview",
@@ -105,7 +105,7 @@ export const shell = {
     },
   },
   ja: {
-    app: { title: "PRX" },
+    app: { title: "Next Now X" },
     settings: {
       open: "設定",
       title: "設定",
@@ -154,8 +154,8 @@ export const shell = {
       },
     },
     nav: {
-      dashboard: "PRX ダッシュボード",
-      primary: "PRX ナビゲーション",
+      dashboard: "Next Now X ダッシュボード",
+      primary: "Next Now X ナビゲーション",
       projects: "プロジェクト",
       newProject: "プロジェクトを作成",
       overview: "概要",

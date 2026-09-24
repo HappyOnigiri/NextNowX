@@ -9,7 +9,7 @@ import {
 } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { UpdateStatusSchema } from "../src/gen/prx/v1/prx_pb";
+import { UpdateStatusSchema } from "../src/gen/nnx/v1/nnx_pb";
 import { setDisplayLanguage } from "../src/i18n";
 import { UpdateDialog } from "../src/views/UpdateDialog";
 
@@ -70,7 +70,7 @@ describe("UpdateDialog", () => {
   it("renders every release note newest first", () => {
     renderDialog();
     expect(
-      screen.getByRole("dialog", { name: "PRX v0.5.0 is available" }),
+      screen.getByRole("dialog", { name: "Next Now X v0.5.0 is available" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "Highlights" }),
@@ -90,7 +90,7 @@ describe("UpdateDialog", () => {
   it("installs the newest release and reports the restart", async () => {
     updateMocks.applyUpdate.mockResolvedValue({
       version: "v0.5.0",
-      installedPath: "/home/example/.local/bin/prx",
+      installedPath: "/home/example/.local/bin/nnx",
       restartRequired: true,
     });
     renderDialog();
@@ -100,7 +100,7 @@ describe("UpdateDialog", () => {
     });
     expect(
       await screen.findByText(
-        "Installed v0.5.0. Restart the running prx serve to use it.",
+        "Installed v0.5.0. Restart the running nnx serve to use it.",
       ),
     ).toBeInTheDocument();
     expect(updateMocks.invalidate).toHaveBeenCalled();
@@ -110,7 +110,7 @@ describe("UpdateDialog", () => {
   it("says nothing about restarting when the daemon handles it", async () => {
     updateMocks.applyUpdate.mockResolvedValue({
       version: "v0.5.0",
-      installedPath: "/home/example/.local/bin/prx",
+      installedPath: "/home/example/.local/bin/nnx",
       restartRequired: false,
     });
     renderDialog();

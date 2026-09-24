@@ -8,7 +8,7 @@ import {
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FeatureTabId } from "../src/feature-tabs";
-import { DocumentKind, type Snapshot } from "../src/gen/prx/v1/prx_pb";
+import { DocumentKind, type Snapshot } from "../src/gen/nnx/v1/nnx_pb";
 import { ProjectWorkspace } from "../src/views/ProjectWorkspace";
 import {
   makeDocument,

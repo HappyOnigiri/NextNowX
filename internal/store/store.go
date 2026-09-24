@@ -15,8 +15,9 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"github.com/HappyOnigiri/PRX/internal/db"
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/datadir"
+	"github.com/HappyOnigiri/NextNowX/internal/db"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 //go:embed migrations/*.sql
@@ -50,13 +51,8 @@ const (
 	publicIDsMigration  = 5
 )
 
-func DefaultPath() (string, error) {
-	dir, err := os.UserConfigDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(dir, "prx", "prx.db"), nil
-}
+// DefaultPath は既定のデータベースの位置を返し、旧 prx のデータがあれば移す。
+func DefaultPath() (string, error) { return datadir.DatabasePath() }
 
 func Open(ctx context.Context, path string) (*Store, error) {
 	if path == "" {

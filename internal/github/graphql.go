@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 const graphQLBatchSize = 20
@@ -578,7 +578,7 @@ func (p *LiveProvider) doGraphQL(
 	request.Header.Set("Accept", "application/vnd.github+json")
 	request.Header.Set("Authorization", "Bearer "+p.token)
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("User-Agent", "prx/0.1")
+	request.Header.Set("User-Agent", "nnx/0.1")
 	response, err := p.httpClient.Do(request)
 	if err != nil {
 		return 0, err

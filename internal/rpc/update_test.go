@@ -8,9 +8,9 @@ import (
 
 	"connectrpc.com/connect"
 
-	prxv1 "github.com/HappyOnigiri/PRX/gen/prx/v1"
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/rpc"
+	nnxv1 "github.com/HappyOnigiri/NextNowX/gen/nnx/v1"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/rpc"
 )
 
 // updateService は更新の 3 つだけを差し替える。他の RPC は埋め込んだ interface が担う。
@@ -64,7 +64,7 @@ func TestUpdateStatusRPCCarriesReleasesAndNotice(t *testing.T) {
 	}}
 	client := newTestClientForService(t, service)
 	response, err := client.GetUpdateStatus(
-		context.Background(), connect.NewRequest(&prxv1.GetUpdateStatusRequest{}),
+		context.Background(), connect.NewRequest(&nnxv1.GetUpdateStatusRequest{}),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -87,34 +87,34 @@ func TestUpdateStatusRPCReportsTheDisabledReason(t *testing.T) {
 	for _, test := range []struct {
 		name   string
 		reason domain.UpdateDisabledReason
-		want   prxv1.UpdateDisabledReason
+		want   nnxv1.UpdateDisabledReason
 	}{
 		{
 			name:   "development build",
 			reason: domain.UpdateDisabledDevelopmentBuild,
-			want:   prxv1.UpdateDisabledReason_UPDATE_DISABLED_REASON_DEVELOPMENT_BUILD,
+			want:   nnxv1.UpdateDisabledReason_UPDATE_DISABLED_REASON_DEVELOPMENT_BUILD,
 		},
 		{
 			name:   "demo",
 			reason: domain.UpdateDisabledDemo,
-			want:   prxv1.UpdateDisabledReason_UPDATE_DISABLED_REASON_DEMO,
+			want:   nnxv1.UpdateDisabledReason_UPDATE_DISABLED_REASON_DEMO,
 		},
 		{
 			name:   "excluded from build",
 			reason: domain.UpdateDisabledExcludedFromBuild,
-			want:   prxv1.UpdateDisabledReason_UPDATE_DISABLED_REASON_EXCLUDED_FROM_BUILD,
+			want:   nnxv1.UpdateDisabledReason_UPDATE_DISABLED_REASON_EXCLUDED_FROM_BUILD,
 		},
 		{
 			name:   "enabled",
 			reason: domain.UpdateEnabled,
-			want:   prxv1.UpdateDisabledReason_UPDATE_DISABLED_REASON_UNSPECIFIED,
+			want:   nnxv1.UpdateDisabledReason_UPDATE_DISABLED_REASON_UNSPECIFIED,
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			service := &updateService{status: domain.UpdateStatus{DisabledReason: test.reason}}
 			client := newTestClientForService(t, service)
 			response, err := client.GetUpdateStatus(
-				context.Background(), connect.NewRequest(&prxv1.GetUpdateStatusRequest{}),
+				context.Background(), connect.NewRequest(&nnxv1.GetUpdateStatusRequest{}),
 			)
 			if err != nil {
 				t.Fatal(err)
@@ -130,7 +130,7 @@ func TestSkipUpdateVersionRPCSilencesTheNotice(t *testing.T) {
 	service := &updateService{status: domain.UpdateStatus{Enabled: true, ShouldNotify: true}}
 	client := newTestClientForService(t, service)
 	response, err := client.SkipUpdateVersion(
-		context.Background(), connect.NewRequest(&prxv1.SkipUpdateVersionRequest{Version: "v0.4.0"}),
+		context.Background(), connect.NewRequest(&nnxv1.SkipUpdateVersionRequest{Version: "v0.4.0"}),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -142,11 +142,11 @@ func TestSkipUpdateVersionRPCSilencesTheNotice(t *testing.T) {
 
 func TestApplyUpdateRPCReportsTheInstalledBinary(t *testing.T) {
 	service := &updateService{result: domain.UpdateResult{
-		Version: "v0.4.0", InstalledPath: "/home/example/.local/bin/prx", RestartRequired: true,
+		Version: "v0.4.0", InstalledPath: "/home/example/.local/bin/nnx", RestartRequired: true,
 	}}
 	client := newTestClientForService(t, service)
 	response, err := client.ApplyUpdate(
-		context.Background(), connect.NewRequest(&prxv1.ApplyUpdateRequest{Version: "v0.4.0"}),
+		context.Background(), connect.NewRequest(&nnxv1.ApplyUpdateRequest{Version: "v0.4.0"}),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -154,7 +154,7 @@ func TestApplyUpdateRPCReportsTheInstalledBinary(t *testing.T) {
 	if service.applied != "v0.4.0" || !response.Msg.GetRestartRequired() {
 		t.Fatalf("applied=%q response=%+v", service.applied, response.Msg)
 	}
-	if response.Msg.GetInstalledPath() != "/home/example/.local/bin/prx" {
+	if response.Msg.GetInstalledPath() != "/home/example/.local/bin/nnx" {
 		t.Fatalf("path=%q", response.Msg.GetInstalledPath())
 	}
 }
@@ -164,25 +164,25 @@ func TestUpdateRPCsMapDomainErrorsToDetailCodes(t *testing.T) {
 	tests := []struct {
 		name string
 		err  error
-		want prxv1.DomainErrorCode
+		want nnxv1.DomainErrorCode
 		code connect.Code
 	}{
 		{
 			name: "disabled",
 			err:  domain.NewError(domain.DomainErrorCodeUpdateUnavailable, "updates are disabled"),
-			want: prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_UPDATE_UNAVAILABLE,
+			want: nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_UPDATE_UNAVAILABLE,
 			code: connect.CodeFailedPrecondition,
 		},
 		{
 			name: "check failed",
 			err:  domain.NewError(domain.DomainErrorCodeUpdateCheckFailed, "the feed is unreachable"),
-			want: prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_UPDATE_CHECK_FAILED,
+			want: nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_UPDATE_CHECK_FAILED,
 			code: connect.CodeUnavailable,
 		},
 		{
 			name: "apply failed",
 			err:  domain.NewError(domain.DomainErrorCodeUpdateFailed, "checksum verification failed"),
-			want: prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_UPDATE_FAILED,
+			want: nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_UPDATE_FAILED,
 			code: connect.CodeInternal,
 		},
 	}
@@ -190,7 +190,7 @@ func TestUpdateRPCsMapDomainErrorsToDetailCodes(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			client := newTestClientForService(t, &updateService{err: test.err})
 			_, err := client.GetUpdateStatus(
-				context.Background(), connect.NewRequest(&prxv1.GetUpdateStatusRequest{}),
+				context.Background(), connect.NewRequest(&nnxv1.GetUpdateStatusRequest{}),
 			)
 			if err == nil {
 				t.Fatal("expected a failure")

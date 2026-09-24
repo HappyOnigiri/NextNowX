@@ -3,7 +3,7 @@ import { RefreshCw, RotateCcw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { mutations } from "../api";
 import { isActiveFeature } from "../feature-status";
-import type { Task } from "../gen/prx/v1/prx_pb";
+import type { Task } from "../gen/nnx/v1/nnx_pb";
 import { useDomainMutation, useSnapshot } from "../hooks";
 import { formatError } from "../i18n/domain";
 import { useAutoSyncStatus } from "../sync-status";

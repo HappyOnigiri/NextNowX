@@ -3,12 +3,12 @@ import { appVersion } from "../src/version";
 
 describe("appVersion", () => {
   afterEach(() => {
-    document.querySelector('meta[name="prx-version"]')?.remove();
+    document.querySelector('meta[name="nnx-version"]')?.remove();
   });
 
   it("uses the version injected by the Go server", () => {
     const meta = document.createElement("meta");
-    meta.name = "prx-version";
+    meta.name = "nnx-version";
     meta.content = "1.2.3";
     document.head.append(meta);
 

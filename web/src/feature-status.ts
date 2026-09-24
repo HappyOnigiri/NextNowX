@@ -1,4 +1,4 @@
-import { FeatureStatus, type Feature } from "./gen/prx/v1/prx_pb";
+import { FeatureStatus, type Feature } from "./gen/nnx/v1/nnx_pb";
 
 // 概要・サイドバー・task キューはいずれも進行中の作業を示すので、read-only と
 // 完了済みの feature は除く。判定はどれも archived ではなくサーバーの readOnly

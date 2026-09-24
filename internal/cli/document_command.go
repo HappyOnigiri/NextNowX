@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 type documentSourceFlags struct {
@@ -21,7 +21,7 @@ func (s *state) documentCommand() *cobra.Command {
 		Aliases: []string{"doc"},
 		Short:   "List or manage documents",
 		Long:    "List or manage URL, local file, and stored Markdown documents.\n\nAlias: doc.",
-		Example: "prx document\nprx document --task T-1\nprx document --project P-1\nprx doc",
+		Example: "nnx document\nnnx document --task T-1\nnnx document --project P-1\nnnx doc",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			snapshot, err := s.service.Snapshot(cmd.Context())
@@ -100,9 +100,9 @@ func (s *state) documentAddCommand() *cobra.Command {
 		Short: "Add a document to a project, a feature, or a task",
 		Long: "Add a document to a project, a feature, or a task.\n\n" +
 			"The operand is a public project, feature, or task ID.",
-		Example: "prx document add T-1 --url https://example.com\n" +
-			"prx document add P-1 --url https://example.com\n" +
-			"prx document add F-1 --markdown-file notes.md",
+		Example: "nnx document add T-1 --url https://example.com\n" +
+			"nnx document add P-1 --url https://example.com\n" +
+			"nnx document add F-1 --markdown-file notes.md",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			document, err := readDocumentSource(cmd, source, domain.DomainErrorCodeInvalidDocument)
@@ -153,7 +153,7 @@ func (s *state) documentGetCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:     "get DOCUMENT_ID",
 		Short:   "Get one document",
-		Example: "prx document get DOCUMENT_ID",
+		Example: "nnx document get DOCUMENT_ID",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			document, err := s.service.GetDocument(cmd.Context(), args[0])
@@ -172,7 +172,7 @@ func (s *state) documentUpdateCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:     "update DOCUMENT_ID",
 		Short:   "Update a document",
-		Example: "prx document update DOCUMENT_ID --title Runbook",
+		Example: "nnx document update DOCUMENT_ID --title Runbook",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var titlePointer *string
@@ -210,7 +210,7 @@ func (s *state) documentDeleteCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:     "delete DOCUMENT_ID",
 		Short:   "Delete a document; missing documents return not_found",
-		Example: "prx document delete DOCUMENT_ID",
+		Example: "nnx document delete DOCUMENT_ID",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := s.service.DeleteDocument(cmd.Context(), args[0]); err != nil {

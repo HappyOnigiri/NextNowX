@@ -10,11 +10,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	prx "github.com/HappyOnigiri/PRX"
-	"github.com/HappyOnigiri/PRX/internal/daemon"
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/launchd"
-	"github.com/HappyOnigiri/PRX/internal/runstate"
+	nnx "github.com/HappyOnigiri/NextNowX"
+	"github.com/HappyOnigiri/NextNowX/internal/daemon"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/launchd"
+	"github.com/HappyOnigiri/NextNowX/internal/runstate"
 )
 
 const (
@@ -24,7 +24,7 @@ const (
 	daemonWaitTimeout = 30 * time.Second
 )
 
-// daemonStatusResponse は `prx daemon` の応答。稼働中でない項目はゼロ値になる。
+// daemonStatusResponse は `nnx daemon` の応答。稼働中でない項目はゼロ値になる。
 type daemonStatusResponse struct {
 	Supported     bool   `json:"supported"`
 	Installed     bool   `json:"installed"`
@@ -44,12 +44,12 @@ type daemonStatusResponse struct {
 func (s *state) daemonCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:   "daemon",
-		Short: "Show or manage the background PRX server",
-		Long: "Show or manage the background PRX server.\n\n" +
-			"On macOS a LaunchAgent starts prx serve at login. The LaunchAgent never passes --addr or " +
+		Short: "Show or manage the background Next Now X server",
+		Long: "Show or manage the background Next Now X server.\n\n" +
+			"On macOS a LaunchAgent starts nnx serve at login. The LaunchAgent never passes --addr or " +
 			"--demo, so the background server always listens on loopback with real data.\n" +
-			"Other operating systems report daemon_unsupported; run prx serve directly there.",
-		Example: "prx daemon",
+			"Other operating systems report daemon_unsupported; run nnx serve directly there.",
+		Example: "nnx daemon",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			status := s.inspectDaemon()
@@ -67,12 +67,12 @@ func (s *state) daemonCommand() *cobra.Command {
 }
 
 func (s *state) inspectDaemon() daemon.Status {
-	return daemon.Inspect(launchd.New(), prx.Version())
+	return daemon.Inspect(launchd.New(), nnx.Version())
 }
 
 func daemonStatus(status daemon.Status) daemonStatusResponse {
 	// plist_status は current・stale・unknown の 3 値である。plist を持たない OS でも空を
-	// 返さず unknown に寄せて、`prx debug` の daemon セクションと語彙を揃える。
+	// 返さず unknown に寄せて、`nnx debug` の daemon セクションと語彙を揃える。
 	plistStatus := status.PlistStatus
 	if plistStatus == "" {
 		plistStatus = launchd.PlistUnknown
@@ -101,7 +101,7 @@ func daemonStatus(status daemon.Status) daemonStatusResponse {
 func renderDaemonStatus(status daemon.Status) humanRenderer {
 	return func(out io.Writer) error {
 		if !status.Supported {
-			return renderMessage("The PRX daemon requires macOS. Run prx serve directly instead.")(out)
+			return renderMessage("The Next Now X daemon requires macOS. Run nnx serve directly instead.")(out)
 		}
 		value := daemonStatus(status)
 		fields := [][2]string{
@@ -132,13 +132,13 @@ func renderDaemonStatus(status daemon.Status) humanRenderer {
 func writeDaemonAdvice(out io.Writer, status daemon.Status) error {
 	switch {
 	case !status.Installed:
-		return renderMessage("\nRun prx daemon install to start PRX at login.")(out)
+		return renderMessage("\nRun nnx daemon install to start Next Now X at login.")(out)
 	case status.PlistStatus == launchd.PlistStale:
-		return renderMessage("\nThe LaunchAgent is out of date. Run prx daemon install to rewrite it.")(out)
+		return renderMessage("\nThe LaunchAgent is out of date. Run nnx daemon install to rewrite it.")(out)
 	case !status.Running:
-		return renderMessage("\nNo server is running. Run prx daemon start.")(out)
+		return renderMessage("\nNo server is running. Run nnx daemon start.")(out)
 	case !status.BinaryMatches:
-		return renderMessage("\nThe running server predates this binary. Run prx daemon restart.")(out)
+		return renderMessage("\nThe running server predates this binary. Run nnx daemon restart.")(out)
 	default:
 		return nil
 	}
@@ -147,15 +147,20 @@ func writeDaemonAdvice(out io.Writer, status daemon.Status) error {
 func (s *state) daemonInstallCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "install",
-		Short: "Register the LaunchAgent that starts PRX at login",
-		Long: "Register the LaunchAgent that starts PRX at login.\n\n" +
+		Short: "Register the LaunchAgent that starts Next Now X at login",
+		Long: "Register the LaunchAgent that starts Next Now X at login.\n\n" +
 			"launchd starts the server right away, so the command waits until that server is listening " +
 			"and reports its address.",
-		Example: "prx daemon install",
+		Example: "nnx daemon install",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			manager := launchd.New()
-			before := daemon.Inspect(manager, prx.Version())
+			// 旧 prx の常駐は観測より先に止める。観測が旧データの移行を起こすので、
+			// 旧常駐が開いたままのデータベースを動かさないためである。
+			if err := manager.RemoveLegacy(cmd.Context()); err != nil {
+				return daemonError(err)
+			}
+			before := daemon.Inspect(manager, nnx.Version())
 			if err := manager.Install(cmd.Context()); err != nil {
 				return daemonError(err)
 			}
@@ -165,13 +170,13 @@ func (s *state) daemonInstallCommand() *cobra.Command {
 			if before.Running && !before.State.LaunchdManaged {
 				_, _ = fmt.Fprintln(
 					s.errOut,
-					"Warning: a PRX server started outside launchd is running; "+
-						"stop it and run prx daemon start to hand it over",
+					"Warning: a Next Now X server started outside launchd is running; "+
+						"stop it and run nnx daemon start to hand it over",
 				)
 			}
 			path, _ := manager.PlistPath()
 			// plist は RunAtLoad なので bootstrap は起動も伴う。依頼の成功は稼働の証明に
-			// ならないので、続く `prx open` が空振りしないよう記録が書かれるまで待つ。
+			// ならないので、続く `nnx open` が空振りしないよう記録が書かれるまで待つ。
 			state, err := waitForRunState(cmd.Context(), func(runstate.State) bool { return true })
 			if err != nil {
 				return err
@@ -181,7 +186,7 @@ func (s *state) daemonInstallCommand() *cobra.Command {
 					"installed": true, "label": launchd.Label, "plist_path": path,
 					"address": state.Address, "url": state.URL,
 				},
-				renderMessage("Installed %s at %s. PRX is listening on %s.", launchd.Label, path, state.URL),
+				renderMessage("Installed %s at %s. Next Now X is listening on %s.", launchd.Label, path, state.URL),
 			)
 		},
 	}
@@ -190,8 +195,8 @@ func (s *state) daemonInstallCommand() *cobra.Command {
 func (s *state) daemonUninstallCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:     "uninstall",
-		Short:   "Remove the LaunchAgent and stop starting PRX at login",
-		Example: "prx daemon uninstall",
+		Short:   "Remove the LaunchAgent and stop starting Next Now X at login",
+		Example: "nnx daemon uninstall",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			manager := launchd.New()
@@ -213,7 +218,7 @@ func (s *state) daemonStartCommand() *cobra.Command {
 		Short: "Ask launchd to start the background server",
 		Long: "Ask launchd to start the background server.\n\n" +
 			"Starting an already running server succeeds without replacing it.",
-		Example: "prx daemon start",
+		Example: "nnx daemon start",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			manager := launchd.New()
@@ -221,7 +226,10 @@ func (s *state) daemonStartCommand() *cobra.Command {
 				return daemonError(launchd.ErrUnsupported)
 			}
 			if status, state, err := runstate.Read(); err == nil && status == runstate.StatusRunning {
-				return s.write(startResponse(state, true), renderMessage("PRX is already running on %s.", state.URL))
+				return s.write(
+					startResponse(state, true),
+					renderMessage("Next Now X is already running on %s.", state.URL),
+				)
 			}
 			if err := manager.Start(cmd.Context()); err != nil {
 				return daemonError(err)
@@ -230,7 +238,7 @@ func (s *state) daemonStartCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return s.write(startResponse(state, false), renderMessage("PRX is listening on %s.", state.URL))
+			return s.write(startResponse(state, false), renderMessage("Next Now X is listening on %s.", state.URL))
 		},
 	}
 }
@@ -250,9 +258,9 @@ func (s *state) daemonStopCommand() *cobra.Command {
 		Use:   "stop",
 		Short: "Stop the background server without removing the LaunchAgent",
 		Long: "Stop the background server without removing the LaunchAgent.\n\n" +
-			"PRX sends SIGTERM to the recorded process; launchctl bootout is not used because it " +
+			"Next Now X sends SIGTERM to the recorded process; launchctl bootout is not used because it " +
 			"would unregister the LaunchAgent until the next login.",
-		Example: "prx daemon stop",
+		Example: "nnx daemon stop",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			manager := launchd.New()
@@ -266,7 +274,7 @@ func (s *state) daemonStopCommand() *cobra.Command {
 			if status != runstate.StatusRunning {
 				return s.write(
 					map[string]any{"stopped": false, "already_stopped": true},
-					renderMessage("No PRX server is running."),
+					renderMessage("No Next Now X server is running."),
 				)
 			}
 			// pid の信頼性はロックが保証する。ロックを持ったまま生きているプロセスだけが
@@ -279,7 +287,7 @@ func (s *state) daemonStopCommand() *cobra.Command {
 			}
 			return s.write(
 				map[string]any{"stopped": true, "already_stopped": false},
-				renderMessage("Stopped the PRX server."),
+				renderMessage("Stopped the Next Now X server."),
 			)
 		},
 	}
@@ -290,9 +298,9 @@ func (s *state) daemonRestartCommand() *cobra.Command {
 		Use:   "restart",
 		Short: "Replace the background server with a fresh one",
 		Long: "Replace the background server with a fresh one.\n\n" +
-			"Use this after installing a new PRX binary so the server stops answering with an older " +
+			"Use this after installing a new Next Now X binary so the server stops answering with an older " +
 			"embedded schema.",
-		Example: "prx daemon restart",
+		Example: "nnx daemon restart",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			manager := launchd.New()
@@ -314,7 +322,7 @@ func (s *state) daemonRestartCommand() *cobra.Command {
 			}
 			return s.write(
 				map[string]any{"restarted": true, "address": state.Address, "url": state.URL, "pid": state.PID},
-				renderMessage("Restarted the PRX server on %s.", state.URL),
+				renderMessage("Restarted the Next Now X server on %s.", state.URL),
 			)
 		},
 	}
@@ -352,7 +360,7 @@ func waitForStop(ctx context.Context) error {
 		}
 		if !time.Now().Before(deadline) {
 			return domain.NewError(
-				domain.DomainErrorCodeDaemonFailed, "the PRX server did not stop within %s", daemonWaitTimeout,
+				domain.DomainErrorCodeDaemonFailed, "the Next Now X server did not stop within %s", daemonWaitTimeout,
 			)
 		}
 		if err := sleepUntil(ctx, daemonPollInterval); err != nil {
@@ -377,11 +385,12 @@ func daemonError(err error) error {
 	switch {
 	case errors.Is(err, launchd.ErrUnsupported):
 		return domain.NewError(
-			domain.DomainErrorCodeDaemonUnsupported, "the PRX daemon requires macOS; run prx serve instead",
+			domain.DomainErrorCodeDaemonUnsupported, "the Next Now X daemon requires macOS; run nnx serve instead",
 		)
 	case errors.Is(err, launchd.ErrServiceMissing):
 		return domain.NewError(
-			domain.DomainErrorCodeDaemonNotInstalled, "the PRX LaunchAgent is not installed; run prx daemon install",
+			domain.DomainErrorCodeDaemonNotInstalled,
+			"the Next Now X LaunchAgent is not installed; run nnx daemon install",
 		)
 	default:
 		return domain.NewError(domain.DomainErrorCodeDaemonFailed, "%s", err)

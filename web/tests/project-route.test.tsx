@@ -70,7 +70,7 @@ describe("Project list route", () => {
     render(<RouterProvider router={router} />);
 
     const navigation = screen.getByRole("navigation", {
-      name: "PRX navigation",
+      name: "Next Now X navigation",
     });
     expect(navigation).toHaveTextContent("Projects");
     expect(navigation).toHaveTextContent("Delivery platform");

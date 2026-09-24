@@ -2,7 +2,7 @@ import { Check, Copy, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatBrowserDebugSection } from "../debug-text";
-import type { DebugProblem } from "../gen/prx/v1/prx_pb";
+import type { DebugProblem } from "../gen/nnx/v1/nnx_pb";
 import { useDebugReport, useQueryDiagnostics } from "../hooks";
 import { debugProblemLabel, formatError } from "../i18n/domain";
 import { IconButton } from "./IconButton";
@@ -18,7 +18,7 @@ export function DebugSettingsPanel() {
   async function copy(text: string) {
     try {
       // サーバーの本文はそのままコピーする。ブラウザから貼ったレポートが
-      // `prx debug` の出力と一致し、末尾にこのタブ固有の情報が付く。
+      // `nnx debug` の出力と一致し、末尾にこのタブ固有の情報が付く。
       await navigator.clipboard.writeText(
         text + formatBrowserDebugSection(queries),
       );

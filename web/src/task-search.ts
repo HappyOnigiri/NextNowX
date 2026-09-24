@@ -4,7 +4,7 @@ import {
   type PullRequest,
   type Snapshot,
   type Task,
-} from "./gen/prx/v1/prx_pb";
+} from "./gen/nnx/v1/nnx_pb";
 import {
   pullRequestDisplayStateToken,
   taskDisplayStateToken,

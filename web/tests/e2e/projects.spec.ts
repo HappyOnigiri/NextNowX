@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 const browserErrors: string[] = [];
-const e2ePort = process.env["PRX_E2E_PORT"];
+const e2ePort = process.env["NNX_E2E_PORT"];
 if (!e2ePort) throw new Error("Playwright did not capture the E2E server port");
 
 test.use({
@@ -172,7 +172,7 @@ test("folds a sidebar project and restores the fold after a reload", async ({
   page,
 }) => {
   await page.goto("/");
-  const rail = page.getByRole("navigation", { name: "PRX navigation" });
+  const rail = page.getByRole("navigation", { name: "Next Now X navigation" });
   const toggle = rail.getByRole("button", {
     name: "Expand or collapse Delivery platform",
   });
@@ -206,7 +206,7 @@ test("drops the sidebar tree once the rail turns horizontal", async ({
 }) => {
   await page.setViewportSize({ width: 1200, height: 900 });
   await page.goto("/");
-  const rail = page.getByRole("navigation", { name: "PRX navigation" });
+  const rail = page.getByRole("navigation", { name: "Next Now X navigation" });
   await expect(rail.locator(".nav-tree")).toBeVisible();
 
   await page.setViewportSize({ width: 800, height: 900 });

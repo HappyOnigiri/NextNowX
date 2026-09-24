@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/HappyOnigiri/PRX/internal/prompt"
+	"github.com/HappyOnigiri/NextNowX/internal/prompt"
 )
 
 func TestResolveLanguagePrefersTheSettingOverTheEnvironment(t *testing.T) {
@@ -82,7 +82,7 @@ func TestDefaultTemplatesFollowTheEffectiveLanguage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(body, "設計する") || strings.Contains(body, "Design PRX task") {
+	if !strings.Contains(body, "設計する") || strings.Contains(body, "Design Next Now X task") {
 		t.Fatalf("the japanese design prompt is not in japanese: %q", body)
 	}
 	if !strings.Contains(body, "T-7") || strings.Contains(body, "{{") {
@@ -94,10 +94,10 @@ func TestDefaultTemplatesFollowTheEffectiveLanguage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(batch, "SubAgent") || !strings.Contains(batch, "prx prompt TASK_ID") {
+	if !strings.Contains(batch, "SubAgent") || !strings.Contains(batch, "nnx prompt TASK_ID") {
 		t.Fatalf("the japanese batch prompt lost its instructions: %q", batch)
 	}
-	if strings.Contains(batch, "Implement the PRX tasks") {
+	if strings.Contains(batch, "Implement the Next Now X tasks") {
 		t.Fatalf("the japanese batch prompt kept the english text: %q", batch)
 	}
 }

@@ -43,6 +43,6 @@ jobs:
           assets: |
             artifacts/release/install.sh
             artifacts/release/uninstall.sh
-            artifacts/release/prx-darwin-arm64
+            artifacts/release/nnx-darwin-arm64
             artifacts/release/checksums.txt
           github-token: ${{ secrets.GH_TOKEN }}

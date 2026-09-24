@@ -99,7 +99,7 @@ describe("readCoverageFile", () => {
   });
 
   it("rejects malformed JSON", () => {
-    const directory = mkdtempSync(join(tmpdir(), "prx-invalid-coverage-"));
+    const directory = mkdtempSync(join(tmpdir(), "nnx-invalid-coverage-"));
     try {
       const coveragePath = join(directory, "coverage-final.json");
       writeFileSync(coveragePath, "not-json");
@@ -112,7 +112,7 @@ describe("readCoverageFile", () => {
   });
 
   it("fails the CLI for an intentional zero-count fixture", () => {
-    const directory = mkdtempSync(join(tmpdir(), "prx-zero-coverage-"));
+    const directory = mkdtempSync(join(tmpdir(), "nnx-zero-coverage-"));
     try {
       const coveragePath = join(directory, "coverage-final.json");
       const sourceFile = join(process.cwd(), "src/example.ts");

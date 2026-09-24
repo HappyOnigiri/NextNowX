@@ -21,7 +21,7 @@ feature ごとの実効 appearance を共有する。文字が上書きされて
 でコントラストが 4.5:1 を下回る色は編集画面で警告するが、保存は拒否しない。
 
 CLI の JSON 出力と `status`・`block` の値は安定値を維持する。人間向けの task 一覧・詳細・
-グラフだけが実効文字列を表示する。`prx task update --status` は安定値を優先し、対象 task
+グラフだけが実効文字列を表示する。`nnx task update --status` は安定値を優先し、対象 task
 の実効ラベルには前後空白除去と Unicode 大小文字無視で照合する。ラベル照合の対象は手動
 設定可能な `not_started`、`designing`、`in_progress`、`completed`、`closed` の 5 状態だけ
 で、複数一致は候補を示す曖昧エラーにする。

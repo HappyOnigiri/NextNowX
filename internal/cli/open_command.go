@@ -6,9 +6,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/HappyOnigiri/PRX/internal/browser"
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/runstate"
+	"github.com/HappyOnigiri/NextNowX/internal/browser"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/runstate"
 )
 
 const (
@@ -22,18 +22,18 @@ func (s *state) openCommand() *cobra.Command {
 	var printOnly bool
 	command := &cobra.Command{
 		Use:   "open",
-		Short: "Open the running PRX WebUI in a browser",
-		Long: "Open the running PRX WebUI in a browser.\n\n" +
+		Short: "Open the running Next Now X WebUI in a browser",
+		Long: "Open the running Next Now X WebUI in a browser.\n\n" +
 			"The URL comes from the running server itself, so it is correct even when the port fell back " +
-			"to an ephemeral one. This never starts a server; use prx daemon start for that.",
-		Example: "prx open --print",
+			"to an ephemeral one. This never starts a server; use nnx daemon start for that.",
+		Example: "nnx open --print",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			opener := browser.New()
 			if !opener.Supported() {
 				return domain.NewError(
 					domain.DomainErrorCodeDaemonUnsupported,
-					"prx open requires macOS; read the address from prx daemon --json instead",
+					"nnx open requires macOS; read the address from nnx daemon --json instead",
 				)
 			}
 			state, err := waitForServeAddress(cmd.Context())
@@ -76,7 +76,7 @@ func waitForServeAddress(ctx context.Context) (runstate.State, error) {
 		if status == runstate.StatusNotRunning || !time.Now().Before(deadline) {
 			return runstate.State{}, domain.NewError(
 				domain.DomainErrorCodeDaemonNotRunning,
-				"No PRX server is running. Start it with prx daemon start.",
+				"No Next Now X server is running. Start it with nnx daemon start.",
 			)
 		}
 		if err := sleepUntil(ctx, openBindPollInterval); err != nil {

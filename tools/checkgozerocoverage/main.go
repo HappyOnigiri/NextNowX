@@ -45,7 +45,7 @@ func run(ctx context.Context, repositoryRoot string, packages []string, output i
 		return 1
 	}
 
-	profile, err := os.CreateTemp("", "prx-go-coverage-*.out")
+	profile, err := os.CreateTemp("", "nnx-go-coverage-*.out")
 	if err != nil {
 		_, _ = fmt.Fprintf(output, "failed to create coverage profile: %v\n", err)
 		return 1

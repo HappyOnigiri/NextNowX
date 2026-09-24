@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getPromptTemplates, type PromptTemplateSettings } from "../api";
-import type { PromptTemplateOverrides } from "../gen/prx/v1/prx_pb";
+import type { PromptTemplateOverrides } from "../gen/nnx/v1/nnx_pb";
 
 type PromptKind = "design" | "implementation" | "batch" | "batchDesign";
 export type PromptValues = Record<PromptKind, string>;

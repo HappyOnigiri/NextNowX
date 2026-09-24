@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 var (

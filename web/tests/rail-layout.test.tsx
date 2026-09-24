@@ -95,7 +95,7 @@ describe("AppShell rail layout", () => {
     expect(resizer()).toHaveAttribute("aria-valuenow", "248");
     expect(resizer()).toHaveAttribute("aria-valuemin", String(minRailWidth));
     expect(resizer()).toHaveAttribute("aria-valuemax", String(maxRailWidth));
-    expect(resizer()).toHaveAttribute("aria-controls", "prx-rail");
+    expect(resizer()).toHaveAttribute("aria-controls", "nnx-rail");
 
     fireEvent.pointerDown(resizer(), { button: 0, pointerId: 1, clientX: 248 });
     fireEvent.pointerMove(resizer(), { pointerId: 1, clientX: 328 });

@@ -1,55 +1,62 @@
 # 常駐サーバの方針
 
-`prx serve` を常駐させる目的は、ログイン後に何も打たずに WebUI へ到達できることである。
-対象は macOS だけで、常駐の仕組みは LaunchAgent が所有する。他の OS では常駐を操作する `prx daemon` のサブコマンドと `prx open` が `daemon_unsupported` を返し、`prx serve` を直接使う。
-状態を表示する `prx daemon` は他の OS でも成功する。稼働記録は flock だけに依存するので、`prx serve` の稼働は OS を問わず報告できる事実である。plist に由来するフィールドだけが空になる。
+`nnx serve` を常駐させる目的は、ログイン後に何も打たずに WebUI へ到達できることである。
+対象は macOS だけで、常駐の仕組みは LaunchAgent が所有する。他の OS では常駐を操作する `nnx daemon` のサブコマンドと `nnx open` が `daemon_unsupported` を返し、`nnx serve` を直接使う。
+状態を表示する `nnx daemon` は他の OS でも成功する。稼働記録は flock だけに依存するので、`nnx serve` の稼働は OS を問わず報告できる事実である。plist に由来するフィールドだけが空になる。
 
-初回インストールの `install.sh` は、端末が使えるとき `prx setup` を起動する。
-`prx setup` は、まず言語を尋ね、起動時にデータベースファイルを新規作成したときだけ小さなサンプルデータを投入してから、常駐の問いかけに入る。
-これは「setup はストレージを見ない」という前提が部分的に変わった点である。`prx setup` はデータベースと設定ファイルを自分で開き、設定の読み込み警告と自動同期は依然として通らない。
+初回インストールの `install.sh` は、端末が使えるとき `nnx setup` を起動する。
+`nnx setup` は、まず言語を尋ね、起動時にデータベースファイルを新規作成したときだけ小さなサンプルデータを投入してから、常駐の問いかけに入る。
+これは「setup はストレージを見ない」という前提が部分的に変わった点である。`nnx setup` はデータベースと設定ファイルを自分で開き、設定の読み込み警告と自動同期は依然として通らない。
 投入の条件と opt-out は [persistence.md](persistence.md) にある。投入の失敗は警告 1 行に留め、常駐の案内は続ける。
 
 言語の問いかけは端末を確保できたときだけ出し、毎回尋ねる。選択肢は `en` と `ja` の 2 つで、`auto` は出さない。初期位置は現在の実効言語である。
 選択は現在の実効言語と同じでも設定の `language` へ保存する。保存しないと `auto` が残り、ロケール変数の渡らない LaunchAgent の環境で実効言語が端末とずれたままになる。
-すなわち `prx setup` を通ると `language` は `auto` でなくなる。`auto` へ戻すには `prx config language update auto` を使う。
+すなわち `nnx setup` を通ると `language` は `auto` でなくなる。`auto` へ戻すには `nnx config language update auto` を使う。
 保存の失敗は警告 1 行に留め、そのセッションの表示には選んだ言語を使う。端末が無いとき、および選択をキャンセルしたときは尋ねず、設定とロケールから決めた実効言語のまま投入まで進む。
 以降の問いかけ・進行メッセージと、その実行で投入されるサンプルデータはこの言語で出る。
 TUI で LaunchAgent の導入を選び、導入直後だけ WebUI を開く操作を選べる。
 既存 daemon の更新・起動ではブラウザ選択を表示しない。
 変更が要らないとき、および選択で変更しないことを選んだときも、現状と後から変えるコマンドを 1 行で伝えて終わる。無言で終わると、セットアップ済みなのかコマンドが壊れているのかを利用者が区別できない。
 端末が無い、または選択をキャンセルした場合は、インストール自体を成功させたまま
-`prx daemon install` と `prx open` の手動手順を表示する。
+`nnx daemon install` と `nnx open` の手動手順を表示する。
 
 ## 起動の所有者は launchd である
 
-PRX 自身が daemon プロセスを spawn することはない。起動する権限は常に launchd に渡す。
-`prx daemon start` と `prx daemon restart` は launchd へ依頼するだけで、依頼の成功は稼働の証明にならない。どちらも稼働記録が書かれるまで待って結果を報告する。
-`prx daemon install` も同じである。plist は `RunAtLoad` なので登録は起動を伴い、待たずに成功を返すと直後の `prx open` が未稼働として失敗する。
+Next Now X 自身が daemon プロセスを spawn することはない。起動する権限は常に launchd に渡す。
+`nnx daemon start` と `nnx daemon restart` は launchd へ依頼するだけで、依頼の成功は稼働の証明にならない。どちらも稼働記録が書かれるまで待って結果を報告する。
+`nnx daemon install` も同じである。plist は `RunAtLoad` なので登録は起動を伴い、待たずに成功を返すと直後の `nnx open` が未稼働として失敗する。
 
 plist の `ProgramArguments` は実行ファイルと `serve` の 2 要素だけである。
-`--addr` も `--demo` も含めないことが、loopback 外への公開と demo を常駐から締め出す構造的な保証になる。前景で動く入口を二重化しない。`prx serve` はすでに SIGTERM で graceful shutdown する前景サーバである。
+`--addr` も `--demo` も含めないことが、loopback 外への公開と demo を常駐から締め出す構造的な保証になる。前景で動く入口を二重化しない。`nnx serve` はすでに SIGTERM で graceful shutdown する前景サーバである。
 
 `KeepAlive` は `SuccessfulExit: false` で、正常終了を再起動の対象にしない。
-`ThrottleInterval` は 1 にする。launchd は前回の起動からこの間隔が経つまで次の起動を始めず、`launchctl kickstart -k` はその経過まで戻らない。つまりこの値が `prx daemon restart` の待ち時間をそのまま決める。
+`ThrottleInterval` は 1 にする。launchd は前回の起動からこの間隔が経つまで次の起動を始めず、`launchctl kickstart -k` はその経過まで戻らない。つまりこの値が `nnx daemon restart` の待ち時間をそのまま決める。
 
 失敗の再試行を間引く役割は plist ではなく serve プロセスが持つ。launchd が起動した serve は、失敗して終わる前に 10 秒待つ。
 `server.port` を固定してそのポートが使用中のような持続的な失敗で launchd が毎秒 serve を起こし直すと、ローテーションのないログが際限なく育つ。
-待機は SIGTERM で打ち切るので `prx daemon stop` と `prx daemon restart` を遅らせない。前景で起動した `prx serve` は待たず、エラーを表示してすぐ終わる。
+待機は SIGTERM で打ち切るので `nnx daemon stop` と `nnx daemon restart` を遅らせない。前景で起動した `nnx serve` は待たず、エラーを表示してすぐ終わる。
 
 `EnvironmentVariables` の `HOME` と `PATH` は必須である。
-PRX のパス解決は `HOME` に依存し、`gh` と Keychain のヘルパーは `PATH` に依存する。launchd が渡す環境は極小なので、これを書かないと GitHub 認証が常駐サーバでだけ失敗するサイレントな差分になる。
+Next Now X のパス解決は `HOME` に依存し、`gh` と Keychain のヘルパーは `PATH` に依存する。launchd が渡す環境は極小なので、これを書かないと GitHub 認証が常駐サーバでだけ失敗するサイレントな差分になる。
 
-## plist は PRX が全体を所有する
+## plist は Next Now X が全体を所有する
 
-plist は PRX が生成した全体をそのまま書き、判定も byte 一致で行う。差分は `prx daemon install` の再実行で修復する。
-`prx daemon` の `plist_status` は `current`・`stale`・`unknown` の 3 値で、plist の不在や読み取り不能は `unknown` とする。未導入を陳腐化と誤判定しないためである。
+plist は Next Now X が生成した全体をそのまま書き、判定も byte 一致で行う。差分は `nnx daemon install` の再実行で修復する。
+`nnx daemon` の `plist_status` は `current`・`stale`・`unknown` の 3 値で、plist の不在や読み取り不能は `unknown` とする。未導入を陳腐化と誤判定しないためである。
 plist が symlink や通常ファイル以外のときは読み書きを拒否する。そうしないと install が任意のファイルを 0600 で上書きし得る。
 書き込みは一時ファイルへ書いてから rename する。部分的に書かれた plist を launchd が読むと、登録されないまま install が成功してしまう。
 ログのローテーションは実装していない既知の負債である。
 
+## 改名前の LaunchAgent は install と uninstall が取り除く
+
+改名前の prx は `com.user.prx` を登録していた。`nnx daemon install`（`nnx setup` の登録を含む）と `nnx daemon uninstall` は、その plist があれば bootout してから削除する。
+残すと旧バイナリの常駐が同じポートとデータを使い続け、`nnx` の常駐と取り合う。
+`nnx daemon install` は旧 LaunchAgent の除去を常駐の観測より先に行う。観測が旧データの移行（[persistence.md](persistence.md)）を起こすので、旧常駐が開いたままのデータベースを動かさないためである。
+`make install` も旧 plist があれば `nnx daemon install` を実行する。
+
 ## 多重起動防止と稼働発見の真実は 1 つの flock である
 
-稼働記録は `<設定ディレクトリ>/prx/run/serve.json` に置き、`PRX_RUN_DIR` で差し替えられる。
+稼働記録は `<設定ディレクトリ>/nnx/run/serve.json` に置き、`NNX_RUN_DIR` で差し替えられる。
 このファイルは flock と記録を兼ねる。読み手は共有ロックを試し、取れたら未稼働（残っている内容は stale）、取れなかったら稼働中で内容が有効と判定する。
 これにより「アドレスを書いた本人が今も生きている」ことがロック 1 つで保証され、pid の再利用もポートの再利用も誤判定しない。異常終了で内容が残っても、ロックの不在で識別できる。
 
@@ -61,22 +68,22 @@ plist が symlink や通常ファイル以外のときは読み書きを拒否�
 排他ロックを取った直後にも内容を空にする。異常終了が残した内容をロックの新しい保持者が引き継ぐと、自分のアドレスを書くまでの間、読み手は死んだサーバの記録を有効なものとして読む。
 正常終了時は内容を空にするだけで unlink はしない。unlink とほぼ同時に新しいインスタンスが同じパスを作ってロックしていると、それを消してしまう。
 
-ロックと記録を伴うのは通常の `prx serve` だけである。`--addr` を指定した起動と `--demo` はアドホックなインスタンスで、稼働中サーバを名乗らず、記録も書かない。
-`prx open` は記録が持つ実アドレスを開く。ポートを推測して dial することはない。異常終了で残った番号を開くと、たまたまその番号を掴んだ別プロセスに繋がる。
+ロックと記録を伴うのは通常の `nnx serve` だけである。`--addr` を指定した起動と `--demo` はアドホックなインスタンスで、稼働中サーバを名乗らず、記録も書かない。
+`nnx open` は記録が持つ実アドレスを開く。ポートを推測して dial することはない。異常終了で残った番号を開くと、たまたまその番号を掴んだ別プロセスに繋がる。
 
 ## 停止は SIGTERM である
 
-`prx daemon stop` は記録された pid へ SIGTERM を送る。`launchctl bootout` は使わない。登録が次のログインまで消えてしまうからである。
+`nnx daemon stop` は記録された pid へ SIGTERM を送る。`launchctl bootout` は使わない。登録が次のログインまで消えてしまうからである。
 pid の信頼性はロックが保証する。ロックを保持したまま生きているプロセスだけがこの記録を書ける。
 対象がいなければ、失敗させずに停止済みとして報告する。
 
 ## アンインストールの境界
 
-GitHub Release の `uninstall.sh` は、標準の稼働記録を使う daemon だけを停止し、LaunchAgent を解除してから `~/.local/bin/prx` を削除する。
+GitHub Release の `uninstall.sh` は、標準の稼働記録を使う daemon だけを停止し、LaunchAgent を解除してから `~/.local/bin/nnx` を削除する。
 停止・解除・停止状態の再確認のいずれかに失敗した場合は、バイナリを残して再実行方法を案内する。
-標準配置が symlink ならリンクだけを削除し、リンク先や別の配置にある `prx` は削除しない。
+標準配置が symlink ならリンクだけを削除し、リンク先や別の配置にある `nnx` は削除しない。
 
-`prx serve --addr`、`prx serve --demo`、`PRX_RUN_DIR` で独自の稼働記録を使うプロセスは自動停止の対象外である。
+`nnx serve --addr`、`nnx serve --demo`、`NNX_RUN_DIR` で独自の稼働記録を使うプロセスは自動停止の対象外である。
 アンインストール後にそれらを利用者が停止してから、必要なデータを手動で削除する。
 設定、SQLite DB、稼働記録、ログは再インストールで再利用できるよう自動削除しない。
 アンインストール用の CLI サブコマンドや `--purge` は提供しない。
@@ -88,11 +95,11 @@ GitHub Release の `uninstall.sh` は、標準の稼働記録を使う daemon �
 これを入れないと、新しい CLI がデータベースを移行した後も古いサーバが古い埋め込みスキーマで応答し続けるサイレントな版ずれが残る。
 再起動を依頼する launchctl の context はサーバの context から派生させない。`launchctl kickstart -k` は自身へ SIGTERM を送るので、依頼の完了前に取り消されてしまう。
 
-開発ビルドを配置する `make install` は、LaunchAgent が導入済みのときだけ `prx daemon install` を実行して常駐を作り直す。
-自己再起動は plist を書き直さないので、`INSTALL_DIR` を変えた配置や plist の書式が変わった版では、これがないと古いパスや古い plist が残る。plist が指す `prx` を配置先へ固定するため、配置したバイナリを `PATH` の先頭に置いて実行する。
+開発ビルドを配置する `make install` は、LaunchAgent が導入済みのときだけ `nnx daemon install` を実行して常駐を作り直す。
+自己再起動は plist を書き直さないので、`INSTALL_DIR` を変えた配置や plist の書式が変わった版では、これがないと古いパスや古い plist が残る。plist が指す `nnx` を配置先へ固定するため、配置したバイナリを `PATH` の先頭に置いて実行する。
 LaunchAgent が未導入の環境には登録しない。常駐を望まない選択を、バイナリの更新で覆さないためである。
 
 ## CLI は常駐を経由しない
 
-CLI コマンドは常駐サーバを経由せず、従来どおり直接 SQLite を開く。常駐は長寿命の `prx serve` にすぎない。
-`prx daemon` と `prx open` はデータベースも設定も開かない。どちらも launchd の登録と稼働記録だけを見る。
+CLI コマンドは常駐サーバを経由せず、従来どおり直接 SQLite を開く。常駐は長寿命の `nnx serve` にすぎない。
+`nnx daemon` と `nnx open` はデータベースも設定も開かない。どちらも launchd の登録と稼働記録だけを見る。

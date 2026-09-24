@@ -6,7 +6,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { FeatureStatus } from "../src/gen/prx/v1/prx_pb";
+import { FeatureStatus } from "../src/gen/nnx/v1/nnx_pb";
 import { EditFeatureDialog } from "../src/views/EditFeatureDialog";
 import { makeFeature, makeProject } from "./factories";
 

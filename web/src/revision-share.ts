@@ -6,8 +6,8 @@ import {
 // サーバーは TLS なしの HTTP/1.1 なので、ブラウザは同一オリジンへの同時接続を
 // 6 本前後に制限する。タブごとに 1 本張ると、数枚開いただけで取得が接続待ちになる。
 // そこでプロファイル全体で 1 本に絞り、受け取ったリビジョンをタブ間で配る。
-const revisionLockName = "prx-revision-stream";
-const revisionChannelName = "prx-revision-stream";
+const revisionLockName = "nnx-revision-stream";
+const revisionChannelName = "nnx-revision-stream";
 
 type ShareMessage =
   | { kind: "connect"; revision: string }

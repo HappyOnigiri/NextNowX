@@ -19,7 +19,7 @@ import type {
   PullRequest,
   Snapshot,
   Task,
-} from "../gen/prx/v1/prx_pb";
+} from "../gen/nnx/v1/nnx_pb";
 import { useDomainMutation, useSnapshot } from "../hooks";
 import { featureStatusLabel, featureStatusToken } from "../i18n/domain";
 import {
@@ -523,7 +523,7 @@ function FeatureWorkspaceHead({
           />
         )}
         {/* アーカイブ済みの feature でもコピーは使える。エージェントへの受け渡しは
-            PRX を変更せず読むだけだから。 */}
+            Next Now X を変更せず読むだけだから。 */}
         <IconButton
           icon={ClipboardList}
           label={t("batchPrompt.open")}

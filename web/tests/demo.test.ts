@@ -14,11 +14,11 @@ function injectMeta(name: string, content: string) {
 
 describe("isDemoMode", () => {
   afterEach(() => {
-    document.querySelector('meta[name="prx-demo"]')?.remove();
+    document.querySelector('meta[name="nnx-demo"]')?.remove();
   });
 
   it("reads demo mode injected by the Go server", () => {
-    injectMeta("prx-demo", "true");
+    injectMeta("nnx-demo", "true");
     expect(isDemoMode()).toBe(true);
   });
 
@@ -27,7 +27,7 @@ describe("isDemoMode", () => {
   });
 
   it("ignores the placeholder left in the built HTML", () => {
-    injectMeta("prx-demo", "__PRX_DEMO__");
+    injectMeta("nnx-demo", "__NNX_DEMO__");
     expect(isDemoMode()).toBe(false);
   });
 });
@@ -37,22 +37,22 @@ describe("demo notice dismissal", () => {
     localStorage.clear();
   });
   afterEach(() => {
-    document.querySelector('meta[name="prx-demo-session"]')?.remove();
+    document.querySelector('meta[name="nnx-demo-session"]')?.remove();
   });
 
   it("remembers the dismissal for the session that is being served", () => {
-    injectMeta("prx-demo-session", "session-1");
+    injectMeta("nnx-demo-session", "session-1");
     expect(readDemoNoticeDismissed()).toBe(false);
     writeDemoNoticeDismissed();
     expect(readDemoNoticeDismissed()).toBe(true);
   });
 
   it("forgets the dismissal once another session is served", () => {
-    injectMeta("prx-demo-session", "session-1");
+    injectMeta("nnx-demo-session", "session-1");
     writeDemoNoticeDismissed();
 
-    document.querySelector('meta[name="prx-demo-session"]')?.remove();
-    injectMeta("prx-demo-session", "session-2");
+    document.querySelector('meta[name="nnx-demo-session"]')?.remove();
+    injectMeta("nnx-demo-session", "session-2");
     expect(readDemoNoticeDismissed()).toBe(false);
   });
 

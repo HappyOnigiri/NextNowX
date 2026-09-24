@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/HappyOnigiri/PRX/internal/release"
+	"github.com/HappyOnigiri/NextNowX/internal/release"
 )
 
 func newTestProvider(t *testing.T, handler http.HandlerFunc) *release.LiveProvider {

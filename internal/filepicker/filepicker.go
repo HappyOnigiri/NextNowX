@@ -1,4 +1,4 @@
-// Package filepicker はローカルの PRX サーバー向けに OS のファイル選択画面を開く。
+// Package filepicker はローカルの Next Now X サーバー向けに OS のファイル選択画面を開く。
 package filepicker
 
 import (

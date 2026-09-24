@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/HappyOnigiri/PRX/internal/app"
-	"github.com/HappyOnigiri/PRX/internal/config"
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/release"
-	"github.com/HappyOnigiri/PRX/internal/store"
+	"github.com/HappyOnigiri/NextNowX/internal/app"
+	"github.com/HappyOnigiri/NextNowX/internal/config"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/release"
+	"github.com/HappyOnigiri/NextNowX/internal/store"
 )
 
 type updateEnvironment struct {
@@ -169,7 +169,7 @@ func TestSkipUpdateVersionRejectsValuesThatAreNotReleaseTags(t *testing.T) {
 func TestApplyUpdateRunsTheUpdaterForNewerReleasesOnly(t *testing.T) {
 	app.StubUpdateBuildVersionForTest(t, "0.3.0")
 	updater := &recordingUpdater{
-		result: domain.UpdateApply{Version: "v0.4.0", InstalledPath: "/home/example/.local/bin/prx"},
+		result: domain.UpdateApply{Version: "v0.4.0", InstalledPath: "/home/example/.local/bin/nnx"},
 	}
 	environment := newUpdateService(t, &countingProvider{}, updater)
 	ctx := context.Background()
@@ -178,7 +178,7 @@ func TestApplyUpdateRunsTheUpdaterForNewerReleasesOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if updater.version != "v0.4.0" || result.InstalledPath != "/home/example/.local/bin/prx" {
+	if updater.version != "v0.4.0" || result.InstalledPath != "/home/example/.local/bin/nnx" {
 		t.Fatalf("result=%+v version=%q", result, updater.version)
 	}
 	// 常駐が観測できない配線では、置き換えが自動で反映される保証がない。
@@ -195,7 +195,7 @@ func TestApplyUpdateRunsTheUpdaterForNewerReleasesOnly(t *testing.T) {
 // launchd 配下の常駐は置き換えを自分で検知するので、利用者の再起動は要らない。
 func TestApplyUpdateLeavesTheRestartToTheManagedDaemon(t *testing.T) {
 	app.StubUpdateBuildVersionForTest(t, "0.3.0")
-	updater := &recordingUpdater{result: domain.UpdateApply{Version: "v0.4.0", InstalledPath: "/bin/prx"}}
+	updater := &recordingUpdater{result: domain.UpdateApply{Version: "v0.4.0", InstalledPath: "/bin/nnx"}}
 	environment := newUpdateService(t, &countingProvider{}, updater)
 	environment.service.SetDaemonInspector(func(context.Context) domain.DebugDaemonInput {
 		return domain.DebugDaemonInput{Supported: true, Installed: true, Running: true}

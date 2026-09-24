@@ -8,9 +8,9 @@ import (
 
 	"connectrpc.com/connect"
 
-	prxv1 "github.com/HappyOnigiri/PRX/gen/prx/v1"
-	"github.com/HappyOnigiri/PRX/internal/config"
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	nnxv1 "github.com/HappyOnigiri/NextNowX/gen/nnx/v1"
+	"github.com/HappyOnigiri/NextNowX/internal/config"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 func (h *Handler) requireConfig() (*config.Store, error) {
@@ -22,8 +22,8 @@ func (h *Handler) requireConfig() (*config.Store, error) {
 
 func (h *Handler) GetConfig(
 	ctx context.Context,
-	_ *connect.Request[prxv1.GetConfigRequest],
-) (*connect.Response[prxv1.GetConfigResponse], error) {
+	_ *connect.Request[nnxv1.GetConfigRequest],
+) (*connect.Response[nnxv1.GetConfigResponse], error) {
 	store, err := h.requireConfig()
 	if err != nil {
 		return nil, err
@@ -32,13 +32,13 @@ func (h *Handler) GetConfig(
 	if err != nil {
 		return nil, configRPCError(err)
 	}
-	return connect.NewResponse(&prxv1.GetConfigResponse{Config: protoGitHubConfig(value)}), nil
+	return connect.NewResponse(&nnxv1.GetConfigResponse{Config: protoGitHubConfig(value)}), nil
 }
 
 func (h *Handler) UpdateGitHubSyncConfig(
 	ctx context.Context,
-	req *connect.Request[prxv1.UpdateGitHubSyncConfigRequest],
-) (*connect.Response[prxv1.UpdateGitHubSyncConfigResponse], error) {
+	req *connect.Request[nnxv1.UpdateGitHubSyncConfigRequest],
+) (*connect.Response[nnxv1.UpdateGitHubSyncConfigResponse], error) {
 	store, err := h.requireConfig()
 	if err != nil {
 		return nil, err
@@ -49,7 +49,7 @@ func (h *Handler) UpdateGitHubSyncConfig(
 	if err != nil {
 		return nil, configRPCError(err)
 	}
-	return connect.NewResponse(&prxv1.UpdateGitHubSyncConfigResponse{
+	return connect.NewResponse(&nnxv1.UpdateGitHubSyncConfigResponse{
 		Config: protoGitHubConfig(settings.Public()),
 	}), nil
 }
@@ -58,8 +58,8 @@ func (h *Handler) UpdateGitHubSyncConfig(
 // 言語は localStorage ではなくこの設定に従うので、プロンプトと表示がずれない。
 func (h *Handler) UpdateLanguageConfig(
 	ctx context.Context,
-	req *connect.Request[prxv1.UpdateLanguageConfigRequest],
-) (*connect.Response[prxv1.UpdateLanguageConfigResponse], error) {
+	req *connect.Request[nnxv1.UpdateLanguageConfigRequest],
+) (*connect.Response[nnxv1.UpdateLanguageConfigResponse], error) {
 	store, err := h.requireConfig()
 	if err != nil {
 		return nil, err
@@ -70,15 +70,15 @@ func (h *Handler) UpdateLanguageConfig(
 	if err != nil {
 		return nil, configRPCError(err)
 	}
-	return connect.NewResponse(&prxv1.UpdateLanguageConfigResponse{
+	return connect.NewResponse(&nnxv1.UpdateLanguageConfigResponse{
 		Config: protoGitHubConfig(settings.Public()),
 	}), nil
 }
 
 func (h *Handler) GetTaskLabelConfig(
 	ctx context.Context,
-	_ *connect.Request[prxv1.GetTaskLabelConfigRequest],
-) (*connect.Response[prxv1.GetTaskLabelConfigResponse], error) {
+	_ *connect.Request[nnxv1.GetTaskLabelConfigRequest],
+) (*connect.Response[nnxv1.GetTaskLabelConfigResponse], error) {
 	store, err := h.requireConfig()
 	if err != nil {
 		return nil, err
@@ -87,15 +87,15 @@ func (h *Handler) GetTaskLabelConfig(
 	if err != nil {
 		return nil, configRPCError(err)
 	}
-	return connect.NewResponse(&prxv1.GetTaskLabelConfigResponse{
+	return connect.NewResponse(&nnxv1.GetTaskLabelConfigResponse{
 		Config: protoTaskLabelConfig(settings.TaskLabels),
 	}), nil
 }
 
 func (h *Handler) UpdateTaskLabelConfig(
 	ctx context.Context,
-	req *connect.Request[prxv1.UpdateTaskLabelConfigRequest],
-) (*connect.Response[prxv1.UpdateTaskLabelConfigResponse], error) {
+	req *connect.Request[nnxv1.UpdateTaskLabelConfigRequest],
+) (*connect.Response[nnxv1.UpdateTaskLabelConfigResponse], error) {
 	store, err := h.requireConfig()
 	if err != nil {
 		return nil, err
@@ -110,15 +110,15 @@ func (h *Handler) UpdateTaskLabelConfig(
 	if err != nil {
 		return nil, configRPCError(err)
 	}
-	return connect.NewResponse(&prxv1.UpdateTaskLabelConfigResponse{
+	return connect.NewResponse(&nnxv1.UpdateTaskLabelConfigResponse{
 		Config: protoTaskLabelConfig(settings.TaskLabels),
 	}), nil
 }
 
 func (h *Handler) AddGitHubHost(
 	ctx context.Context,
-	req *connect.Request[prxv1.AddGitHubHostRequest],
-) (*connect.Response[prxv1.AddGitHubHostResponse], error) {
+	req *connect.Request[nnxv1.AddGitHubHostRequest],
+) (*connect.Response[nnxv1.AddGitHubHostResponse], error) {
 	store, err := h.requireConfig()
 	if err != nil {
 		return nil, err
@@ -136,13 +136,13 @@ func (h *Handler) AddGitHubHost(
 		return nil, configRPCError(err)
 	}
 	host, _ := settings.HostFor(req.Msg.GetHost())
-	return connect.NewResponse(&prxv1.AddGitHubHostResponse{Host: protoGitHubHost(host)}), nil
+	return connect.NewResponse(&nnxv1.AddGitHubHostResponse{Host: protoGitHubHost(host)}), nil
 }
 
 func (h *Handler) UpdateGitHubHost(
 	ctx context.Context,
-	req *connect.Request[prxv1.UpdateGitHubHostRequest],
-) (*connect.Response[prxv1.UpdateGitHubHostResponse], error) {
+	req *connect.Request[nnxv1.UpdateGitHubHostRequest],
+) (*connect.Response[nnxv1.UpdateGitHubHostResponse], error) {
 	store, err := h.requireConfig()
 	if err != nil {
 		return nil, err
@@ -180,13 +180,13 @@ func (h *Handler) UpdateGitHubHost(
 		hostName = req.Msg.GetNewHost()
 	}
 	host, _ := settings.HostFor(hostName)
-	return connect.NewResponse(&prxv1.UpdateGitHubHostResponse{Host: protoGitHubHost(host)}), nil
+	return connect.NewResponse(&nnxv1.UpdateGitHubHostResponse{Host: protoGitHubHost(host)}), nil
 }
 
 func (h *Handler) DeleteGitHubHost(
 	ctx context.Context,
-	req *connect.Request[prxv1.DeleteGitHubHostRequest],
-) (*connect.Response[prxv1.DeleteGitHubHostResponse], error) {
+	req *connect.Request[nnxv1.DeleteGitHubHostRequest],
+) (*connect.Response[nnxv1.DeleteGitHubHostResponse], error) {
 	store, err := h.requireConfig()
 	if err != nil {
 		return nil, err
@@ -196,13 +196,13 @@ func (h *Handler) DeleteGitHubHost(
 	); err != nil {
 		return nil, configRPCError(err)
 	}
-	return connect.NewResponse(&prxv1.DeleteGitHubHostResponse{}), nil
+	return connect.NewResponse(&nnxv1.DeleteGitHubHostResponse{}), nil
 }
 
 func (h *Handler) AddGitHubAuthMethod(
 	ctx context.Context,
-	req *connect.Request[prxv1.AddGitHubAuthMethodRequest],
-) (*connect.Response[prxv1.AddGitHubAuthMethodResponse], error) {
+	req *connect.Request[nnxv1.AddGitHubAuthMethodRequest],
+) (*connect.Response[nnxv1.AddGitHubAuthMethodResponse], error) {
 	store, err := h.requireConfig()
 	if err != nil {
 		return nil, err
@@ -216,14 +216,14 @@ func (h *Handler) AddGitHubAuthMethod(
 		return nil, configRPCError(err)
 	}
 	return connect.NewResponse(
-		&prxv1.AddGitHubAuthMethodResponse{AuthMethod: protoPublicAuthMethod(settings, method.ID)},
+		&nnxv1.AddGitHubAuthMethodResponse{AuthMethod: protoPublicAuthMethod(settings, method.ID)},
 	), nil
 }
 
 func (h *Handler) UpdateGitHubAuthMethod(
 	ctx context.Context,
-	req *connect.Request[prxv1.UpdateGitHubAuthMethodRequest],
-) (*connect.Response[prxv1.UpdateGitHubAuthMethodResponse], error) {
+	req *connect.Request[nnxv1.UpdateGitHubAuthMethodRequest],
+) (*connect.Response[nnxv1.UpdateGitHubAuthMethodResponse], error) {
 	store, err := h.requireConfig()
 	if err != nil {
 		return nil, err
@@ -277,14 +277,14 @@ func (h *Handler) UpdateGitHubAuthMethod(
 		methodID = req.Msg.GetNewId()
 	}
 	return connect.NewResponse(
-		&prxv1.UpdateGitHubAuthMethodResponse{AuthMethod: protoPublicAuthMethod(settings, methodID)},
+		&nnxv1.UpdateGitHubAuthMethodResponse{AuthMethod: protoPublicAuthMethod(settings, methodID)},
 	), nil
 }
 
 func (h *Handler) DeleteGitHubAuthMethod(
 	ctx context.Context,
-	req *connect.Request[prxv1.DeleteGitHubAuthMethodRequest],
-) (*connect.Response[prxv1.DeleteGitHubAuthMethodResponse], error) {
+	req *connect.Request[nnxv1.DeleteGitHubAuthMethodRequest],
+) (*connect.Response[nnxv1.DeleteGitHubAuthMethodResponse], error) {
 	store, err := h.requireConfig()
 	if err != nil {
 		return nil, err
@@ -294,13 +294,13 @@ func (h *Handler) DeleteGitHubAuthMethod(
 	); err != nil {
 		return nil, configRPCError(err)
 	}
-	return connect.NewResponse(&prxv1.DeleteGitHubAuthMethodResponse{}), nil
+	return connect.NewResponse(&nnxv1.DeleteGitHubAuthMethodResponse{}), nil
 }
 
 func (h *Handler) ReorderGitHubAuthMethods(
 	ctx context.Context,
-	req *connect.Request[prxv1.ReorderGitHubAuthMethodsRequest],
-) (*connect.Response[prxv1.ReorderGitHubAuthMethodsResponse], error) {
+	req *connect.Request[nnxv1.ReorderGitHubAuthMethodsRequest],
+) (*connect.Response[nnxv1.ReorderGitHubAuthMethodsResponse], error) {
 	store, err := h.requireConfig()
 	if err != nil {
 		return nil, err
@@ -312,7 +312,7 @@ func (h *Handler) ReorderGitHubAuthMethods(
 		return nil, configRPCError(err)
 	}
 	public := settings.Public()
-	result := &prxv1.ReorderGitHubAuthMethodsResponse{}
+	result := &nnxv1.ReorderGitHubAuthMethodsResponse{}
 	for _, method := range public.GitHub.AuthMethods {
 		result.AuthMethods = append(result.AuthMethods, protoPublicAuth(method))
 	}
@@ -321,8 +321,8 @@ func (h *Handler) ReorderGitHubAuthMethods(
 
 func (h *Handler) ValidateConfig(
 	ctx context.Context,
-	_ *connect.Request[prxv1.ValidateConfigRequest],
-) (*connect.Response[prxv1.ValidateConfigResponse], error) {
+	_ *connect.Request[nnxv1.ValidateConfigRequest],
+) (*connect.Response[nnxv1.ValidateConfigResponse], error) {
 	store, err := h.requireConfig()
 	if err != nil {
 		return nil, err
@@ -330,12 +330,12 @@ func (h *Handler) ValidateConfig(
 	warnings, err := store.Validate()
 	if err != nil {
 		//nolint:nilerr // validation failures are returned as data in a successful RPC response.
-		return connect.NewResponse(&prxv1.ValidateConfigResponse{Errors: []string{err.Error()}}), nil
+		return connect.NewResponse(&nnxv1.ValidateConfigResponse{Errors: []string{err.Error()}}), nil
 	}
-	return connect.NewResponse(&prxv1.ValidateConfigResponse{Valid: true, Warnings: warnings}), nil
+	return connect.NewResponse(&nnxv1.ValidateConfigResponse{Valid: true, Warnings: warnings}), nil
 }
 
-func configAuthMethodFromAdd(value *prxv1.AddGitHubAuthMethodRequest) (config.AuthMethod, error) {
+func configAuthMethodFromAdd(value *nnxv1.AddGitHubAuthMethodRequest) (config.AuthMethod, error) {
 	authType, err := configAuthMethodType(value.GetType())
 	if err != nil {
 		return config.AuthMethod{}, err
@@ -356,25 +356,25 @@ func configAuthMethodFromAdd(value *prxv1.AddGitHubAuthMethodRequest) (config.Au
 	return method, nil
 }
 
-func configAuthMethodType(value prxv1.GithubAuthMethodType) (config.AuthMethodType, error) {
+func configAuthMethodType(value nnxv1.GithubAuthMethodType) (config.AuthMethodType, error) {
 	switch value {
-	case prxv1.GithubAuthMethodType_GITHUB_AUTH_METHOD_TYPE_UNSPECIFIED:
+	case nnxv1.GithubAuthMethodType_GITHUB_AUTH_METHOD_TYPE_UNSPECIFIED:
 		return "", &config.Error{Code: config.ErrorCodeInvalid, Message: "authentication method type is required"}
-	case prxv1.GithubAuthMethodType_GITHUB_AUTH_METHOD_TYPE_KEYCHAIN:
+	case nnxv1.GithubAuthMethodType_GITHUB_AUTH_METHOD_TYPE_KEYCHAIN:
 		return config.AuthMethodTypeKeychain, nil
-	case prxv1.GithubAuthMethodType_GITHUB_AUTH_METHOD_TYPE_ENVIRONMENT:
+	case nnxv1.GithubAuthMethodType_GITHUB_AUTH_METHOD_TYPE_ENVIRONMENT:
 		return config.AuthMethodTypeEnvironment, nil
-	case prxv1.GithubAuthMethodType_GITHUB_AUTH_METHOD_TYPE_INLINE:
+	case nnxv1.GithubAuthMethodType_GITHUB_AUTH_METHOD_TYPE_INLINE:
 		return config.AuthMethodTypeInline, nil
-	case prxv1.GithubAuthMethodType_GITHUB_AUTH_METHOD_TYPE_GH_CLI:
+	case nnxv1.GithubAuthMethodType_GITHUB_AUTH_METHOD_TYPE_GH_CLI:
 		return config.AuthMethodTypeGHCLI, nil
 	default:
 		return "", &config.Error{Code: config.ErrorCodeInvalid, Message: "authentication method type is required"}
 	}
 }
 
-func protoGitHubConfig(value config.PublicConfig) *prxv1.GitHubConfig {
-	result := &prxv1.GitHubConfig{
+func protoGitHubConfig(value config.PublicConfig) *nnxv1.GitHubConfig {
+	result := &nnxv1.GitHubConfig{
 		Version: int32(value.Version), AutoSyncIntervalSeconds: value.GitHub.AutoSyncIntervalSeconds,
 		Language: value.Language, EffectiveLanguage: value.EffectiveLanguage,
 		TaskLabelOverrides:          protoTaskLabelOverrides(value.TaskLabels),
@@ -391,8 +391,8 @@ func protoGitHubConfig(value config.PublicConfig) *prxv1.GitHubConfig {
 	return result
 }
 
-func protoTaskLabelConfig(overrides domain.TaskLabelOverrides) *prxv1.TaskLabelConfig {
-	return &prxv1.TaskLabelConfig{
+func protoTaskLabelConfig(overrides domain.TaskLabelOverrides) *nnxv1.TaskLabelConfig {
+	return &nnxv1.TaskLabelConfig{
 		Overrides:         protoTaskLabelOverrides(overrides),
 		BuiltIn:           protoTaskLabelAppearances(domain.BuiltInTaskLabelAppearances()),
 		Keys:              taskLabelKeyStrings(),
@@ -409,15 +409,15 @@ func taskLabelKeyStrings() []string {
 	return result
 }
 
-func protoGitHubHost(value config.Host) *prxv1.GitHubHost {
-	return &prxv1.GitHubHost{
+func protoGitHubHost(value config.Host) *nnxv1.GitHubHost {
+	return &nnxv1.GitHubHost{
 		Host: value.Host, WebUrl: value.WebURL, ApiUrl: value.APIURL,
 		UploadUrl: value.UploadURL, GraphqlUrl: value.GraphQLURL,
 	}
 }
 
-func protoGitHubSyncStatus(value domain.GitHubSyncStatus) *prxv1.GitHubSyncStatus {
-	result := &prxv1.GitHubSyncStatus{
+func protoGitHubSyncStatus(value domain.GitHubSyncStatus) *nnxv1.GitHubSyncStatus {
+	result := &nnxv1.GitHubSyncStatus{
 		IntervalSeconds: value.IntervalSeconds,
 		Succeeded:       int32(value.Succeeded),
 		Failed:          int32(value.Failed),
@@ -434,7 +434,7 @@ func protoGitHubSyncStatus(value domain.GitHubSyncStatus) *prxv1.GitHubSyncStatu
 	return result
 }
 
-func protoPublicAuthMethod(settings config.Config, id string) *prxv1.GitHubAuthMethod {
+func protoPublicAuthMethod(settings config.Config, id string) *nnxv1.GitHubAuthMethod {
 	value, ok := settings.AuthMethod(id)
 	if !ok {
 		return nil
@@ -448,26 +448,26 @@ func protoPublicAuthMethod(settings config.Config, id string) *prxv1.GitHubAuthM
 	return nil
 }
 
-func protoPublicAuth(value config.PublicAuthMethod) *prxv1.GitHubAuthMethod {
-	return &prxv1.GitHubAuthMethod{
+func protoPublicAuth(value config.PublicAuthMethod) *nnxv1.GitHubAuthMethod {
+	return &nnxv1.GitHubAuthMethod{
 		Id: value.ID, Host: value.Host, Type: protoAuthMethodType(value.Type), Account: value.Account,
 		Service: value.Service, Variable: value.Variable, User: value.User,
 		SecretConfigured: value.SecretConfigured, SecretHint: value.SecretHint,
 	}
 }
 
-func protoAuthMethodType(value config.AuthMethodType) prxv1.GithubAuthMethodType {
+func protoAuthMethodType(value config.AuthMethodType) nnxv1.GithubAuthMethodType {
 	switch value {
 	case config.AuthMethodTypeKeychain:
-		return prxv1.GithubAuthMethodType_GITHUB_AUTH_METHOD_TYPE_KEYCHAIN
+		return nnxv1.GithubAuthMethodType_GITHUB_AUTH_METHOD_TYPE_KEYCHAIN
 	case config.AuthMethodTypeEnvironment:
-		return prxv1.GithubAuthMethodType_GITHUB_AUTH_METHOD_TYPE_ENVIRONMENT
+		return nnxv1.GithubAuthMethodType_GITHUB_AUTH_METHOD_TYPE_ENVIRONMENT
 	case config.AuthMethodTypeInline:
-		return prxv1.GithubAuthMethodType_GITHUB_AUTH_METHOD_TYPE_INLINE
+		return nnxv1.GithubAuthMethodType_GITHUB_AUTH_METHOD_TYPE_INLINE
 	case config.AuthMethodTypeGHCLI:
-		return prxv1.GithubAuthMethodType_GITHUB_AUTH_METHOD_TYPE_GH_CLI
+		return nnxv1.GithubAuthMethodType_GITHUB_AUTH_METHOD_TYPE_GH_CLI
 	default:
-		return prxv1.GithubAuthMethodType_GITHUB_AUTH_METHOD_TYPE_UNSPECIFIED
+		return nnxv1.GithubAuthMethodType_GITHUB_AUTH_METHOD_TYPE_UNSPECIFIED
 	}
 }
 

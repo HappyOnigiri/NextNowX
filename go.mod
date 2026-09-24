@@ -1,4 +1,4 @@
-module github.com/HappyOnigiri/PRX
+module github.com/HappyOnigiri/NextNowX
 
 go 1.27.1
 

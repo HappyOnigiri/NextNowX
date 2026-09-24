@@ -29,7 +29,7 @@ generate: web-install
 	$(GO) tool buf format -w proto
 	$(GO) tool buf lint
 	$(GO) tool buf generate
-	$(GO) run ./cmd/prxdoc docs/cli
+	$(GO) run ./cmd/nnxdoc docs/cli
 
 # 一時ディレクトリに再生成して追跡中のファイルと比較する。作業ツリーを書き換えないので、
 # 他のチェックと並行して実行できる。
@@ -42,7 +42,7 @@ generated-check: web-install
 	$(GO) tool buf generate -o "$$out" || exit $$?; \
 	diff -ru gen "$$out/gen" || exit $$?; \
 	diff -ru web/src/gen "$$out/web/src/gen" || exit $$?; \
-	$(GO) run ./cmd/prxdoc "$$out/docs/cli" || exit $$?; \
+	$(GO) run ./cmd/nnxdoc "$$out/docs/cli" || exit $$?; \
 	diff -ru docs/cli "$$out/docs/cli"
 
 mod-tidy-check:
@@ -146,27 +146,29 @@ demo: web-build
 # Playwright への追加フラグ。例えば `make e2e E2E_FLAGS=--shard=1/3` で 1 シャードだけ走る。
 E2E_FLAGS ?=
 
-# scripts/run-e2e-server.sh も bin/prx を書くので、e2e は build と並行せず終わるのを待つ。
+# scripts/run-e2e-server.sh も bin/nnx を書くので、e2e は build と並行せず終わるのを待つ。
 e2e: build
 	$(PNPM) --dir web e2e $(E2E_FLAGS)
 
 build: web-build
 	mkdir -p bin
-	$(GO) build -trimpath -o bin/prx ./cmd/prx
+	$(GO) build -trimpath -o bin/nnx ./cmd/nnx
 
 version-check: build
-	@test "$$($(CURDIR)/bin/prx --version)" = "prx version $(VERSION)-dev"
+	@test "$$($(CURDIR)/bin/nnx --version)" = "nnx version $(VERSION)-dev"
 
 # 配置したバイナリで常駐も作り直す。導入済みのときだけ実行するのは、常駐を望んでいない
 # 環境に LaunchAgent を登録しないためである。macOS 以外や未導入では案内だけ出して成功する。
+# 旧 prx の LaunchAgent があれば、観測より先に daemon install で nnx へ移す。
 install: build
 	install -d "$(INSTALL_DIR)"
-	install -m 0755 bin/prx "$(INSTALL_DIR)/prx"
-	@status="$$("$(INSTALL_DIR)/prx" daemon --json 2>/dev/null)" || status=''; \
+	install -m 0755 bin/nnx "$(INSTALL_DIR)/nnx"
+	@if [ -f "$$HOME/Library/LaunchAgents/com.user.prx.plist" ]; then status='"installed":true'; \
+	else status="$$("$(INSTALL_DIR)/nnx" daemon --json 2>/dev/null)" || status=''; fi; \
 	case "$$status" in \
 	  *'"installed":true'*) \
-	    PATH="$(INSTALL_DIR):$$PATH" "$(INSTALL_DIR)/prx" daemon install;; \
-	  *) echo 'The PRX LaunchAgent is not installed; the background server was left untouched.';; \
+	    PATH="$(INSTALL_DIR):$$PATH" "$(INSTALL_DIR)/nnx" daemon install;; \
+	  *) echo 'The Next Now X LaunchAgent is not installed; the background server was left untouched.';; \
 	esac
 
 # 配布物は明示したタグでだけ作り、開発用の build / install が付ける -dev をそのまま残す。
@@ -180,7 +182,7 @@ release-check: web-build
 	@directory="$$(mktemp -d)" || exit $$?; \
 	trap 'rm -rf "$$directory"' EXIT; \
 	GO="$(GO)" RELEASE_VERSION=v0.0.0 RELEASE_DIR="$$directory" scripts/build-release.sh || exit $$?; \
-	$(GO) version -m "$$directory/prx-darwin-arm64" > "$$directory/build-info" || exit $$?; \
+	$(GO) version -m "$$directory/nnx-darwin-arm64" > "$$directory/build-info" || exit $$?; \
 	grep -Fq 'CGO_ENABLED=0' "$$directory/build-info" || exit $$?; \
 	grep -Fq 'GOOS=darwin' "$$directory/build-info" || exit $$?; \
 	grep -Fq 'GOARCH=arm64' "$$directory/build-info" || exit $$?; \
@@ -190,7 +192,7 @@ release-check: web-build
 	cmp scripts/uninstall.sh "$$directory/uninstall.sh" || exit $$?; \
 	(cd "$$directory" && shasum -a 256 -c checksums.txt) || exit $$?; \
 	if [ "$$(uname -sm)" = 'Darwin arm64' ]; then \
-	  test "$$("$$directory/prx-darwin-arm64" --version)" = 'prx version 0.0.0'; \
+	  test "$$("$$directory/nnx-darwin-arm64" --version)" = 'nnx version 0.0.0'; \
 	fi
 
 # 更新機能を外したビルドを既定のビルドと独立に検査する。ビルドタグの組み合わせが腐らないこと、
@@ -200,20 +202,20 @@ noupdate-check:
 	$(GO) test -tags noupdate ./...
 	@directory="$$(mktemp -d)" || exit $$?; \
 	trap 'rm -rf "$$directory"' EXIT; \
-	$(GO) build -tags noupdate -trimpath -o "$$directory/prx" ./cmd/prx || exit $$?; \
-	for url in 'api.github.com/repos/HappyOnigiri/PRX/releases' 'github.com/HappyOnigiri/PRX/releases/download'; do \
-	  if strings -a "$$directory/prx" | grep -qF "$$url"; then \
+	$(GO) build -tags noupdate -trimpath -o "$$directory/nnx" ./cmd/nnx || exit $$?; \
+	for url in 'api.github.com/repos/HappyOnigiri/NextNowX/releases' 'github.com/HappyOnigiri/NextNowX/releases/download'; do \
+	  if strings -a "$$directory/nnx" | grep -qF "$$url"; then \
 	    echo "the noupdate build still contains $$url"; exit 1; \
 	  fi; \
 	done; \
-	if "$$directory/prx" help update >/dev/null 2>&1; then \
+	if "$$directory/nnx" help update >/dev/null 2>&1; then \
 	  echo 'the noupdate build still registers the update command'; exit 1; \
 	fi
 
 ci:
 	$(MAKE) $(CI_MAKEFLAGS) ci-checks
 
-# どのチェックも読み取り専用か、自分の出力先 (coverage/、test-results/、bin/prx、
+# どのチェックも読み取り専用か、自分の出力先 (coverage/、test-results/、bin/nnx、
 # internal/webui/dist) にしか書かないので、並行実行しても安全。書き込み側は依存関係で直列化する。
 # 最長の連鎖 (web-build -> build -> e2e) を先頭に置き、make が他より先に着手するようにしている。
 ci-checks: e2e version-check build release-check noupdate-check install-test uninstall-test hooks-test lint test-race-coverage go-coverage-zero-check web-test \

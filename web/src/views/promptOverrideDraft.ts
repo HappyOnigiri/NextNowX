@@ -1,4 +1,4 @@
-import type { PromptTemplateOverrides } from "../gen/prx/v1/prx_pb";
+import type { PromptTemplateOverrides } from "../gen/nnx/v1/nnx_pb";
 import type { PromptValues } from "./PromptOverridesPanel";
 
 export function promptValuesOf(value?: PromptTemplateOverrides): PromptValues {

@@ -3,7 +3,7 @@ import {
   TaskStatus,
   type Task,
   type TaskLabelAppearances,
-} from "../gen/prx/v1/prx_pb";
+} from "../gen/nnx/v1/nnx_pb";
 import { taskStatusLabel } from "../i18n/domain";
 import { MutationError } from "./MutationError";
 import { type TaskDraftController } from "./taskDraft";

@@ -6,53 +6,53 @@ import (
 
 	"connectrpc.com/connect"
 
-	prxv1 "github.com/HappyOnigiri/PRX/gen/prx/v1"
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	nnxv1 "github.com/HappyOnigiri/NextNowX/gen/nnx/v1"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 // GetUpdateStatus は保存済みの確認結果を返す。間引きが切れていれば application 層が
 // その場で確認するので、クライアントは頻繁に呼んでよい。
 func (h *Handler) GetUpdateStatus(
 	ctx context.Context,
-	_ *connect.Request[prxv1.GetUpdateStatusRequest],
-) (*connect.Response[prxv1.GetUpdateStatusResponse], error) {
+	_ *connect.Request[nnxv1.GetUpdateStatusRequest],
+) (*connect.Response[nnxv1.GetUpdateStatusResponse], error) {
 	status, err := h.service.GetUpdateStatus(ctx)
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&prxv1.GetUpdateStatusResponse{Status: protoUpdateStatus(status)}), nil
+	return connect.NewResponse(&nnxv1.GetUpdateStatusResponse{Status: protoUpdateStatus(status)}), nil
 }
 
 func (h *Handler) SkipUpdateVersion(
 	ctx context.Context,
-	req *connect.Request[prxv1.SkipUpdateVersionRequest],
-) (*connect.Response[prxv1.SkipUpdateVersionResponse], error) {
+	req *connect.Request[nnxv1.SkipUpdateVersionRequest],
+) (*connect.Response[nnxv1.SkipUpdateVersionResponse], error) {
 	status, err := h.service.SkipUpdateVersion(ctx, req.Msg.GetVersion())
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&prxv1.SkipUpdateVersionResponse{Status: protoUpdateStatus(status)}), nil
+	return connect.NewResponse(&nnxv1.SkipUpdateVersionResponse{Status: protoUpdateStatus(status)}), nil
 }
 
 // ApplyUpdate は配布元のインストーラーを実行する。信頼境界の扱いは
 // docs/design/security.md にある。
 func (h *Handler) ApplyUpdate(
 	ctx context.Context,
-	req *connect.Request[prxv1.ApplyUpdateRequest],
-) (*connect.Response[prxv1.ApplyUpdateResponse], error) {
+	req *connect.Request[nnxv1.ApplyUpdateRequest],
+) (*connect.Response[nnxv1.ApplyUpdateResponse], error) {
 	result, err := h.service.ApplyUpdate(ctx, req.Msg.GetVersion())
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&prxv1.ApplyUpdateResponse{
+	return connect.NewResponse(&nnxv1.ApplyUpdateResponse{
 		Version:         result.Version,
 		InstalledPath:   result.InstalledPath,
 		RestartRequired: result.RestartRequired,
 	}), nil
 }
 
-func protoUpdateStatus(status domain.UpdateStatus) *prxv1.UpdateStatus {
-	result := &prxv1.UpdateStatus{
+func protoUpdateStatus(status domain.UpdateStatus) *nnxv1.UpdateStatus {
+	result := &nnxv1.UpdateStatus{
 		Enabled:         status.Enabled,
 		DisabledReason:  protoUpdateDisabledReason(status.DisabledReason),
 		CurrentVersion:  status.CurrentVersion,
@@ -70,10 +70,10 @@ func protoUpdateStatus(status domain.UpdateStatus) *prxv1.UpdateStatus {
 	return result
 }
 
-func protoUpdateReleases(releases []domain.ReleaseNote) []*prxv1.UpdateRelease {
-	result := make([]*prxv1.UpdateRelease, 0, len(releases))
+func protoUpdateReleases(releases []domain.ReleaseNote) []*nnxv1.UpdateRelease {
+	result := make([]*nnxv1.UpdateRelease, 0, len(releases))
 	for _, release := range releases {
-		value := &prxv1.UpdateRelease{Version: release.Version, Body: release.Body, Url: release.URL}
+		value := &nnxv1.UpdateRelease{Version: release.Version, Body: release.Body, Url: release.URL}
 		if release.PublishedAt != nil {
 			value.PublishedAt = release.PublishedAt.UTC().Format(time.RFC3339)
 		}
@@ -82,17 +82,17 @@ func protoUpdateReleases(releases []domain.ReleaseNote) []*prxv1.UpdateRelease {
 	return result
 }
 
-func protoUpdateDisabledReason(reason domain.UpdateDisabledReason) prxv1.UpdateDisabledReason {
+func protoUpdateDisabledReason(reason domain.UpdateDisabledReason) nnxv1.UpdateDisabledReason {
 	switch reason {
 	case domain.UpdateDisabledDevelopmentBuild:
-		return prxv1.UpdateDisabledReason_UPDATE_DISABLED_REASON_DEVELOPMENT_BUILD
+		return nnxv1.UpdateDisabledReason_UPDATE_DISABLED_REASON_DEVELOPMENT_BUILD
 	case domain.UpdateDisabledDemo:
-		return prxv1.UpdateDisabledReason_UPDATE_DISABLED_REASON_DEMO
+		return nnxv1.UpdateDisabledReason_UPDATE_DISABLED_REASON_DEMO
 	case domain.UpdateDisabledExcludedFromBuild:
-		return prxv1.UpdateDisabledReason_UPDATE_DISABLED_REASON_EXCLUDED_FROM_BUILD
+		return nnxv1.UpdateDisabledReason_UPDATE_DISABLED_REASON_EXCLUDED_FROM_BUILD
 	case domain.UpdateEnabled:
-		return prxv1.UpdateDisabledReason_UPDATE_DISABLED_REASON_UNSPECIFIED
+		return nnxv1.UpdateDisabledReason_UPDATE_DISABLED_REASON_UNSPECIFIED
 	default:
-		return prxv1.UpdateDisabledReason_UPDATE_DISABLED_REASON_UNSPECIFIED
+		return nnxv1.UpdateDisabledReason_UPDATE_DISABLED_REASON_UNSPECIFIED
 	}
 }

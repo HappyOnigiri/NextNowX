@@ -16,12 +16,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 // DefaultBaseURL はリリース資産の取得元。latest ではなく確認したタグを指すことで、
 // 確認した版と実際に入る版を一致させる。
-const DefaultBaseURL = "https://github.com/HappyOnigiri/PRX/releases/download"
+const DefaultBaseURL = "https://github.com/HappyOnigiri/NextNowX/releases/download"
 
 const (
 	// maxScriptBytes は取得するインストーラーの上限。
@@ -39,7 +39,7 @@ const (
 // installedPattern は install.sh が報告する配置先を読み取る。標準以外の場所に
 // 入れている環境では報告が出ないため、置き換わったかどうかの判定に使う。
 // 配置先は行末まで取る。HOME に空白を含む環境でも報告を取りこぼさないためである。
-var installedPattern = regexp.MustCompile(`(?m)^Installed prx (\S+) to (.+)$`)
+var installedPattern = regexp.MustCompile(`(?m)^Installed nnx (\S+) to (.+)$`)
 
 // forwardedEnvironment は install.sh の中の curl が外へ出るために要る設定。
 // Go 側の取得が通るのにスクリプトの取得だけが落ちる状態を避けるため、
@@ -89,7 +89,7 @@ func (a *Applier) Apply(ctx context.Context, version string) (domain.UpdateApply
 	if err != nil {
 		return domain.UpdateApply{}, err
 	}
-	directory, err := os.MkdirTemp("", "prx-update-")
+	directory, err := os.MkdirTemp("", "nnx-update-")
 	if err != nil {
 		return domain.UpdateApply{}, fmt.Errorf("create update workspace: %w", err)
 	}
@@ -142,7 +142,7 @@ func (a *Applier) runInstaller(ctx context.Context, scriptPath string) (string, 
 	command := exec.CommandContext(ctx, "bash", scriptPath)
 	command.Env = installerEnvironment()
 	command.Stdin = nil
-	// 標準入力を閉じるだけでは install.sh が呼ぶ `prx setup` が /dev/tty を開けてしまい、
+	// 標準入力を閉じるだけでは install.sh が呼ぶ `nnx setup` が /dev/tty を開けてしまい、
 	// 誰も答えない問いかけを上限時間まで待つ。制御端末ごと渡さない。
 	command.SysProcAttr = installerProcessAttributes()
 	var output bytes.Buffer

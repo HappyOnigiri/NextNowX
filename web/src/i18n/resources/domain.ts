@@ -3,7 +3,8 @@ export const domain = {
     debugProblem: {
       unknown: "Unrecognized problem",
       storageUnavailable: "The database could not be opened",
-      schemaVersionAheadOfBinary: "The database was written by a newer PRX",
+      schemaVersionAheadOfBinary:
+        "The database was written by a newer Next Now X",
       databaseNotWritable: "The database file cannot be written",
       databaseIntegrityErrors: "Stored dependency data failed validation",
       configUnreadable: "The configuration could not be loaded",
@@ -14,7 +15,7 @@ export const domain = {
       githubSyncOverdue: "The automatic GitHub status refresh is overdue",
       githubSyncNeverCompleted: "No GitHub status refresh has ever completed",
       pullRequestsStale: "Some pull requests hold stale state",
-      daemonPlistStale: "The LaunchAgent does not match this PRX binary",
+      daemonPlistStale: "The LaunchAgent does not match this Next Now X binary",
       daemonNotRunning: "The LaunchAgent is installed but no server is running",
       daemonBinaryOutdated: "The running server started from another binary",
     },
@@ -97,7 +98,7 @@ export const domain = {
     debugProblem: {
       unknown: "未知の問題",
       storageUnavailable: "データベースを開けません",
-      schemaVersionAheadOfBinary: "新しいPRXで書かれたデータベースです",
+      schemaVersionAheadOfBinary: "新しいNext Now Xで書かれたデータベースです",
       databaseNotWritable: "データベースファイルに書き込めません",
       databaseIntegrityErrors: "保存された依存データの検証に失敗しました",
       configUnreadable: "設定を読み込めません",
@@ -109,7 +110,7 @@ export const domain = {
       githubSyncNeverCompleted:
         "GitHub ステータスの更新が一度も完了していません",
       pullRequestsStale: "一部のPRが古い状態のままです",
-      daemonPlistStale: "LaunchAgentが現在のPRXと一致しません",
+      daemonPlistStale: "LaunchAgentが現在のNext Now Xと一致しません",
       daemonNotRunning: "LaunchAgentはあるがサーバーが稼働していません",
       daemonBinaryOutdated: "稼働中のサーバーは別のバイナリで起動しています",
     },

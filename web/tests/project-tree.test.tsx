@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { FeatureStatus } from "../src/gen/prx/v1/prx_pb";
+import { FeatureStatus } from "../src/gen/nnx/v1/nnx_pb";
 import { webUISettingsKey } from "../src/i18n/settings";
 import { ProjectTree } from "../src/views/ProjectTree";
 import { makeFeature, makeProject } from "./factories";

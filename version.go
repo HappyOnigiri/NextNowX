@@ -1,5 +1,5 @@
-// Package prx は PRX ビルドのバージョンを公開する。
-package prx
+// Package nnx は Next Now X ビルドのバージョンを公開する。
+package nnx
 
 import (
 	_ "embed"

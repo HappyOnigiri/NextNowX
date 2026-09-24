@@ -1,0 +1,873 @@
+import { expect, test, type Locator, type Page } from "@playwright/test";
+import { mkdir } from "node:fs/promises";
+import {
+  addTask,
+  createFeature,
+  e2eBaseURL,
+  guardBrowserErrors,
+  openDisplaySettings,
+  saveSettings,
+  settleGraph,
+  taskNodeId,
+} from "./helpers";
+
+test.use({ baseURL: e2eBaseURL });
+
+const browserErrors = guardBrowserErrors();
+
+// デモバナーはビューポートから高さを取るので、ワークスペースがビューポート全体の
+// サイズのままだと、自身の下端であるグラフキャンバスとズーム操作が画面外に出る。
+test("keeps the demo workspace inside the viewport", async ({ page }) => {
+  const overflow = () =>
+    page.evaluate(() => {
+      const root = document.scrollingElement ?? document.documentElement;
+      const workspace = document.querySelector(".workspace");
+      return {
+        page: root.scrollHeight - window.innerHeight,
+        workspace: workspace
+          ? workspace.getBoundingClientRect().bottom - window.innerHeight
+          : Number.NaN,
+      };
+    });
+  await page.goto("/");
+  await page
+    .getByRole("link", { name: /Delivery control showcase/ })
+    .first()
+    .click();
+  await expect(page.getByRole("status")).toBeVisible();
+  await expect(page.getByTestId("feature-graph")).toBeVisible();
+  expect(await overflow()).toEqual({ page: 0, workspace: 0 });
+
+  await page.setViewportSize({ width: 320, height: 720 });
+  await expect(page.getByTestId("feature-graph")).toBeVisible();
+  expect(await overflow()).toEqual({ page: 0, workspace: 0 });
+});
+
+test("shows GitHub sync diagnostics and runs a full refresh", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(page.locator(".page-head .dashboard-sync")).toBeVisible();
+  await expect(page.locator(".rail .dashboard-sync")).toHaveCount(0);
+  const syncButton = page.getByRole("button", { name: "Refresh", exact: true });
+  await expect(syncButton).toBeEnabled();
+  const syncResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      response.url().endsWith("/Sync"),
+  );
+  await syncButton.click();
+  expect((await syncResponse).ok()).toBe(true);
+  await expect(syncButton).toBeEnabled();
+});
+
+test("searches active tasks from a dashboard queue", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: /Ready now/ }).click();
+  await expect(page).toHaveURL(/\/tasks\?q=task-status%3Aready/);
+  await expect(
+    page.getByRole("heading", { name: "Task search", exact: true }),
+  ).toBeVisible();
+  const input = page.getByRole("textbox", {
+    name: "Search active tasks",
+  });
+  await expect(input).toHaveValue("task-status:ready");
+  await expect(page.locator(".task-results")).toBeVisible();
+
+  await input.fill("Merged server");
+  await page
+    .getByRole("search")
+    .getByRole("button", { name: "Search" })
+    .click();
+  await expect(page).toHaveURL(/\/tasks\?q=Merged\+server/);
+  await expect(page.locator(".task-results")).toContainText(
+    "Merged server support",
+  );
+  await page.reload();
+  await expect(input).toHaveValue("Merged server");
+  await page.goBack();
+  await expect(input).toHaveValue("task-status:ready");
+});
+
+// CI の失敗は検索とブロックラベルの両方から追える。デモの 109 番がその 1 件。
+test("finds a task blocked by failing CI", async ({ page }) => {
+  await page.goto("/tasks?q=block%3Aci-failed");
+  const results = page.locator(".task-results");
+  await expect(results).toContainText("Fix failing pipeline");
+  await expect(results).toContainText("CI failed");
+  await expect(results.locator(".status-badge.block-ci-failed")).toHaveCount(1);
+});
+
+test("keeps the Settings dialog size while switching tabs", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Settings" }).click();
+  const dialog = page.getByRole("dialog", { name: "Settings" });
+  await expect(dialog).toBeVisible();
+  const tablistBounds = await page.getByRole("tablist").boundingBox();
+  expect(tablistBounds?.height).toBeGreaterThanOrEqual(40);
+  const panelBounds = await page
+    .getByRole("tabpanel", { name: "Server" })
+    .boundingBox();
+  const hostFieldsBounds = await page
+    .getByRole("tabpanel", { name: "Server" })
+    .locator("fieldset")
+    .first()
+    .boundingBox();
+  expect(panelBounds).not.toBeNull();
+  expect(hostFieldsBounds).not.toBeNull();
+  if (panelBounds && hostFieldsBounds) {
+    const rightInset =
+      panelBounds.x +
+      panelBounds.width -
+      (hostFieldsBounds.x + hostFieldsBounds.width);
+    expect(rightInset).toBeGreaterThanOrEqual(12);
+  }
+  const serverBounds = await dialog.boundingBox();
+  expect(serverBounds).not.toBeNull();
+
+  const displayTab = page.getByRole("tab", { name: "Display" });
+  const displayTabBounds = await displayTab.boundingBox();
+  expect(displayTabBounds).not.toBeNull();
+  if (!displayTabBounds) return;
+  await page.mouse.move(
+    displayTabBounds.x + displayTabBounds.width / 2,
+    displayTabBounds.y + displayTabBounds.height / 2,
+  );
+  await page.mouse.down();
+  expect(await displayTab.boundingBox()).toEqual(displayTabBounds);
+  await page.mouse.up();
+  await expect(page.getByLabel("Display language")).toBeVisible();
+  expect(await dialog.boundingBox()).toEqual(serverBounds);
+});
+
+// debug パネルだけは必要になった時点でマウントされ、レポート収集ではデータベース
+// と設定ファイルを読む。実ブラウザでこの経路が動くこと、ダイアログを開いただけ
+// では走らないことを確かめる。
+test("collects a diagnostic report when the debug tab is opened", async ({
+  page,
+}) => {
+  const debugRequests: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("GetDebugReport"))
+      debugRequests.push(request.url());
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Settings" }).click();
+  await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible();
+  expect(debugRequests).toHaveLength(0);
+
+  await page.getByRole("tab", { name: "Debug" }).click();
+  const panel = page.getByRole("tabpanel", { name: "Debug" });
+  await expect(panel.getByText("Next Now X diagnostic report")).toBeVisible();
+  await expect(panel.getByText(/mode: serve/)).toBeVisible();
+  expect(debugRequests).toHaveLength(1);
+});
+
+test("follows the system theme unless the user selects an override", async ({
+  page,
+}) => {
+  const root = page.locator("html");
+  const background = () =>
+    page
+      .locator("body")
+      .evaluate((element) => getComputedStyle(element).backgroundColor);
+
+  await page.emulateMedia({ colorScheme: "no-preference" });
+  await page.goto("/");
+  await openDisplaySettings(page);
+  await expect(page.getByLabel("Display theme")).toHaveValue("system");
+  await expect(root).not.toHaveAttribute("data-theme");
+  await expect.poll(background).toBe("rgb(245, 246, 248)");
+
+  await page.emulateMedia({ colorScheme: "dark" });
+  await expect.poll(background).toBe("rgb(25, 27, 31)");
+
+  await page.getByLabel("Display theme").selectOption("light");
+  await saveSettings(page);
+  await expect(root).toHaveAttribute("data-theme", "light");
+  await expect.poll(background).toBe("rgb(245, 246, 248)");
+  await page.reload();
+  await openDisplaySettings(page);
+  await expect(page.getByLabel("Display theme")).toHaveValue("light");
+  await expect.poll(background).toBe("rgb(245, 246, 248)");
+
+  await page.getByLabel("Display theme").selectOption("system");
+  await saveSettings(page);
+  await expect(root).not.toHaveAttribute("data-theme");
+  await expect.poll(background).toBe("rgb(25, 27, 31)");
+  await page.emulateMedia({ colorScheme: "light" });
+  await expect.poll(background).toBe("rgb(245, 246, 248)");
+});
+
+async function openTask(page: Page, title: string) {
+  await page
+    .locator(".task-node")
+    .filter({ hasText: title })
+    .getByRole("button", { name: `Edit ${title}` })
+    .click();
+  await expect(
+    page.getByRole("complementary", { name: "Task inspector" }),
+  ).toContainText(title);
+}
+
+async function handleCenterWithinNode(handle: Locator) {
+  return handle.evaluate((element) => {
+    const node = element.closest(".task-node");
+    if (!node) throw new Error("task node missing");
+    const handleBox = element.getBoundingClientRect();
+    const nodeBox = node.getBoundingClientRect();
+    return {
+      x: (handleBox.left + handleBox.width / 2 - nodeBox.left) / nodeBox.width,
+      y: (handleBox.top + handleBox.height / 2 - nodeBox.top) / nodeBox.height,
+    };
+  });
+}
+
+async function connectTasks(
+  page: Page,
+  blockerTitle: string,
+  blockedTitle: string,
+) {
+  await settleGraph(page);
+  await page.locator(".react-flow__controls-fitview").click();
+  await settleGraph(page);
+  const blocker = page.locator(".task-node").filter({ hasText: blockerTitle });
+  const blocked = page.locator(".task-node").filter({ hasText: blockedTitle });
+  const source = blocker.locator(".react-flow__handle.source");
+  const target = blocked.locator(".react-flow__handle.target");
+  await expect(source).toBeVisible();
+  await expect(target).toBeVisible();
+  const initialCenter = await handleCenterWithinNode(source);
+  await source.hover();
+  const hoveredCenter = await handleCenterWithinNode(source);
+  expect(hoveredCenter.x).toBeCloseTo(initialCenter.x, 2);
+  expect(hoveredCenter.y).toBeCloseTo(initialCenter.y, 2);
+  await page.mouse.down();
+  await target.hover();
+  await page.mouse.up();
+}
+
+async function selectDependencyEdge(
+  page: Page,
+  blockerTitle: string,
+  blockedTitle: string,
+) {
+  await settleGraph(page);
+  const blockerId = await taskNodeId(page, blockerTitle);
+  const blockedId = await taskNodeId(page, blockedTitle);
+  const edge = page.locator(
+    `.react-flow__edge[data-id="${blockerId}-${blockedId}"]`,
+  );
+  await edge.click({ force: true });
+  await expect(edge).toHaveClass(/selected/);
+  return edge;
+}
+
+async function disconnectTasks(
+  page: Page,
+  blockerTitle: string,
+  blockedTitle: string,
+  endpoint: "source" | "target" = "source",
+) {
+  const edge = await selectDependencyEdge(page, blockerTitle, blockedTitle);
+  const endpointHandle = edge.locator(`.react-flow__edgeupdater-${endpoint}`);
+  const endpointBox = await endpointHandle.boundingBox();
+  const stageBox = await page.locator(".graph-stage").boundingBox();
+  if (!endpointBox || !stageBox) throw new Error("graph bounds missing");
+
+  await page.mouse.move(
+    endpointBox.x + endpointBox.width / 2,
+    endpointBox.y + endpointBox.height / 2,
+  );
+  await expect(endpointHandle).toHaveCSS("opacity", "1");
+  await page.mouse.down();
+  await page.mouse.move(stageBox.x + 28, stageBox.y + 28, { steps: 6 });
+  await page.mouse.up();
+}
+
+async function graphZoom(page: Page) {
+  return page.locator(".react-flow__viewport").evaluate((viewport) => {
+    const transform = new DOMMatrix(getComputedStyle(viewport).transform);
+    return transform.a;
+  });
+}
+
+async function taskGroupBounds(page: Page, titles: string[]) {
+  const boxes = await Promise.all(
+    titles.map((title) =>
+      page
+        .locator(".task-node")
+        .filter({
+          has: page.getByRole("heading", { name: title, exact: true }),
+        })
+        .boundingBox(),
+    ),
+  );
+  if (boxes.some((box) => !box)) throw new Error("task bounds missing");
+  const presentBoxes = boxes.filter((box) => box !== null);
+  return {
+    left: Math.min(...presentBoxes.map((box) => box.x)),
+    right: Math.max(...presentBoxes.map((box) => box.x + box.width)),
+    top: Math.min(...presentBoxes.map((box) => box.y)),
+    bottom: Math.max(...presentBoxes.map((box) => box.y + box.height)),
+  };
+}
+
+function boundsGap(
+  first: Awaited<ReturnType<typeof taskGroupBounds>>,
+  second: Awaited<ReturnType<typeof taskGroupBounds>>,
+) {
+  const horizontal = Math.max(
+    0,
+    Math.max(first.left, second.left) - Math.min(first.right, second.right),
+  );
+  const vertical = Math.max(
+    0,
+    Math.max(first.top, second.top) - Math.min(first.bottom, second.bottom),
+  );
+  return Math.hypot(horizontal, vertical);
+}
+
+test("creates and edits a feature DAG while preserving state", async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  // サーバーは実行全体で 1 つのデータベースを使うため、固定タイトルにすると
+  // 以前の試行が残した feature に下の検証が引っかかる。
+  const title = `E2E rollout ${crypto.randomUUID()}`;
+  // デモ fixture は番号から PR の状態を決めており、4k+2 は conflict の pull
+  // request になる。一意にしておけば、以前の試行が既存タスクに紐づけた pull
+  // request との衝突を避けられる。
+  const prNumber = Math.floor(Math.random() * 1_000_000) * 4 + 2;
+  await createFeature(page, title, "Browser-tested delivery circuit");
+  await page.getByRole("button", { name: "Edit feature" }).click();
+  const editFeature = page.getByRole("form", { name: "Edit feature" });
+  await editFeature
+    .getByLabel("Description")
+    .fill("Browser-tested delivery circuit, updated");
+  await editFeature.getByRole("button", { name: "Save feature" }).click();
+  await expect(page.locator(".workspace-title")).toHaveAttribute(
+    "title",
+    "Browser-tested delivery circuit, updated",
+  );
+
+  await page.getByRole("button", { name: "References" }).click();
+  await page.getByRole("button", { name: "Add reference" }).click();
+  const featureReferenceDialog = page.getByRole("dialog", {
+    name: "Add feature reference",
+  });
+  await featureReferenceDialog.getByRole("tab", { name: "Local file" }).click();
+  await featureReferenceDialog
+    .getByLabel("Reference title (optional)")
+    .fill("Feature brief");
+  await featureReferenceDialog.getByLabel("File path").fill("README.md");
+  await featureReferenceDialog
+    .getByRole("button", { name: "Add reference" })
+    .click();
+  await expect(featureReferenceDialog).toBeHidden();
+  await page.getByRole("button", { name: "References" }).click();
+  const featureReferences = page.getByRole("region", { name: "References" });
+  await expect(featureReferences.locator(".document-chip")).toHaveCount(1);
+  await featureReferences
+    .getByRole("button", { name: /^Feature brief README\.md$/ })
+    .click();
+  await expect(featureReferences).toBeHidden();
+  const featurePreview = page.getByRole("dialog", { name: "Feature brief" });
+  await expect(featurePreview.locator("article")).toContainText("Next Now X");
+  await featurePreview
+    .getByRole("button", { name: "Close Markdown preview" })
+    .click();
+
+  // 編集は追加と同じモーダルで行い、種別をまたいで差し替えられる。
+  await page.getByRole("button", { name: "References" }).click();
+  await page.getByRole("button", { name: "Edit Feature brief" }).click();
+  const featureReferenceEdit = page.getByRole("dialog", {
+    name: "Edit feature reference",
+  });
+  await expect(featureReferenceEdit.getByLabel("File path")).toHaveValue(
+    "README.md",
+  );
+  await featureReferenceEdit.getByRole("tab", { name: "URL" }).click();
+  await featureReferenceEdit
+    .getByLabel("Document URL")
+    .fill("https://example.com/brief");
+  await featureReferenceEdit
+    .getByLabel("Reference title (optional)")
+    .fill("Feature brief v2");
+  await featureReferenceEdit.getByRole("button", { name: "Save" }).click();
+  await expect(featureReferenceEdit).toBeHidden();
+  await page.getByRole("button", { name: "References" }).click();
+  await expect(
+    featureReferences.getByRole("link", { name: /Feature brief v2/ }),
+  ).toHaveAttribute("href", "https://example.com/brief");
+  await page.keyboard.press("Escape");
+
+  // 空状態はキャンバスを覆いつつ、グラフを動かせるようポインタイベントを
+  // 透過させるので、その中のボタンだけは受け取る側に戻す必要がある。
+  const emptyStateAddTask = page
+    .locator(".graph-empty")
+    .getByRole("button", { name: "Add task" });
+  // 空状態がアイコンに与える淡い色は、塗りつぶしのアクセント背景に載る
+  // ボタン内のラベルにまで及んではならない。
+  expect(
+    await emptyStateAddTask.evaluate((button) => {
+      const label = button.querySelector(".icon-button-label");
+      if (!label) throw new Error("The empty state button has no label.");
+      return getComputedStyle(label).color === getComputedStyle(button).color;
+    }),
+  ).toBe(true);
+  await addTask(page, "E2E API", emptyStateAddTask);
+  await addTask(page, "E2E worker");
+  await addTask(page, "E2E UI");
+  await connectTasks(page, "E2E API", "E2E worker");
+  await expect(page.locator(".react-flow__edge.dependency-edge")).toHaveCount(
+    1,
+  );
+  await connectTasks(page, "E2E worker", "E2E UI");
+  await expect(page.locator(".react-flow__edge.dependency-edge")).toHaveCount(
+    2,
+  );
+  await settleGraph(page);
+  await page.locator(".react-flow__controls-fitview").click();
+  await settleGraph(page);
+  await connectTasks(page, "E2E UI", "E2E API");
+  await expect(page.getByRole("alert")).toContainText("cycle");
+  expect(
+    browserErrors.filter((item) => item.includes("400 (Bad Request)")),
+  ).toHaveLength(1);
+  browserErrors.splice(0, browserErrors.length);
+
+  await openTask(page, "E2E API");
+  const inspector = page.getByRole("complementary", { name: "Task inspector" });
+  const prSection = inspector
+    .locator("section")
+    .filter({ has: page.getByRole("heading", { name: "Pull request" }) });
+  await prSection
+    .getByPlaceholder("https://github.com/org/repo/pull/42")
+    .fill("https://example.com/not-a-pull-request");
+  await prSection.getByRole("button", { name: "Attach" }).click();
+  await expect(prSection.getByRole("alert")).toContainText("github.com");
+  expect(
+    browserErrors.filter((item) => item.includes("400 (Bad Request)")),
+  ).toHaveLength(1);
+  browserErrors.splice(0, browserErrors.length);
+  await prSection
+    .getByPlaceholder("https://github.com/org/repo/pull/42")
+    .fill(`https://github.com/acme/nnx/pull/${prNumber}`);
+  await prSection.getByRole("button", { name: "Attach" }).click();
+  await expect(
+    prSection.getByRole("link", {
+      name: new RegExp(`acme/nnx #${prNumber}`),
+    }),
+  ).toBeVisible();
+  await expect(
+    inspector.getByRole("button", { name: "Add reference" }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Close inspector" }).click();
+  const apiCard = page.locator(".task-node").filter({ hasText: "E2E API" });
+  await apiCard
+    .getByRole("button", { name: "Add reference to E2E API" })
+    .click();
+  let taskReferenceDialog = page.getByRole("dialog", {
+    name: "Add task reference",
+  });
+  await taskReferenceDialog.getByRole("tab", { name: "Local file" }).click();
+  await taskReferenceDialog
+    .getByLabel("Reference title (optional)")
+    .fill("Delivery plan");
+  await taskReferenceDialog.getByLabel("File path").fill("README.md");
+  await taskReferenceDialog
+    .getByRole("button", { name: "Add reference" })
+    .click();
+  await apiCard
+    .getByRole("button", { name: "Add reference to E2E API" })
+    .click();
+  taskReferenceDialog = page.getByRole("dialog", {
+    name: "Add task reference",
+  });
+  await taskReferenceDialog
+    .getByLabel("Reference title (optional)")
+    .fill("Release runbook");
+  await taskReferenceDialog
+    .getByLabel("Document URL")
+    .fill("https://example.com/runbook");
+  await taskReferenceDialog
+    .getByRole("button", { name: "Add reference" })
+    .click();
+  await openTask(page, "E2E API");
+  const reference = inspector
+    .locator("section")
+    .filter({ has: page.getByRole("heading", { name: "References" }) });
+  await expect(reference.locator(".document-chip")).toHaveCount(2);
+  // 資料の削除は確認を挟む。取り消したときに資料が残ることまで見る。
+  await reference
+    .getByRole("button", { name: "Delete Release runbook" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Delete Release runbook?" })
+    .getByRole("button", { name: "Cancel" })
+    .click();
+  await expect(reference.locator(".document-chip")).toHaveCount(2);
+  await inspector
+    .locator("select[name=status]")
+    .selectOption({ label: "In progress" });
+  await inspector.locator("input[name=assignee]").fill("");
+  await inspector.getByRole("button", { name: "Save task" }).click();
+  await page.getByRole("button", { name: "Close inspector" }).click();
+  await expect(
+    apiCard.getByRole("link", {
+      name: new RegExp(`acme/nnx #${prNumber}`),
+    }),
+  ).toHaveAttribute("target", "_blank");
+  await expect(
+    apiCard.getByRole("link", { name: /Release runbook/ }),
+  ).toHaveAttribute("target", "_blank");
+  await apiCard.getByRole("heading", { name: "E2E API" }).click();
+  await expect(
+    page.getByRole("complementary", { name: "Task inspector" }),
+  ).toHaveCount(0);
+  await apiCard.getByRole("button", { name: /Delivery plan/ }).click();
+  const preview = page.getByRole("dialog", { name: "Delivery plan" });
+  await expect(
+    preview.getByRole("heading", { name: "Next Now X", level: 1 }),
+  ).toBeVisible();
+  await preview.getByRole("button", { name: "Copy full text" }).click();
+  await expect(preview).toContainText("Full text copied.");
+  await preview.getByRole("button", { name: "Copy file path" }).click();
+  await expect(preview).toContainText("File path copied.");
+  await preview.getByRole("button", { name: "Close Markdown preview" }).click();
+  await page.reload();
+  await openTask(page, "E2E API");
+  await expect(inspector.locator("input[name=assignee]")).toHaveValue("");
+  await page.getByRole("button", { name: "Close inspector" }).click();
+  await page.getByRole("button", { name: "Refresh", exact: true }).click();
+  // タスクは未完了である in progress のままなので、同期後にノードが何を示すかは
+  // 紐づいた pull request が決める。コンフリクトはステータスではなくブロック
+  // ラベルなので、ステータスはレビュー中になる。
+  const apiNode = page.locator(".task-node").filter({ hasText: "E2E API" });
+  await expect(apiNode).toHaveClass(/state-in-review/);
+  await expect(apiNode.locator(".block-conflict")).toBeVisible();
+  await openTask(page, "E2E API");
+  await expect(inspector.locator(".linked-pr")).toContainText("conflict");
+  await page.getByRole("button", { name: "Close inspector" }).click();
+
+  await page.reload();
+  await expect(
+    page.locator(".task-node").filter({ hasText: "E2E UI" }),
+  ).toBeVisible();
+  await selectDependencyEdge(page, "E2E worker", "E2E UI");
+  await page.locator(".dependency-edge-remove").click();
+  // ライン上のボタンだけは確認を挟む。取り消せば依存は残ったままになる。
+  const removeConfirmation = page.getByRole("dialog", {
+    name: "Remove this dependency?",
+  });
+  await removeConfirmation.getByRole("button", { name: "Cancel" }).click();
+  await expect(page.locator(".react-flow__edge.dependency-edge")).toHaveCount(
+    2,
+  );
+  await page.locator(".dependency-edge-remove").click();
+  await removeConfirmation
+    .getByRole("button", { name: "Remove dependency", exact: true })
+    .click();
+  await expect(page.locator(".react-flow__edge.dependency-edge")).toHaveCount(
+    1,
+  );
+  await connectTasks(page, "E2E worker", "E2E UI");
+  await expect(page.locator(".react-flow__edge.dependency-edge")).toHaveCount(
+    2,
+  );
+  // キーボード操作でツールバーや Delete キーが効くのは、React Flow 側の選択変更が
+  // 制御下の edge に反映されている場合だけ。
+  await settleGraph(page);
+  const keyboardEdge = page.locator(
+    `.react-flow__edge[data-id="${await taskNodeId(page, "E2E worker")}-${await taskNodeId(page, "E2E UI")}"]`,
+  );
+  await keyboardEdge.focus();
+  await page.keyboard.press("Enter");
+  await expect(keyboardEdge).toHaveClass(/selected/);
+  await page.keyboard.press("Delete");
+  await expect(page.locator(".react-flow__edge.dependency-edge")).toHaveCount(
+    1,
+  );
+  await connectTasks(page, "E2E worker", "E2E UI");
+  await expect(page.locator(".react-flow__edge.dependency-edge")).toHaveCount(
+    2,
+  );
+  await selectDependencyEdge(page, "E2E worker", "E2E UI");
+  await page.keyboard.press("Delete");
+  await expect(page.locator(".react-flow__edge.dependency-edge")).toHaveCount(
+    1,
+  );
+  await connectTasks(page, "E2E worker", "E2E UI");
+  await expect(page.locator(".react-flow__edge.dependency-edge")).toHaveCount(
+    2,
+  );
+  await disconnectTasks(page, "E2E API", "E2E worker", "target");
+  await expect(page.locator(".react-flow__edge.dependency-edge")).toHaveCount(
+    1,
+  );
+  await openTask(page, "E2E UI");
+  page.once("dialog", (dialog) => dialog.accept());
+  await inspector
+    .getByRole("button", { name: "Delete task and references" })
+    .click();
+  await expect(
+    page.locator(".task-node").filter({ hasText: "E2E UI" }),
+  ).toHaveCount(0);
+});
+
+test("visually separates disconnected dependency chains", async ({ page }) => {
+  await createFeature(page, `Disconnected chains ${crypto.randomUUID()}`);
+
+  for (const title of ["Chain A1", "Chain A2", "Chain B1", "Chain B2"])
+    await addTask(page, title);
+  await page.locator(".react-flow__controls-fitview").click();
+  await settleGraph(page);
+  await connectTasks(page, "Chain A1", "Chain A2");
+  await connectTasks(page, "Chain B1", "Chain B2");
+  await settleGraph(page);
+
+  const firstChain = await taskGroupBounds(page, ["Chain A1", "Chain A2"]);
+  const secondChain = await taskGroupBounds(page, ["Chain B1", "Chain B2"]);
+  const componentGap =
+    boundsGap(firstChain, secondChain) / (await graphZoom(page));
+  expect(componentGap).toBeGreaterThanOrEqual(118);
+});
+
+// ノードの寸法固定と中央寄せの限定は、実際の ELK と CSS を通して初めて
+// 確かめられる。1 本でレイアウトの安定と視点の保持の両方を見る。
+async function graphTransforms(page: Page) {
+  return {
+    viewport: await page.locator(".react-flow__viewport").getAttribute("style"),
+    nodes: await page
+      .locator(".react-flow__node")
+      .evaluateAll((elements) =>
+        elements.map((element) => [
+          element.getAttribute("data-id"),
+          element.getAttribute("style"),
+        ]),
+      ),
+  };
+}
+
+test("holds the layout and the viewport when a status changes", async ({
+  page,
+}) => {
+  await createFeature(page, `Stable layout ${crypto.randomUUID()}`);
+  for (const title of ["Stable A", "Stable B", "Stable C"])
+    await addTask(page, title);
+  await connectTasks(page, "Stable A", "Stable B");
+  await connectTasks(page, "Stable B", "Stable C");
+  await page.locator(".react-flow__controls-fitview").click();
+  await settleGraph(page);
+
+  // 中央寄せが残っていれば、パンした視点はステータス更新で元へ戻る。
+  const stage = await page.locator(".graph-stage").boundingBox();
+  if (!stage) throw new Error("graph bounds missing");
+  await page.mouse.move(stage.x + 12, stage.y + 12);
+  await page.mouse.down();
+  await page.mouse.move(stage.x + 92, stage.y + 72, { steps: 8 });
+  await page.mouse.up();
+  await settleGraph(page);
+  const before = await graphTransforms(page);
+
+  await openTask(page, "Stable B");
+  const inspector = page.getByRole("complementary", { name: "Task inspector" });
+  await inspector
+    .locator("select[name=status]")
+    .selectOption({ label: "In progress" });
+  await inspector.getByRole("button", { name: "Save task" }).click();
+  await page.getByRole("button", { name: "Close inspector" }).click();
+  await expect(
+    page.locator(".task-node").filter({ hasText: "Stable B" }),
+  ).toContainText("Implementation");
+  await settleGraph(page);
+
+  expect(await graphTransforms(page)).toEqual(before);
+});
+
+test("archives and safely deletes a feature", async ({ page }) => {
+  const title = `Temporary feature ${crypto.randomUUID()}`;
+  await createFeature(page, title);
+  await addTask(page, "Archived E2E task");
+  await page.getByRole("button", { name: "Edit feature" }).click();
+  await page.getByRole("button", { name: "Archive feature" }).click();
+  const archiveConfirmation = page.getByRole("dialog", {
+    name: `Archive ${title}?`,
+  });
+  await archiveConfirmation
+    .getByRole("button", { name: "Archive feature" })
+    .click();
+  await expect(page.getByText("Archived · read-only")).toBeVisible();
+  // rail のツリーには進行中の feature が並ぶので、ワークスペースからアーカイブ
+  // すればここから消える。以降は project のアーカイブタブに並ぶ。
+  const rail = page.getByRole("navigation", { name: "Next Now X navigation" });
+  await expect(rail.getByText(title)).toHaveCount(0);
+  await page.goto("/projects/P-1?features=archived");
+  await page.getByRole("tabpanel").getByText(title).click();
+  await expect(
+    page.getByRole("button", { name: "Refresh", exact: true }),
+  ).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "View Archived E2E task details" })
+    .click();
+  const inspector = page.getByRole("complementary", { name: "Task inspector" });
+  await expect(inspector).toContainText("Archived task · read-only");
+  await expect(inspector.getByRole("textbox")).toHaveCount(0);
+  await inspector.getByRole("button", { name: "Close inspector" }).click();
+
+  await page.getByRole("button", { name: "Manage feature" }).click();
+  await page.getByRole("button", { name: "Restore feature" }).click();
+  await expect(
+    page.getByRole("button", { name: "Refresh", exact: true }),
+  ).toBeVisible();
+  // 復元すると feature は作業対象に戻るので、画面遷移なしで rail のツリーに
+  // 再び現れる。
+  await expect(rail.getByText(title)).toHaveCount(1);
+
+  await page.getByRole("button", { name: "Edit feature" }).click();
+  await page.getByRole("button", { name: "Archive feature" }).click();
+  await page
+    .getByRole("dialog", { name: `Archive ${title}?` })
+    .getByRole("button", { name: "Archive feature" })
+    .click();
+  await page.getByRole("button", { name: "Manage feature" }).click();
+  await page.getByRole("button", { name: "Delete feature" }).click();
+  const deleteConfirmation = page.getByRole("dialog", {
+    name: `Delete ${title}?`,
+  });
+  await deleteConfirmation.getByRole("button", { name: "Cancel" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Feature details" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Delete feature" }).click();
+  await page
+    .getByRole("dialog", { name: `Delete ${title}?` })
+    .getByRole("button", { name: "Delete permanently" })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Delivery platform", level: 1 }),
+  ).toBeVisible();
+  await expect(page.getByText(title)).toHaveCount(0);
+});
+
+// 100 タスクのプログラムは全タスクが完了しているため、自動判定の状態により
+// 概要から外れて完了リストに移る。
+for (const { title, size, from } of [
+  { title: "Delivery control showcase", size: 16, from: "/" },
+  {
+    title: "Completed 100-task program",
+    size: 100,
+    from: "/projects/P-1?features=completed",
+  },
+]) {
+  test(`renders and inspects the ${size}-node graph`, async ({ page }) => {
+    await page.goto(from);
+    await page
+      .getByRole("link", {
+        name: new RegExp(title),
+      })
+      .first()
+      .click();
+    const nodes = page.locator(".task-node");
+    await expect(nodes).toHaveCount(size, { timeout: 25_000 });
+    await expect(page.getByTestId("feature-graph")).toBeVisible();
+    await page.locator(".react-flow__controls-fitview").click();
+    await page.waitForTimeout(400);
+    const visibleBoxes = await nodes.evaluateAll((items) =>
+      items.slice(0, 30).map((item) => {
+        const rect = item.getBoundingClientRect();
+        return {
+          left: rect.left,
+          right: rect.right,
+          top: rect.top,
+          bottom: rect.bottom,
+        };
+      }),
+    );
+    for (const [i, a] of visibleBoxes.entries())
+      for (const [offset, b] of visibleBoxes.slice(i + 1).entries()) {
+        const j = i + offset + 1;
+        const overlap =
+          Math.min(a.right, b.right) - Math.max(a.left, b.left) > 2 &&
+          Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 2;
+        expect(overlap, `nodes ${i} and ${j} overlap`).toBe(false);
+      }
+    await mkdir("../test-results/screenshots", { recursive: true });
+    if (size > 16)
+      await page.screenshot({
+        path: `../test-results/screenshots/graph-${size}-overview.png`,
+        fullPage: true,
+      });
+    const zoomSteps = size === 100 ? 3 : 0;
+    for (let index = 0; index < zoomSteps; index++)
+      await page.locator(".react-flow__controls-zoomin").click();
+    await page.screenshot({
+      path: `../test-results/screenshots/graph-${size}.png`,
+      fullPage: true,
+    });
+    const clickPoint = await page.evaluate(() => {
+      const stageElement = document.querySelector(
+        "[data-testid=feature-graph]",
+      );
+      if (!stageElement) throw new Error("The feature graph stage is missing.");
+      const stage = stageElement.getBoundingClientRect();
+      const point = [...document.querySelectorAll(".task-node .node-edit")]
+        .map((item) => item.getBoundingClientRect())
+        .map((rect) => ({
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2,
+        }))
+        .find(
+          (point) =>
+            point.x > stage.left + 20 &&
+            point.x < stage.right - 20 &&
+            point.y > stage.top + 20 &&
+            point.y < stage.bottom - 20,
+        );
+      if (!point) throw new Error("No task edit button is visible.");
+      return point;
+    });
+    await page.mouse.click(clickPoint.x, clickPoint.y);
+    await expect(
+      page.getByRole("complementary", { name: "Task inspector" }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Close inspector" }).click();
+  });
+}
+
+test("keeps the user's graph zoom across features and reloads", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("link", { name: /Delivery control showcase/ })
+    .first()
+    .click();
+  await expect(page.locator(".task-node")).toHaveCount(16, {
+    timeout: 25_000,
+  });
+  await page.locator(".react-flow__controls-zoomout").click();
+  await page.locator(".react-flow__controls-zoomout").click();
+  await expect.poll(() => graphZoom(page)).toBeLessThan(1);
+  const savedZoom = await graphZoom(page);
+
+  await page.goto("/projects/P-1?features=completed");
+  await page
+    .getByRole("link", { name: /Completed 100-task program/ })
+    .first()
+    .click();
+  await expect(page.locator(".task-node")).toHaveCount(100, {
+    timeout: 25_000,
+  });
+  await expect.poll(() => graphZoom(page)).toBeCloseTo(savedZoom, 5);
+
+  await page.reload();
+  await expect(page.locator(".task-node")).toHaveCount(100, {
+    timeout: 25_000,
+  });
+  await expect.poll(() => graphZoom(page)).toBeCloseTo(savedZoom, 5);
+});

@@ -29,7 +29,7 @@ import {
   GetTaskLabelConfigRequestSchema,
   GetTaskPromptRequestSchema,
   GetUpdateStatusRequestSchema,
-  PRXService,
+  NNXService,
   ReadDocumentContentRequestSchema,
   RemoveDependencyRequestSchema,
   ReorderGitHubAuthMethodsRequestSchema,
@@ -64,10 +64,10 @@ import {
   type TaskStatus,
   type UpdateStatus,
   type WatchRevisionResponse,
-} from "./gen/prx/v1/prx_pb";
+} from "./gen/nnx/v1/nnx_pb";
 
 const transport = createConnectTransport({ baseUrl: window.location.origin });
-const client = createClient(PRXService, transport);
+const client = createClient(NNXService, transport);
 
 export async function getSnapshot(): Promise<Snapshot> {
   const response = await client.getSnapshot(create(GetSnapshotRequestSchema));
@@ -93,7 +93,7 @@ export async function getTaskLabelConfig(): Promise<TaskLabelConfig> {
 }
 
 // レポートと整形済みテキストを一緒に受け取ることで、WebUI はセクションを表示
-// しつつ `prx debug` が出力するテキストをそのままコピーできる。
+// しつつ `nnx debug` が出力するテキストをそのままコピーできる。
 export async function getDebugReport(): Promise<{
   report: DebugReport;
   text: string;

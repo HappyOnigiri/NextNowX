@@ -13,7 +13,7 @@ describe("display language", () => {
 
     expect(i18n.resolvedLanguage).toBe("ja");
     expect(document.documentElement.lang).toBe("ja");
-    expect(document.title).toBe("PRX");
+    expect(document.title).toBe("Next Now X");
     expect(readWebUISettings()).toEqual({ language: "ja" });
   });
 });

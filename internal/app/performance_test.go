@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/HappyOnigiri/PRX/internal/app"
-	githubprovider "github.com/HappyOnigiri/PRX/internal/github"
-	"github.com/HappyOnigiri/PRX/internal/store"
+	"github.com/HappyOnigiri/NextNowX/internal/app"
+	githubprovider "github.com/HappyOnigiri/NextNowX/internal/github"
+	"github.com/HappyOnigiri/NextNowX/internal/store"
 )
 
 func BenchmarkSnapshot5000Tasks(b *testing.B) {

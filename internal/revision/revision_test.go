@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/HappyOnigiri/PRX/internal/revision"
+	"github.com/HappyOnigiri/NextNowX/internal/revision"
 )
 
 // fakeReader は読み取りのたびに通知を出す。偽クロックを持たずに 1 周期の完了を

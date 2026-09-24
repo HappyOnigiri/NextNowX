@@ -3,7 +3,7 @@ package app
 import (
 	"context"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 // 以下のガードが、アーカイブ済みの project や feature が何を拒むかを決める唯一の場所であり、

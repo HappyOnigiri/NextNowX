@@ -37,7 +37,7 @@ func newTestManager(t *testing.T, home string, reply func(args []string) ([]byte
 		},
 		lookPath:   func(string) (string, error) { return "", exec.ErrNotFound },
 		homeDir:    func() (string, error) { return home, nil },
-		executable: func() (string, error) { return filepath.Join(home, "bin", "prx"), nil },
+		executable: func() (string, error) { return filepath.Join(home, "bin", "nnx"), nil },
 		uid:        501,
 		parentPID:  func() int { return 1 },
 		getenv:     func(string) string { return Label },
@@ -46,13 +46,13 @@ func newTestManager(t *testing.T, home string, reply func(args []string) ([]byte
 }
 
 func TestRenderCarriesTheServeArgumentAndTheThrottleInterval(t *testing.T) {
-	data, err := Render("/usr/local/bin/prx", "/Users/example", "/Users/example/Library/Logs/prx/serve.log")
+	data, err := Render("/usr/local/bin/nnx", "/Users/example", "/Users/example/Library/Logs/nnx/serve.log")
 	if err != nil {
 		t.Fatal(err)
 	}
 	// plist だけが launchd の起動引数を決める。要素名の変更を漏らすと launchd は未知の
 	// サブコマンドを KeepAlive のループで回し続け、テストでは検出できない失敗になる。
-	for _, argument := range []string{"<string>/usr/local/bin/prx</string>", "<string>serve</string>"} {
+	for _, argument := range []string{"<string>/usr/local/bin/nnx</string>", "<string>serve</string>"} {
 		if !strings.Contains(string(data), argument) {
 			t.Fatalf("rendered plist does not pass %s: %s", argument, data)
 		}
@@ -62,7 +62,7 @@ func TestRenderCarriesTheServeArgumentAndTheThrottleInterval(t *testing.T) {
 			t.Fatalf("rendered plist passes %s: %s", forbidden, data)
 		}
 	}
-	// ThrottleInterval は launchd が置き換えを遅らせる時間で、`prx daemon restart` の待ち
+	// ThrottleInterval は launchd が置き換えを遅らせる時間で、`nnx daemon restart` の待ち
 	// 時間をそのまま決める。失敗の再試行を間引く役割は serve の終了遅延が持つ。
 	if !strings.Contains(string(data), "<key>ThrottleInterval</key><integer>1</integer>") {
 		t.Fatalf("rendered plist does not set ThrottleInterval=1: %s", data)
@@ -75,9 +75,9 @@ func TestRenderCarriesTheServeArgumentAndTheThrottleInterval(t *testing.T) {
 }
 
 func TestRenderEscapesAndPreservesSpecialCharacterPaths(t *testing.T) {
-	binary := `/tmp/prx & <binary> "quoted"`
+	binary := `/tmp/nnx & <binary> "quoted"`
 	home := `/tmp/home & <user> "quoted"`
-	logPath := `/tmp/logs & <prx> "serve".log`
+	logPath := `/tmp/logs & <nnx> "serve".log`
 	data, err := Render(binary, home, logPath)
 	if err != nil {
 		t.Fatal(err)
@@ -155,6 +155,39 @@ func TestInstallWritesAPrivatePlistAndBootstrapsIt(t *testing.T) {
 	}
 }
 
+// install と uninstall は旧 prx の LaunchAgent を登録解除して plist を消す。
+func TestInstallAndUninstallRemoveTheLegacyLaunchAgent(t *testing.T) {
+	for name, operation := range map[string]func(*Manager) error{
+		"install":   func(m *Manager) error { return m.Install(context.Background()) },
+		"uninstall": func(m *Manager) error { return m.Uninstall(context.Background()) },
+	} {
+		t.Run(name, func(t *testing.T) {
+			home := t.TempDir()
+			manager, recorded := newTestManager(t, home, nil)
+			legacy := filepath.Join(home, "Library", "LaunchAgents", "com.user.prx.plist")
+			if err := os.MkdirAll(filepath.Dir(legacy), 0o700); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(legacy, []byte("<plist/>"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if err := operation(manager); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := os.Stat(legacy); !errors.Is(err, os.ErrNotExist) {
+				t.Fatalf("legacy plist remains: %v", err)
+			}
+			first := (*recorded)[0].args
+			if len(first) != 3 || first[0] != "bootout" || first[2] != legacy {
+				t.Fatalf("launchctl calls=%+v", *recorded)
+			}
+			if err := manager.RemoveLegacy(context.Background()); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
 // TestPlistStatusRefusesAnUnsafePlist は symlink を Unknown + エラーにする。install が
 // 任意のファイルを 0600 で上書きしないための入口の検査である。
 func TestPlistStatusRefusesAnUnsafePlist(t *testing.T) {
@@ -198,7 +231,7 @@ func TestPlistStatusRefusesAnUnsafePlist(t *testing.T) {
 }
 
 // TestStartAsksLaunchdWithoutKillingTheRunningServer は Start と Kickstart の -k の有無を
-// 確認する。`prx daemon start` が稼働中のサーバーを終了させないための区別である。
+// 確認する。`nnx daemon start` が稼働中のサーバーを終了させないための区別である。
 func TestStartAsksLaunchdWithoutKillingTheRunningServer(t *testing.T) {
 	manager, recorded := newTestManager(t, t.TempDir(), nil)
 	if err := manager.Start(context.Background()); err != nil {
@@ -328,7 +361,7 @@ func TestNewWiresTheRealEnvironment(t *testing.T) {
 	if status, err := manager.PlistStatus(); status != PlistCurrent || err != nil {
 		t.Fatalf("status=%v err=%v", status, err)
 	}
-	// os.Executable へのフォールバックは PATH に prx がないときに使われる。
+	// os.Executable へのフォールバックは PATH に nnx がないときに使われる。
 	binary, err := manager.ResolveBinary()
 	if err != nil || binary == "" {
 		t.Fatalf("binary=%q err=%v", binary, err)
@@ -344,12 +377,12 @@ func TestNewWiresTheRealEnvironment(t *testing.T) {
 func TestResolveBinaryPrefersThePathCommand(t *testing.T) {
 	manager, _ := newTestManager(t, t.TempDir(), nil)
 	manager.lookPath = func(name string) (string, error) {
-		if name != "prx" {
+		if name != "nnx" {
 			return "", exec.ErrNotFound
 		}
-		return "/usr/local/bin/prx", nil
+		return "/usr/local/bin/nnx", nil
 	}
-	if binary, err := manager.ResolveBinary(); err != nil || binary != "/usr/local/bin/prx" {
+	if binary, err := manager.ResolveBinary(); err != nil || binary != "/usr/local/bin/nnx" {
 		t.Fatalf("binary=%q err=%v", binary, err)
 	}
 	manager.lookPath = func(string) (string, error) { return "", exec.ErrNotFound }

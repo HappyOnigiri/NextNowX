@@ -26,13 +26,13 @@ func TestPathFollowsTheOverrideAndTheConfigDirectory(t *testing.T) {
 	if dir, dirErr := Dir(); dirErr != nil || filepath.Dir(path) != dir {
 		t.Fatalf("dir=%q err=%v path=%q", dir, dirErr, path)
 	}
-	if want := filepath.Join("prx", "run", "serve.json"); filepath.Base(filepath.Dir(filepath.Dir(path))) != "prx" {
+	if want := filepath.Join("nnx", "run", "serve.json"); filepath.Base(filepath.Dir(filepath.Dir(path))) != "nnx" {
 		t.Fatalf("path=%q, want it to end with %q", path, want)
 	}
 }
 
 // TestReadTrustsTheLockRatherThanTheContent は残された内容を稼働の根拠にしないことを
-// 確かめる。異常終了で残った古いアドレスを `prx open` が開くと、たまたまその番号を
+// 確かめる。異常終了で残った古いアドレスを `nnx open` が開くと、たまたまその番号を
 // 掴んだ別プロセスに繋がる。
 func TestReadTrustsTheLockRatherThanTheContent(t *testing.T) {
 	t.Setenv(DirEnvironmentVariable, t.TempDir())
@@ -49,7 +49,7 @@ func TestReadTrustsTheLockRatherThanTheContent(t *testing.T) {
 	started := time.Now().UTC().Truncate(time.Second)
 	want := State{
 		PID: os.Getpid(), Address: "127.0.0.1:7331", URL: "http://127.0.0.1:7331", StartedAt: started,
-		Version: "1.2.3", Executable: "/usr/local/bin/prx", DatabasePath: "/tmp/prx.db", LaunchdManaged: true,
+		Version: "1.2.3", Executable: "/usr/local/bin/nnx", DatabasePath: "/tmp/nnx.db", LaunchdManaged: true,
 	}
 	if err := lock.Write(want); err != nil {
 		t.Fatal(err)

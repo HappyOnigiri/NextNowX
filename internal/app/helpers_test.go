@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/HappyOnigiri/PRX/internal/app"
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/app"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 // newFeature は feature を、所属先の project ごと作る。コンテナではなく feature 自体を

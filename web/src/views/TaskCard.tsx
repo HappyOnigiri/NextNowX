@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { ExternalLink } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import type { Feature, Project, PullRequest, Task } from "../gen/prx/v1/prx_pb";
+import type { Feature, Project, PullRequest, Task } from "../gen/nnx/v1/nnx_pb";
 import { pullRequestDisplayStateLabel } from "../i18n/domain";
 import { isDependencyBlockedTask, isDormantTask } from "../task-attention";
 import { CopyableIdentifier } from "./CopyableIdentifier";
@@ -162,7 +162,7 @@ function FeatureValue({ feature }: { feature: Feature | undefined }) {
   );
 }
 
-// pull request は PRX ではなく GitHub 上にあるので、値はサーバーが記録した正規
+// pull request は Next Now X ではなく GitHub 上にあるので、値はサーバーが記録した正規
 // の URL を開き、その隣にレビュー状態を示す。
 function PullRequestValue({ pullRequest }: { pullRequest: PullRequest }) {
   const { t } = useTranslation();

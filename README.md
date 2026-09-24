@@ -1,9 +1,9 @@
-# PRX
+# Next Now X
 
 English | [日本語](README.ja.md) | [简体中文](README.zh-CN.md)
 
-**PRX** keeps an initiative that is spread across many GitHub pull requests visible from your own machine.
-Register how the tasks depend on each other, and PRX separates the work you can start now from the work that is waiting on something.
+**Next Now X** keeps an initiative that is spread across many GitHub pull requests visible from your own machine.
+Register how the tasks depend on each other, and Next Now X separates the work you can start now from the work that is waiting on something.
 
 ## Features
 
@@ -20,51 +20,51 @@ Register how the tasks depend on each other, and PRX separates the work you can 
 A prebuilt binary is published for Apple Silicon.
 
 ```sh
-curl -fsSL https://github.com/HappyOnigiri/PRX/releases/latest/download/install.sh | bash
+curl -fsSL https://github.com/HappyOnigiri/NextNowX/releases/latest/download/install.sh | bash
 ```
 
-Run the same command again to update, or run `prx update` to check for a newer release and install it. The WebUI offers the same update when one is available.
+Run the same command again to update, or run `nnx update` to check for a newer release and install it. The WebUI offers the same update when one is available.
 
 ### Linux / WSL2
 
 Build from source; the same steps work on macOS. Windows is not supported natively.
 
 ```sh
-git clone https://github.com/HappyOnigiri/PRX.git
-cd PRX
+git clone https://github.com/HappyOnigiri/NextNowX.git
+cd NextNowX
 make install
 ```
 
-`make install` builds the WebUI along with the binary and installs it to `~/.local/bin/prx`. Set `INSTALL_DIR` to install it elsewhere.
-`prx daemon` and `prx open` manage the background service on macOS only, so start the server with `prx serve` instead.
+`make install` builds the WebUI along with the binary and installs it to `~/.local/bin/nnx`. Set `INSTALL_DIR` to install it elsewhere.
+`nnx daemon` and `nnx open` manage the background service on macOS only, so start the server with `nnx serve` instead.
 
 ## Usage
 
-Open http://localhost:7331/ in a browser. When that port is taken and the server moved to another one, `prx open` opens whichever address it is actually listening on.
+Open http://localhost:7331/ in a browser. When that port is taken and the server moved to another one, `nnx open` opens whichever address it is actually listening on.
 
-The `prx` command reads and writes the same data, so an AI agent can look at the current state and register tasks and dependencies.
+The `nnx` command reads and writes the same data, so an AI agent can look at the current state and register tasks and dependencies.
 
 ```sh
-prx ready      # pull out the tasks you can start
-prx graph F-1  # see a whole initiative with its tasks and dependencies
-prx prompt T-1 # assemble the prompt to hand to a task
+nnx ready      # pull out the tasks you can start
+nnx graph F-1  # see a whole initiative with its tasks and dependencies
+nnx prompt T-1 # assemble the prompt to hand to a task
 ```
 
-See `prx -h` and `prx <command> -h` for commands and options.
+See `nnx -h` and `nnx <command> -h` for commands and options.
 
 ## More options
 
-- **Synchronize with GitHub:** supply a credential through `prx config`, `GITHUB_TOKEN`, `GH_TOKEN`, or an authenticated `gh` CLI. Tasks and dependencies work the same way without it.
-- **Pin a port:** `prx config server update PORT`. Run `prx daemon restart` afterwards to move a server that is already running.
-- **Run in the foreground:** `prx serve` runs the server in the foreground on any operating system.
-- **Language:** `prx setup` asks whether to use English or Japanese and saves the answer; `prx config language update auto|en|ja` changes it later.
-- **Sample data:** the first `prx setup` adds a small sample project in the language you chose when it creates the database; `prx setup --no-sample-data` skips it.
-- **Demo:** `prx serve --demo` starts a demo loaded with sample data. It leaves your own data untouched, so use it to try PRX first.
+- **Synchronize with GitHub:** supply a credential through `nnx config`, `GITHUB_TOKEN`, `GH_TOKEN`, or an authenticated `gh` CLI. Tasks and dependencies work the same way without it.
+- **Pin a port:** `nnx config server update PORT`. Run `nnx daemon restart` afterwards to move a server that is already running.
+- **Run in the foreground:** `nnx serve` runs the server in the foreground on any operating system.
+- **Language:** `nnx setup` asks whether to use English or Japanese and saves the answer; `nnx config language update auto|en|ja` changes it later.
+- **Sample data:** the first `nnx setup` adds a small sample project in the language you chose when it creates the database; `nnx setup --no-sample-data` skips it.
+- **Demo:** `nnx serve --demo` starts a demo loaded with sample data. It leaves your own data untouched, so use it to try Next Now X first.
 
 ## Uninstallation
 
 ```sh
-curl -fsSL https://github.com/HappyOnigiri/PRX/releases/latest/download/uninstall.sh | bash
+curl -fsSL https://github.com/HappyOnigiri/NextNowX/releases/latest/download/uninstall.sh | bash
 ```
 
 ## Development
@@ -79,12 +79,12 @@ make ci   # run every check before handing off a change
 
 ## Documentation
 
-- [docs/cli/prx.md](docs/cli/prx.md): the CLI reference in Markdown.
+- [docs/cli/nnx.md](docs/cli/nnx.md): the CLI reference in Markdown.
 - [docs/design/](docs/design/README.md): design decisions and the reasoning behind them (Japanese).
 - [docs/development.md](docs/development.md): verification and release rules (Japanese).
 
 ## Contributing
 
 Contributions are welcome!
-Share bug reports and ideas through [Issues](https://github.com/HappyOnigiri/PRX/issues), or send a [pull request](https://github.com/HappyOnigiri/PRX/pulls).
+Share bug reports and ideas through [Issues](https://github.com/HappyOnigiri/NextNowX/issues), or send a [pull request](https://github.com/HappyOnigiri/NextNowX/pulls).
 Documentation improvements and translations are welcome too.

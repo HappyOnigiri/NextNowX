@@ -9,11 +9,11 @@ import (
 
 	"connectrpc.com/connect"
 
-	prxv1 "github.com/HappyOnigiri/PRX/gen/prx/v1"
-	"github.com/HappyOnigiri/PRX/gen/prx/v1/prxv1connect"
-	"github.com/HappyOnigiri/PRX/internal/config"
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/filepicker"
+	nnxv1 "github.com/HappyOnigiri/NextNowX/gen/nnx/v1"
+	"github.com/HappyOnigiri/NextNowX/gen/nnx/v1/nnxv1connect"
+	"github.com/HappyOnigiri/NextNowX/internal/config"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/filepicker"
 )
 
 // LocalFilePicker はファイルを読まずに、サーバーローカルのネイティブ選択ダイアログを開く。
@@ -46,7 +46,7 @@ const defaultHeartbeatInterval = 15 * time.Second
 const maxRevisionStreams = 64
 
 type Handler struct {
-	prxv1connect.UnimplementedPRXServiceHandler
+	nnxv1connect.UnimplementedNNXServiceHandler
 	service           Service
 	configStore       *config.Store
 	filePicker        LocalFilePicker
@@ -83,7 +83,7 @@ func NewWithOptions(service Service, options Options) (string, http.Handler) {
 	}
 	// Connect プロトコルヘッダを必須にすることで、ブラウザがプリフライトなしに
 	// 送る単純なクロスオリジンリクエストから RPC を遠ざける。
-	return prxv1connect.NewPRXServiceHandler(
+	return nnxv1connect.NewNNXServiceHandler(
 		&Handler{
 			service: service, configStore: configStore, filePicker: picker,
 			pickerBusy: make(chan struct{}, 1),
@@ -147,7 +147,7 @@ func rpcError(err error) error {
 	}
 	connectErr := connect.NewError(code, err)
 	detail, detailErr := connect.NewErrorDetail(
-		&prxv1.ErrorDetail{Code: protoDomainErrorCode(domainErr.Code), Path: domainErr.Path},
+		&nnxv1.ErrorDetail{Code: protoDomainErrorCode(domainErr.Code), Path: domainErr.Path},
 	)
 	if detailErr == nil {
 		connectErr.AddDetail(detail)
@@ -157,30 +157,30 @@ func rpcError(err error) error {
 
 func (h *Handler) GetSnapshot(
 	ctx context.Context,
-	_ *connect.Request[prxv1.GetSnapshotRequest],
-) (*connect.Response[prxv1.GetSnapshotResponse], error) {
+	_ *connect.Request[nnxv1.GetSnapshotRequest],
+) (*connect.Response[nnxv1.GetSnapshotResponse], error) {
 	snapshot, err := h.service.Snapshot(ctx)
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&prxv1.GetSnapshotResponse{Snapshot: protoSnapshot(snapshot)}), nil
+	return connect.NewResponse(&nnxv1.GetSnapshotResponse{Snapshot: protoSnapshot(snapshot)}), nil
 }
 
 func (h *Handler) CreateProject(
 	ctx context.Context,
-	req *connect.Request[prxv1.CreateProjectRequest],
-) (*connect.Response[prxv1.CreateProjectResponse], error) {
+	req *connect.Request[nnxv1.CreateProjectRequest],
+) (*connect.Response[nnxv1.CreateProjectResponse], error) {
 	value, err := h.service.CreateProject(ctx, req.Msg.GetTitle(), req.Msg.GetDescription())
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&prxv1.CreateProjectResponse{Project: protoProject(value)}), nil
+	return connect.NewResponse(&nnxv1.CreateProjectResponse{Project: protoProject(value)}), nil
 }
 
 func (h *Handler) UpdateProject(
 	ctx context.Context,
-	req *connect.Request[prxv1.UpdateProjectRequest],
-) (*connect.Response[prxv1.UpdateProjectResponse], error) {
+	req *connect.Request[nnxv1.UpdateProjectRequest],
+) (*connect.Response[nnxv1.UpdateProjectResponse], error) {
 	value, err := h.service.UpdateProject(ctx, req.Msg.GetId(), domain.ProjectUpdate{
 		Title:              optionalValue(req.Msg.Title != nil, req.Msg.GetTitle()),
 		Description:        optionalValue(req.Msg.Description != nil, req.Msg.GetDescription()),
@@ -191,23 +191,23 @@ func (h *Handler) UpdateProject(
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&prxv1.UpdateProjectResponse{Project: protoProject(value)}), nil
+	return connect.NewResponse(&nnxv1.UpdateProjectResponse{Project: protoProject(value)}), nil
 }
 
 func (h *Handler) DeleteProject(
 	ctx context.Context,
-	req *connect.Request[prxv1.DeleteProjectRequest],
-) (*connect.Response[prxv1.DeleteProjectResponse], error) {
+	req *connect.Request[nnxv1.DeleteProjectRequest],
+) (*connect.Response[nnxv1.DeleteProjectResponse], error) {
 	if err := h.service.DeleteProject(ctx, req.Msg.GetId(), req.Msg.GetCascade()); err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&prxv1.DeleteProjectResponse{}), nil
+	return connect.NewResponse(&nnxv1.DeleteProjectResponse{}), nil
 }
 
 func (h *Handler) CreateFeature(
 	ctx context.Context,
-	req *connect.Request[prxv1.CreateFeatureRequest],
-) (*connect.Response[prxv1.CreateFeatureResponse], error) {
+	req *connect.Request[nnxv1.CreateFeatureRequest],
+) (*connect.Response[nnxv1.CreateFeatureResponse], error) {
 	value, err := h.service.CreateFeature(
 		ctx,
 		req.Msg.GetTitle(),
@@ -217,13 +217,13 @@ func (h *Handler) CreateFeature(
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&prxv1.CreateFeatureResponse{Feature: protoFeature(value)}), nil
+	return connect.NewResponse(&nnxv1.CreateFeatureResponse{Feature: protoFeature(value)}), nil
 }
 
 func (h *Handler) UpdateFeature(
 	ctx context.Context,
-	req *connect.Request[prxv1.UpdateFeatureRequest],
-) (*connect.Response[prxv1.UpdateFeatureResponse], error) {
+	req *connect.Request[nnxv1.UpdateFeatureRequest],
+) (*connect.Response[nnxv1.UpdateFeatureResponse], error) {
 	status, err := domainFeatureStatus(optionalValue(req.Msg.Status != nil, req.Msg.GetStatus()))
 	if err != nil {
 		return nil, rpcError(err)
@@ -240,23 +240,23 @@ func (h *Handler) UpdateFeature(
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&prxv1.UpdateFeatureResponse{Feature: protoFeature(value)}), nil
+	return connect.NewResponse(&nnxv1.UpdateFeatureResponse{Feature: protoFeature(value)}), nil
 }
 
 func (h *Handler) DeleteFeature(
 	ctx context.Context,
-	req *connect.Request[prxv1.DeleteFeatureRequest],
-) (*connect.Response[prxv1.DeleteFeatureResponse], error) {
+	req *connect.Request[nnxv1.DeleteFeatureRequest],
+) (*connect.Response[nnxv1.DeleteFeatureResponse], error) {
 	if err := h.service.DeleteFeature(ctx, req.Msg.GetId(), req.Msg.GetCascade()); err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&prxv1.DeleteFeatureResponse{}), nil
+	return connect.NewResponse(&nnxv1.DeleteFeatureResponse{}), nil
 }
 
 func (h *Handler) CreateTask(
 	ctx context.Context,
-	req *connect.Request[prxv1.CreateTaskRequest],
-) (*connect.Response[prxv1.CreateTaskResponse], error) {
+	req *connect.Request[nnxv1.CreateTaskRequest],
+) (*connect.Response[nnxv1.CreateTaskResponse], error) {
 	value, err := h.service.CreateTask(
 		ctx,
 		req.Msg.GetFeatureId(),
@@ -267,15 +267,15 @@ func (h *Handler) CreateTask(
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&prxv1.CreateTaskResponse{Task: protoTask(value)}), nil
+	return connect.NewResponse(&nnxv1.CreateTaskResponse{Task: protoTask(value)}), nil
 }
 
 func (h *Handler) UpdateTask(
 	ctx context.Context,
-	req *connect.Request[prxv1.UpdateTaskRequest],
-) (*connect.Response[prxv1.UpdateTaskResponse], error) {
+	req *connect.Request[nnxv1.UpdateTaskRequest],
+) (*connect.Response[nnxv1.UpdateTaskResponse], error) {
 	statusValue := req.Msg.GetStatus()
-	var statusPointer *prxv1.TaskStatus
+	var statusPointer *nnxv1.TaskStatus
 	if req.Msg.Status != nil {
 		statusPointer = &statusValue
 	}
@@ -302,65 +302,65 @@ func (h *Handler) UpdateTask(
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&prxv1.UpdateTaskResponse{Task: protoTask(value)}), nil
+	return connect.NewResponse(&nnxv1.UpdateTaskResponse{Task: protoTask(value)}), nil
 }
 
 func (h *Handler) DeleteTask(
 	ctx context.Context,
-	req *connect.Request[prxv1.DeleteTaskRequest],
-) (*connect.Response[prxv1.DeleteTaskResponse], error) {
+	req *connect.Request[nnxv1.DeleteTaskRequest],
+) (*connect.Response[nnxv1.DeleteTaskResponse], error) {
 	if err := h.service.DeleteTask(ctx, req.Msg.GetId(), req.Msg.GetCascade()); err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&prxv1.DeleteTaskResponse{}), nil
+	return connect.NewResponse(&nnxv1.DeleteTaskResponse{}), nil
 }
 
 func (h *Handler) AddDependency(
 	ctx context.Context,
-	req *connect.Request[prxv1.AddDependencyRequest],
-) (*connect.Response[prxv1.AddDependencyResponse], error) {
+	req *connect.Request[nnxv1.AddDependencyRequest],
+) (*connect.Response[nnxv1.AddDependencyResponse], error) {
 	value, err := h.service.AddDependency(ctx, req.Msg.GetBlockerTaskId(), req.Msg.GetBlockedTaskId())
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&prxv1.AddDependencyResponse{Dependency: protoDependency(value)}), nil
+	return connect.NewResponse(&nnxv1.AddDependencyResponse{Dependency: protoDependency(value)}), nil
 }
 
 func (h *Handler) RemoveDependency(
 	ctx context.Context,
-	req *connect.Request[prxv1.RemoveDependencyRequest],
-) (*connect.Response[prxv1.RemoveDependencyResponse], error) {
+	req *connect.Request[nnxv1.RemoveDependencyRequest],
+) (*connect.Response[nnxv1.RemoveDependencyResponse], error) {
 	if err := h.service.RemoveDependency(ctx, req.Msg.GetBlockerTaskId(), req.Msg.GetBlockedTaskId()); err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&prxv1.RemoveDependencyResponse{}), nil
+	return connect.NewResponse(&nnxv1.RemoveDependencyResponse{}), nil
 }
 
 func (h *Handler) AttachPullRequest(
 	ctx context.Context,
-	req *connect.Request[prxv1.AttachPullRequestRequest],
-) (*connect.Response[prxv1.AttachPullRequestResponse], error) {
+	req *connect.Request[nnxv1.AttachPullRequestRequest],
+) (*connect.Response[nnxv1.AttachPullRequestResponse], error) {
 	value, err := h.service.AttachPullRequest(ctx, req.Msg.GetTaskId(), req.Msg.GetUrl())
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&prxv1.AttachPullRequestResponse{PullRequest: protoPullRequest(value)}), nil
+	return connect.NewResponse(&nnxv1.AttachPullRequestResponse{PullRequest: protoPullRequest(value)}), nil
 }
 
 func (h *Handler) DetachPullRequest(
 	ctx context.Context,
-	req *connect.Request[prxv1.DetachPullRequestRequest],
-) (*connect.Response[prxv1.DetachPullRequestResponse], error) {
+	req *connect.Request[nnxv1.DetachPullRequestRequest],
+) (*connect.Response[nnxv1.DetachPullRequestResponse], error) {
 	if err := h.service.DetachPullRequest(ctx, req.Msg.GetTaskId()); err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&prxv1.DetachPullRequestResponse{}), nil
+	return connect.NewResponse(&nnxv1.DetachPullRequestResponse{}), nil
 }
 
 func (h *Handler) AddDocument(
 	ctx context.Context,
-	req *connect.Request[prxv1.AddDocumentRequest],
-) (*connect.Response[prxv1.AddDocumentResponse], error) {
+	req *connect.Request[nnxv1.AddDocumentRequest],
+) (*connect.Response[nnxv1.AddDocumentResponse], error) {
 	source := protoAddDocumentSource(req.Msg)
 	value, err := h.service.AddDocument(
 		ctx,
@@ -378,24 +378,24 @@ func (h *Handler) AddDocument(
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&prxv1.AddDocumentResponse{Document: protoDocument(value)}), nil
+	return connect.NewResponse(&nnxv1.AddDocumentResponse{Document: protoDocument(value)}), nil
 }
 
 func (h *Handler) GetDocument(
 	ctx context.Context,
-	req *connect.Request[prxv1.GetDocumentRequest],
-) (*connect.Response[prxv1.GetDocumentResponse], error) {
+	req *connect.Request[nnxv1.GetDocumentRequest],
+) (*connect.Response[nnxv1.GetDocumentResponse], error) {
 	value, err := h.service.GetDocument(ctx, req.Msg.GetId())
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&prxv1.GetDocumentResponse{Document: protoDocument(value), Content: value.Content}), nil
+	return connect.NewResponse(&nnxv1.GetDocumentResponse{Document: protoDocument(value), Content: value.Content}), nil
 }
 
 func (h *Handler) UpdateDocument(
 	ctx context.Context,
-	req *connect.Request[prxv1.UpdateDocumentRequest],
-) (*connect.Response[prxv1.UpdateDocumentResponse], error) {
+	req *connect.Request[nnxv1.UpdateDocumentRequest],
+) (*connect.Response[nnxv1.UpdateDocumentResponse], error) {
 	var source *domain.Document
 	if req.Msg.GetSource() != nil {
 		value := protoUpdateDocumentSource(req.Msg)
@@ -407,34 +407,34 @@ func (h *Handler) UpdateDocument(
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&prxv1.UpdateDocumentResponse{Document: protoDocument(value)}), nil
+	return connect.NewResponse(&nnxv1.UpdateDocumentResponse{Document: protoDocument(value)}), nil
 }
 
 func (h *Handler) DeleteDocument(
 	ctx context.Context,
-	req *connect.Request[prxv1.DeleteDocumentRequest],
-) (*connect.Response[prxv1.DeleteDocumentResponse], error) {
+	req *connect.Request[nnxv1.DeleteDocumentRequest],
+) (*connect.Response[nnxv1.DeleteDocumentResponse], error) {
 	if err := h.service.DeleteDocument(ctx, req.Msg.GetId()); err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&prxv1.DeleteDocumentResponse{}), nil
+	return connect.NewResponse(&nnxv1.DeleteDocumentResponse{}), nil
 }
 
 func (h *Handler) ReadDocumentContent(
 	ctx context.Context,
-	req *connect.Request[prxv1.ReadDocumentContentRequest],
-) (*connect.Response[prxv1.ReadDocumentContentResponse], error) {
+	req *connect.Request[nnxv1.ReadDocumentContentRequest],
+) (*connect.Response[nnxv1.ReadDocumentContentResponse], error) {
 	content, err := h.service.ReadDocumentContent(ctx, req.Msg.GetId())
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&prxv1.ReadDocumentContentResponse{Content: content}), nil
+	return connect.NewResponse(&nnxv1.ReadDocumentContentResponse{Content: content}), nil
 }
 
 func (h *Handler) SelectLocalFile(
 	ctx context.Context,
-	_ *connect.Request[prxv1.SelectLocalFileRequest],
-) (*connect.Response[prxv1.SelectLocalFileResponse], error) {
+	_ *connect.Request[nnxv1.SelectLocalFileRequest],
+) (*connect.Response[nnxv1.SelectLocalFileResponse], error) {
 	select {
 	case h.pickerBusy <- struct{}{}:
 		defer func() { <-h.pickerBusy }()
@@ -458,56 +458,56 @@ func (h *Handler) SelectLocalFile(
 			errors.New("native file picker failed; enter the path manually"),
 		)
 	}
-	return connect.NewResponse(&prxv1.SelectLocalFileResponse{Path: path, Canceled: canceled}), nil
+	return connect.NewResponse(&nnxv1.SelectLocalFileResponse{Path: path, Canceled: canceled}), nil
 }
 
 func (h *Handler) Sync(
 	ctx context.Context,
-	req *connect.Request[prxv1.SyncRequest],
-) (*connect.Response[prxv1.SyncResponse], error) {
+	req *connect.Request[nnxv1.SyncRequest],
+) (*connect.Response[nnxv1.SyncResponse], error) {
 	succeeded, failed, err := h.service.Sync(ctx, req.Msg.GetFeatureId(), req.Msg.GetTaskId())
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&prxv1.SyncResponse{Succeeded: int32(succeeded), Failed: int32(failed)}), nil
+	return connect.NewResponse(&nnxv1.SyncResponse{Succeeded: int32(succeeded), Failed: int32(failed)}), nil
 }
 
 func (h *Handler) GetGitHubSyncStatus(
 	ctx context.Context,
-	_ *connect.Request[prxv1.GetGitHubSyncStatusRequest],
-) (*connect.Response[prxv1.GetGitHubSyncStatusResponse], error) {
+	_ *connect.Request[nnxv1.GetGitHubSyncStatusRequest],
+) (*connect.Response[nnxv1.GetGitHubSyncStatusResponse], error) {
 	status, err := h.service.SyncStatus(ctx)
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&prxv1.GetGitHubSyncStatusResponse{Status: protoGitHubSyncStatus(status)}), nil
+	return connect.NewResponse(&nnxv1.GetGitHubSyncStatusResponse{Status: protoGitHubSyncStatus(status)}), nil
 }
 
 func (h *Handler) SyncGitHubIfDue(
 	ctx context.Context,
-	_ *connect.Request[prxv1.SyncGitHubIfDueRequest],
-) (*connect.Response[prxv1.SyncGitHubIfDueResponse], error) {
+	_ *connect.Request[nnxv1.SyncGitHubIfDueRequest],
+) (*connect.Response[nnxv1.SyncGitHubIfDueResponse], error) {
 	ran, status, err := h.service.SyncIfDue(ctx)
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&prxv1.SyncGitHubIfDueResponse{
+	return connect.NewResponse(&nnxv1.SyncGitHubIfDueResponse{
 		Ran: ran, Status: protoGitHubSyncStatus(status),
 	}), nil
 }
 
 // GetDebugReport は診断レポートを、CLI が出力するテキストと併せて返す。描画済み
 // テキストを意図的に RPC 境界の向こうへ渡すことで、WebUI がコピーするレポートを
-// `prx debug` の出力と同一にしている。
+// `nnx debug` の出力と同一にしている。
 func (h *Handler) GetDebugReport(
 	ctx context.Context,
-	_ *connect.Request[prxv1.GetDebugReportRequest],
-) (*connect.Response[prxv1.GetDebugReportResponse], error) {
+	_ *connect.Request[nnxv1.GetDebugReportRequest],
+) (*connect.Response[nnxv1.GetDebugReportResponse], error) {
 	report, err := h.service.Debug(ctx)
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&prxv1.GetDebugReportResponse{
+	return connect.NewResponse(&nnxv1.GetDebugReportResponse{
 		Report: protoDebugReport(report),
 		Text:   domain.FormatDebugReport(report),
 	}), nil
@@ -515,8 +515,8 @@ func (h *Handler) GetDebugReport(
 
 func (h *Handler) Validate(
 	ctx context.Context,
-	_ *connect.Request[prxv1.ValidateRequest],
-) (*connect.Response[prxv1.ValidateResponse], error) {
+	_ *connect.Request[nnxv1.ValidateRequest],
+) (*connect.Response[nnxv1.ValidateResponse], error) {
 	errorsFound := h.service.Validate(ctx)
-	return connect.NewResponse(&prxv1.ValidateResponse{Valid: len(errorsFound) == 0, Errors: errorsFound}), nil
+	return connect.NewResponse(&nnxv1.ValidateResponse{Valid: len(errorsFound) == 0, Errors: errorsFound}), nil
 }

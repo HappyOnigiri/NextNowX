@@ -1,4 +1,4 @@
-import type { PullRequest, Task } from "../gen/prx/v1/prx_pb";
+import type { PullRequest, Task } from "../gen/nnx/v1/nnx_pb";
 import { normalizeText } from "../task-search";
 
 // グラフの検索は空白区切りの語をすべて含むタスクだけを残す。/tasks の修飾子

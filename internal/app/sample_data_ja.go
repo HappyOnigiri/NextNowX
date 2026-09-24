@@ -7,7 +7,7 @@ package app
 func japaneseSampleText() sampleDataText {
 	return sampleDataText{
 		projectTitle:       "サンプル project",
-		projectDescription: "PRX が feature とその作業をどうまとめるかを最初に見るための project。",
+		projectDescription: "Next Now X が feature とその作業をどうまとめるかを最初に見るための project。",
 		featureTitle:       "サンプル feature",
 		featureDescription: "6 件の task と、その間の依存関係。",
 		documentTitle:      "はじめに",
@@ -26,7 +26,7 @@ func japaneseSampleText() sampleDataText {
 
 const japaneseSampleDocument = `# はじめに
 
-PRX を入れた直後なので、このサンプル project が何を追跡するかを示している。
+Next Now X を入れた直後なので、このサンプル project が何を追跡するかを示している。
 
 - task は status を持ち、表示状態は plan と pull request にも従う。
 - 依存はどの task が先に入るかを表し、待っている task は blocked のまま残る。
@@ -35,7 +35,7 @@ PRX を入れた直後なので、このサンプル project が何を追跡す�
 - 「リリースする」は他のすべてを待つので blocked のまま残る。
 
 不要になったらこの project を削除する。次回以降の投入を止めるには
-prx setup --no-sample-data を使う。
+nnx setup --no-sample-data を使う。
 `
 
 const japaneseSamplePlan = `1. この feature に必要な手順を挙げる。

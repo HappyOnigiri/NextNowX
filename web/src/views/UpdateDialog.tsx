@@ -3,7 +3,7 @@ import { BellOff, Download, X } from "lucide-react";
 import { useEffect, useId, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { applyUpdate, skipUpdateVersion } from "../api";
-import type { UpdateRelease, UpdateStatus } from "../gen/prx/v1/prx_pb";
+import type { UpdateRelease, UpdateStatus } from "../gen/nnx/v1/nnx_pb";
 import { useUpdateStatusInvalidation } from "../hooks";
 import { formatError } from "../i18n/domain";
 import { IconButton } from "./IconButton";

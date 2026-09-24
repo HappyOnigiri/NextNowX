@@ -8,18 +8,18 @@ import (
 
 	"github.com/spf13/cobra"
 
-	prx "github.com/HappyOnigiri/PRX"
-	"github.com/HappyOnigiri/PRX/internal/config"
-	"github.com/HappyOnigiri/PRX/internal/daemon"
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/launchd"
+	nnx "github.com/HappyOnigiri/NextNowX"
+	"github.com/HappyOnigiri/NextNowX/internal/config"
+	"github.com/HappyOnigiri/NextNowX/internal/daemon"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/launchd"
 )
 
 func (s *state) debugCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:     "debug",
-		Short:   "Show a diagnostic report of this PRX installation",
-		Example: "prx debug\nprx debug --json",
+		Short:   "Show a diagnostic report of this Next Now X installation",
+		Example: "nnx debug\nnnx debug --json",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			report := s.debugReport(cmd.Context())
@@ -52,7 +52,7 @@ func (s *state) unavailableDebugReport(cause error) domain.DebugReport {
 		message = cause.Error()
 	}
 	report := domain.DebugReport{
-		Build: domain.NewDebugBuild(prx.Version()),
+		Build: domain.NewDebugBuild(nnx.Version()),
 		Runtime: domain.NewDebugRuntime(domain.DebugRuntimeInput{
 			Mode:          "cli",
 			Demo:          s.demo,
@@ -61,7 +61,7 @@ func (s *state) unavailableDebugReport(cause error) domain.DebugReport {
 		Paths:  domain.NewDebugPaths(s.debugPathsInput(cause)),
 		Config: s.debugConfig(),
 		// 常駐の観測はストレージに依存しないので、サービスを開けなくても残す。
-		Daemon:  domain.NewDebugDaemon(daemon.Inspect(launchd.New(), prx.Version()).DebugInput(s.demo)),
+		Daemon:  domain.NewDebugDaemon(daemon.Inspect(launchd.New(), nnx.Version()).DebugInput(s.demo)),
 		Storage: domain.NewDebugStorage(domain.DebugStorageInput{Error: message}),
 		Records: domain.DebugData{Error: message},
 		GitHubSync: domain.NewDebugGitHubSync(

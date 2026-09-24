@@ -10,14 +10,14 @@ import (
 
 	"github.com/spf13/cobra"
 
-	prx "github.com/HappyOnigiri/PRX"
-	"github.com/HappyOnigiri/PRX/internal/browser"
-	"github.com/HappyOnigiri/PRX/internal/config"
-	"github.com/HappyOnigiri/PRX/internal/daemon"
-	"github.com/HappyOnigiri/PRX/internal/launchd"
-	"github.com/HappyOnigiri/PRX/internal/prompt"
-	"github.com/HappyOnigiri/PRX/internal/runstate"
-	"github.com/HappyOnigiri/PRX/internal/tui"
+	nnx "github.com/HappyOnigiri/NextNowX"
+	"github.com/HappyOnigiri/NextNowX/internal/browser"
+	"github.com/HappyOnigiri/NextNowX/internal/config"
+	"github.com/HappyOnigiri/NextNowX/internal/daemon"
+	"github.com/HappyOnigiri/NextNowX/internal/launchd"
+	"github.com/HappyOnigiri/NextNowX/internal/prompt"
+	"github.com/HappyOnigiri/NextNowX/internal/runstate"
+	"github.com/HappyOnigiri/NextNowX/internal/tui"
 )
 
 // 以下は差し替えられるよう変数にする。go test の stdin は端末ではないため、テストは
@@ -50,26 +50,26 @@ type setupSession struct {
 
 // sampleDataOptOutVariable は空でない値をすべて opt-out として扱う。値の語彙を
 // 決めないのは、インストーラが真偽どちらの綴りを渡しても止まるほうが安全なため。
-const sampleDataOptOutVariable = "PRX_NO_SAMPLE_DATA"
+const sampleDataOptOutVariable = "NNX_NO_SAMPLE_DATA"
 
 const sampleDataAddedMessage = "Added sample data: one project with a small feature graph. " +
-	"Run prx setup --no-sample-data to skip it."
+	"Run nnx setup --no-sample-data to skip it."
 
 func (s *state) setupCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:   "setup",
-		Short: "Choose how PRX should start",
-		Long: "Choose how PRX should start.\n\n" +
+		Short: "Choose how Next Now X should start",
+		Long: "Choose how Next Now X should start.\n\n" +
 			"Setup first asks for a language and saves it as the language setting; its questions, " +
 			"its progress messages, and the sample data follow that choice.\n" +
 			"On macOS, the setup walk can register the LaunchAgent, start the background server, " +
 			"and open the WebUI.\n" +
 			"When it creates the database, setup adds a small sample project.",
-		Example: "prx setup",
+		Example: "nnx setup",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if s.json {
-				return errors.New("prx setup does not support --json")
+				return errors.New("nnx setup does not support --json")
 			}
 			return s.runSetup(cmd.Context())
 		},
@@ -96,15 +96,15 @@ func (s *state) runSetup(ctx context.Context) error {
 	}
 	session.text = setupTextFor(language)
 	// 投入は macOS 判定より前に行う。常駐できない OS でも、端末が無い環境でも、
-	// `prx setup` を初回セットアップとして成立させるためである。
+	// `nnx setup` を初回セットアップとして成立させるためである。
 	s.seedSampleData(ctx, session.text)
-	status := daemon.Inspect(launchd.New(), prx.Version())
+	status := daemon.Inspect(launchd.New(), nnx.Version())
 	if !status.Supported {
 		return renderMessage("%s", session.text.daemonUnsupported)(s.out)
 	}
 	// 端末が要るのはここから先だけ。投入まで進んでから、従来と同じ形で断る。
 	if !hasTerminal {
-		return errors.New("prx setup needs a terminal for its questions")
+		return errors.New("nnx setup needs a terminal for its questions")
 	}
 	state, installedNow, err := s.applySetupDaemon(ctx, session, status)
 	if err != nil {
@@ -124,7 +124,7 @@ func (s *state) seedSampleData(ctx context.Context, text setupText) {
 		return
 	}
 	// root の PersistentPreRunE を通さず自分で開く。root 経由だと SyncIfDue が
-	// `prx setup` に乗り、オープン失敗が LaunchAgent の案内ごと消してしまう。
+	// `nnx setup` に乗り、オープン失敗が LaunchAgent の案内ごと消してしまう。
 	service, closer, err := s.openService(config.WithPath(ctx, s.configPath), ServiceOptions{
 		DatabasePath:       s.dbPath,
 		DatabasePathSource: s.dbPathSource,
@@ -363,7 +363,7 @@ func (s *state) offerSetupOpen(ctx context.Context, session setupSession, url st
 	}
 	opener := browser.New()
 	if err := opener.Open(ctx, url); err != nil {
-		return fmt.Errorf("open PRX in browser: %w", err)
+		return fmt.Errorf("open Next Now X in browser: %w", err)
 	}
 	_, _ = fmt.Fprintf(session.out, session.text.openedBrowser+"\n", url)
 	return nil

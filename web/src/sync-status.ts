@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { GitHubSyncStatus } from "./gen/prx/v1/prx_pb";
+import type { GitHubSyncStatus } from "./gen/nnx/v1/nnx_pb";
 
 export interface AutoSyncStatus {
   status: {

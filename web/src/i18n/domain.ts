@@ -13,7 +13,7 @@ import {
   TaskDisplayState,
   TaskStatus,
   type BlockedReason,
-} from "../gen/prx/v1/prx_pb";
+} from "../gen/nnx/v1/nnx_pb";
 
 export function featureStatusLabel(value: FeatureStatus, t: TFunction): string {
   return t(featureStatusKeys[value]);

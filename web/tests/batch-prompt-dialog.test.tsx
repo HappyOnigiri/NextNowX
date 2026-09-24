@@ -6,7 +6,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { TaskDisplayState, TaskPromptKind } from "../src/gen/prx/v1/prx_pb";
+import { TaskDisplayState, TaskPromptKind } from "../src/gen/nnx/v1/nnx_pb";
 import { setDisplayLanguage } from "../src/i18n";
 import { BatchPromptDialog } from "../src/views/BatchPromptDialog";
 import { makeTask } from "./factories";

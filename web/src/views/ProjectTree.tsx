@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { isActiveFeature } from "../feature-status";
-import type { Feature, Project } from "../gen/prx/v1/prx_pb";
+import type { Feature, Project } from "../gen/nnx/v1/nnx_pb";
 import {
   readCollapsedProjects,
   writeCollapsedProjects,

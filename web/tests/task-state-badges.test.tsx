@@ -6,7 +6,7 @@ import {
   TaskDisplayState,
   TaskLabelAppearanceSchema,
   TaskLabelAppearancesSchema,
-} from "../src/gen/prx/v1/prx_pb";
+} from "../src/gen/nnx/v1/nnx_pb";
 import { setDisplayLanguage } from "../src/i18n";
 import { taskDisplayStateToken } from "../src/i18n/domain";
 import { StatusBadge } from "../src/views/StatusBadge";

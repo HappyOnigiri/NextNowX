@@ -15,7 +15,7 @@ import (
 
 	gh "github.com/google/go-github/v80/github"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 type Provider interface {
@@ -102,7 +102,7 @@ func NewConfiguredLiveProvider(
 			return nil, fmt.Errorf("configure GitHub URLs: %w", err)
 		}
 	}
-	client.UserAgent = "prx/0.1"
+	client.UserAgent = "nnx/0.1"
 	if graphqlURL == "" {
 		graphqlURL = defaultGraphQLURL(apiURL)
 	}

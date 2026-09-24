@@ -4,7 +4,7 @@ import {
   selectFeatureTab,
   type FeatureTabId,
 } from "../feature-tabs";
-import type { Feature } from "../gen/prx/v1/prx_pb";
+import type { Feature } from "../gen/nnx/v1/nnx_pb";
 import { FeatureListRow } from "./FeatureListRow";
 import { TabList, TabPanel } from "./TabList";
 

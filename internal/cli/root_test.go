@@ -10,7 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/HappyOnigiri/PRX/internal/runstate"
+	"github.com/HappyOnigiri/NextNowX/internal/runstate"
 )
 
 type failingWriter struct{}
@@ -175,8 +175,8 @@ func TestRootOpensAndClosesCommandResources(t *testing.T) {
 }
 
 func TestDemoOpensIsolatedServiceAndIgnoresEnvironmentPaths(t *testing.T) {
-	t.Setenv("PRX_DB", "real.db")
-	t.Setenv("PRX_CONFIG", "real.yaml")
+	t.Setenv("NNX_DB", "real.db")
+	t.Setenv("NNX_CONFIG", "real.yaml")
 	var got ServiceOptions
 	root, state := newRootWithState(
 		io.Discard,
@@ -263,7 +263,7 @@ func TestRootVersionDoesNotOpenService(t *testing.T) {
 		t.Fatal("version should not open the database")
 	}
 	root := NewRoot(io.Discard, io.Discard, testOpenService)
-	if got, want := out.String(), "prx version "+root.Version+"\n"; got != want {
+	if got, want := out.String(), "nnx version "+root.Version+"\n"; got != want {
 		t.Fatalf("stdout = %q, want %q", got, want)
 	}
 }

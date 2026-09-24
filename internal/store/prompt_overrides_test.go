@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
 )
 
 func TestPromptOverridesRoundTripAndPartialUpdates(t *testing.T) {

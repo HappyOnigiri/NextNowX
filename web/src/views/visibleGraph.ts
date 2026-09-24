@@ -2,7 +2,7 @@ import {
   TaskDisplayState,
   type Dependency,
   type Task,
-} from "../gen/prx/v1/prx_pb";
+} from "../gen/nnx/v1/nnx_pb";
 
 // グラフのフィルタはサーバーの IsTaskFinished と同じ導出状態を読む。これにより
 // マージ済み・クローズ済みの PR で決着したタスクも、ブラウザ側で導出を

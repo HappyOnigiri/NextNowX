@@ -6,7 +6,7 @@ import {
   type PullRequest,
   type Task,
   type TaskLabelAppearances,
-} from "../gen/prx/v1/prx_pb";
+} from "../gen/nnx/v1/nnx_pb";
 import { useDomainMutation } from "../hooks";
 import { blockedReasonLabel } from "../i18n/domain";
 import { CopyableIdentifier } from "./CopyableIdentifier";

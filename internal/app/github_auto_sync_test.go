@@ -5,11 +5,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/HappyOnigiri/PRX/internal/app"
-	"github.com/HappyOnigiri/PRX/internal/config"
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	githubprovider "github.com/HappyOnigiri/PRX/internal/github"
-	"github.com/HappyOnigiri/PRX/internal/store"
+	"github.com/HappyOnigiri/NextNowX/internal/app"
+	"github.com/HappyOnigiri/NextNowX/internal/config"
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+	githubprovider "github.com/HappyOnigiri/NextNowX/internal/github"
+	"github.com/HappyOnigiri/NextNowX/internal/store"
 )
 
 func TestAutomaticSyncClaimsOnceAndFiltersArchivedButRefreshesMergedPullRequests(t *testing.T) {

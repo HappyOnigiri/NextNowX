@@ -8,7 +8,7 @@ import {
   within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { GithubAuthMethodType } from "../src/gen/prx/v1/prx_pb";
+import { GithubAuthMethodType } from "../src/gen/nnx/v1/nnx_pb";
 import { setDisplayLanguage } from "../src/i18n";
 import { SettingsDialog } from "../src/views/SettingsDialog";
 
@@ -85,7 +85,7 @@ const settingsMocks = vi.hoisted(() => {
           problems: [],
           runtime: { generatedAt: "2026-09-03T04:05:06Z" },
         },
-        text: "PRX diagnostic report\n",
+        text: "Next Now X diagnostic report\n",
       },
       isError: false,
       error: null as Error | null,
@@ -396,7 +396,7 @@ describe("SettingsDialog", () => {
       target: { value: String(GithubAuthMethodType.KEYCHAIN) },
     });
     fireEvent.change(within(added).getByLabelText("Keychain account"), {
-      target: { value: "prx" },
+      target: { value: "nnx" },
     });
     fireEvent.change(within(added).getByLabelText("Keychain service"), {
       target: { value: "github" },

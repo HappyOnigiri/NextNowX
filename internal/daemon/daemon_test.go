@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/HappyOnigiri/PRX/internal/launchd"
-	"github.com/HappyOnigiri/PRX/internal/runstate"
+	"github.com/HappyOnigiri/NextNowX/internal/launchd"
+	"github.com/HappyOnigiri/NextNowX/internal/runstate"
 )
 
 func TestInspectReportsAnUnsupportedOperatingSystemWithoutTouchingTheDisk(t *testing.T) {
-	// PRX_RUN_DIR を存在しない場所に向けても観測が失敗しないことを兼ねて確かめる。
+	// NNX_RUN_DIR を存在しない場所に向けても観測が失敗しないことを兼ねて確かめる。
 	t.Setenv(runstate.DirEnvironmentVariable, filepath.Join(t.TempDir(), "missing"))
 	status := Inspect(&launchd.Manager{}, "1.2.3")
 	if status.Supported || status.Installed || status.Running || status.Error != "" {
@@ -50,7 +50,7 @@ func TestInspectReportsARunningServerOnAnUnsupportedOperatingSystem(t *testing.T
 // 検出する。新しい CLI がデータベースを移行した後も古いサーバーが応答し続けるのを
 // 読み手に知らせるための判定である。
 func TestBinaryMatchesTreatsALaterExecutableAsAReplacement(t *testing.T) {
-	executable := filepath.Join(t.TempDir(), "prx")
+	executable := filepath.Join(t.TempDir(), "nnx")
 	if err := os.WriteFile(executable, []byte("binary"), 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -83,7 +83,7 @@ func TestBinaryMatchesTreatsALaterExecutableAsAReplacement(t *testing.T) {
 func TestDebugInputCarriesTheRunningServerAndTheDemoMarker(t *testing.T) {
 	status := Status{
 		Supported: true, Installed: true, PlistStatus: launchd.PlistCurrent,
-		PlistPath: "/tmp/com.user.prx.plist", LogPath: "/tmp/serve.log", Running: true, BinaryMatches: true,
+		PlistPath: "/tmp/com.user.nnx.plist", LogPath: "/tmp/serve.log", Running: true, BinaryMatches: true,
 		State: runstate.State{PID: 4242, Address: "127.0.0.1:7331", Version: "1.2.3"},
 	}
 	input := status.DebugInput(false)
@@ -123,7 +123,7 @@ func TestInspectReadsThePlistAndTheRunState(t *testing.T) {
 	if status = Inspect(manager, "1.2.3"); !status.Running || !status.AddressUnknown {
 		t.Fatalf("status before bind=%+v", status)
 	}
-	executable := filepath.Join(home, "prx")
+	executable := filepath.Join(home, "nnx")
 	if err := os.WriteFile(executable, []byte("binary"), 0o700); err != nil {
 		t.Fatal(err)
 	}
