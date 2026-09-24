@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/release"
+	"github.com/HappyOnigiri/nnx/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/release"
 )
 
 // 静的な provider は、実ネットワークへ出てはならない経路のために置く。

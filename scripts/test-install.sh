@@ -1,24 +1,24 @@
 #!/bin/bash
 set -euo pipefail
 
-root=$(mktemp -d "${TMPDIR:-/tmp}/prx-install-test.XXXXXX")
+root=$(mktemp -d "${TMPDIR:-/tmp}/nnx-install-test.XXXXXX")
 trap 'rm -rf "$root"' EXIT
 
-asset="$root/prx-darwin-arm64"
+asset="$root/nnx-darwin-arm64"
 cat > "$asset" <<'EOF'
 #!/bin/bash
 case "${1-}:${2-}" in
   --version:)
-    echo 'prx version 0.0.0'
+    echo 'nnx version 0.0.0'
     ;;
   daemon:--json)
-    if [ "$PRX_INSTALL_TEST_DAEMON_STATUS" = fail ]; then
+    if [ "$NNX_INSTALL_TEST_DAEMON_STATUS" = fail ]; then
       exit 1
     fi
-    printf '%s\n' "$PRX_INSTALL_TEST_DAEMON_STATUS"
+    printf '%s\n' "$NNX_INSTALL_TEST_DAEMON_STATUS"
     ;;
   setup:)
-    if [ "$PRX_INSTALL_TEST_SETUP_STATUS" = fail ]; then
+    if [ "$NNX_INSTALL_TEST_SETUP_STATUS" = fail ]; then
       exit 1
     fi
     echo 'TUI setup completed'
@@ -59,12 +59,12 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 case "$url" in
-  */prx-darwin-arm64)
-    cp "$PRX_INSTALL_TEST_ASSET" "$output"
+  */nnx-darwin-arm64)
+    cp "$NNX_INSTALL_TEST_ASSET" "$output"
     ;;
   */checksums.txt)
-    checksum=$(shasum -a 256 "$PRX_INSTALL_TEST_ASSET")
-    printf '%s  prx-darwin-arm64\n' "${checksum%% *}" > "$output"
+    checksum=$(shasum -a 256 "$NNX_INSTALL_TEST_ASSET")
+    printf '%s  nnx-darwin-arm64\n' "${checksum%% *}" > "$output"
     ;;
   *)
     exit 1
@@ -74,7 +74,7 @@ EOF
 chmod 0755 "$tool_directory/uname" "$tool_directory/curl"
 
 installer="$root/install.sh"
-sed "s/@PRX_RELEASE_VERSION@/v0.0.0/g" scripts/install.sh > "$installer"
+sed "s/@NNX_RELEASE_VERSION@/v0.0.0/g" scripts/install.sh > "$installer"
 
 assert_contains() {
   local file=$1 text=$2
@@ -102,37 +102,37 @@ run_case() {
   mkdir -p "$home"
   if [ "$existing_binary" = true ]; then
     mkdir -p "$home/.local/bin"
-    cp "$asset" "$home/.local/bin/prx"
+    cp "$asset" "$home/.local/bin/nnx"
   fi
   if [ "$path_configured" = true ]; then
     test_path="$home/.local/bin:$test_path"
   fi
 
-  HOME="$home" PATH="$test_path" PRX_INSTALL_TEST_ASSET="$asset" \
-    PRX_INSTALL_TEST_DAEMON_STATUS="$daemon_status" PRX_INSTALL_TEST_SETUP_STATUS="$setup_status" \
+  HOME="$home" PATH="$test_path" NNX_INSTALL_TEST_ASSET="$asset" \
+    NNX_INSTALL_TEST_DAEMON_STATUS="$daemon_status" NNX_INSTALL_TEST_SETUP_STATUS="$setup_status" \
     bash "$installer" > "$output"
   if [ "$path_configured" = true ]; then
-    assert_not_contains "$output" 'To use prx in this terminal, run:'
+    assert_not_contains "$output" 'To use nnx in this terminal, run:'
     assert_not_contains "$output" 'export PATH="$HOME/.local/bin:$PATH"'
   else
-    assert_contains "$output" 'To use prx in this terminal, run:'
+    assert_contains "$output" 'To use nnx in this terminal, run:'
   fi
   if [ "$expected_startup" = daemon ]; then
     assert_contains "$output" 'TUI setup completed'
-    assert_not_contains "$output" 'To start PRX at login, run:'
-    assert_not_contains "$output" '  prx daemon install'
-    assert_not_contains "$output" 'Then run prx serve to start the server at http://127.0.0.1:7331.'
+    assert_not_contains "$output" 'To start Next Now X at login, run:'
+    assert_not_contains "$output" '  nnx daemon install'
+    assert_not_contains "$output" 'Then run nnx serve to start the server at http://127.0.0.1:7331.'
     return
   fi
   if [ "$expected_startup" = fallback ]; then
-    assert_contains "$output" 'To start PRX at login, run:'
-    assert_contains "$output" '  prx daemon install'
+    assert_contains "$output" 'To start Next Now X at login, run:'
+    assert_contains "$output" '  nnx daemon install'
     assert_contains "$output" 'To open the server in your browser, run:'
-    assert_contains "$output" '  prx open'
+    assert_contains "$output" '  nnx open'
     return
   fi
-  assert_contains "$output" 'Then run prx serve to start the server at http://127.0.0.1:7331.'
-  assert_not_contains "$output" 'To start PRX at login, run:'
+  assert_contains "$output" 'Then run nnx serve to start the server at http://127.0.0.1:7331.'
+  assert_not_contains "$output" 'To start Next Now X at login, run:'
 }
 
 run_case initial-not-installed false '{"supported":true,"installed":false}' ok daemon

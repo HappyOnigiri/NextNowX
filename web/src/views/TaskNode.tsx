@@ -13,7 +13,7 @@ import {
   type TaskBlockLabel,
   type TaskDisplayState,
   type TaskLabelAppearances,
-} from "../gen/prx/v1/prx_pb";
+} from "../gen/nnx/v1/nnx_pb";
 import { taskDisplayStateToken } from "../i18n/domain";
 import { CopyableIdentifier } from "./CopyableIdentifier";
 import { EntityIcon } from "./EntityIcon";
@@ -191,7 +191,7 @@ export function TaskNode({
         <div className="task-node-actions nodrag nowheel nopan">
           <CopyableIdentifier label={t("common.taskId")} value={id} valueOnly />
           {/* コピーはアーカイブ済みのタスクでも使える。エージェントに作業を
-              渡すのは PRX を読むだけで、変更はしないため。 */}
+              渡すのは Next Now X を読むだけで、変更はしないため。 */}
           <TaskPromptCopyButton
             taskId={id}
             hasImplementationPlan={data.hasImplementationPlan}

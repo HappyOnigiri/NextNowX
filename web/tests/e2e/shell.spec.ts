@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 const browserErrors: string[] = [];
-const e2ePort = process.env["PRX_E2E_PORT"];
+const e2ePort = process.env["NNX_E2E_PORT"];
 if (!e2ePort) throw new Error("Playwright did not capture the E2E server port");
 
 test.use({
@@ -88,7 +88,7 @@ test("brings the hidden sidebar back once the rail turns horizontal", async ({
   await page.setViewportSize({ width: 800, height: 900 });
   await expect(page.locator(".rail")).toBeVisible();
   await expect(
-    page.getByRole("navigation", { name: "PRX navigation" }),
+    page.getByRole("navigation", { name: "Next Now X navigation" }),
   ).toBeVisible();
   await expect(
     page.getByRole("separator", { name: "Sidebar width" }),

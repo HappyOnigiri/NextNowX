@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/domain"
 )
 
 // applyTaskLabelOverrides は scope 固有の文字・色を項目ごとに部分更新する。

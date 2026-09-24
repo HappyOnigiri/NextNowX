@@ -14,7 +14,7 @@ import {
   TaskDisplayState,
   type TaskLabelAppearance,
   type TaskLabelAppearances,
-} from "../gen/prx/v1/prx_pb";
+} from "../gen/nnx/v1/nnx_pb";
 import type { taskBadgeStageKeys, taskBadgeStateKeys } from "../i18n/domain";
 import {
   taskBadgeStageLabel,

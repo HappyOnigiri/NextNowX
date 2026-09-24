@@ -36,13 +36,13 @@ func TestApplyRunsTheInstallerForTheRequestedTag(t *testing.T) {
 	var staged string
 	applier := newTestApplier(t, "#!/bin/bash\n", func(scriptPath string) (string, error) {
 		staged = scriptPath
-		return "Downloading prx v0.4.0...\nInstalled prx v0.4.0 to /home/example/.local/bin/prx\n", nil
+		return "Downloading nnx v0.4.0...\nInstalled nnx v0.4.0 to /home/example/.local/bin/nnx\n", nil
 	})
 	result, err := applier.Apply(context.Background(), "0.4.0")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Version != "v0.4.0" || result.InstalledPath != "/home/example/.local/bin/prx" {
+	if result.Version != "v0.4.0" || result.InstalledPath != "/home/example/.local/bin/nnx" {
 		t.Fatalf("result=%+v", result)
 	}
 	if !strings.HasSuffix(staged, "install.sh") {
@@ -56,7 +56,7 @@ func TestApplyRunsTheInstallerForTheRequestedTag(t *testing.T) {
 // 標準以外の場所へ入れている環境では置き換えが起きないので、成功と報告してはならない。
 func TestApplyFailsWhenTheInstallerReplacedNothing(t *testing.T) {
 	applier := newTestApplier(t, "#!/bin/bash\n", func(string) (string, error) {
-		return "Downloading prx v0.4.0...\n", nil
+		return "Downloading nnx v0.4.0...\n", nil
 	})
 	_, err := applier.Apply(context.Background(), "v0.4.0")
 	if err == nil || !strings.Contains(err.Error(), "did not report a replaced binary") {
@@ -66,7 +66,7 @@ func TestApplyFailsWhenTheInstallerReplacedNothing(t *testing.T) {
 
 func TestApplyFailsWhenTheInstallerReportsAnotherVersion(t *testing.T) {
 	applier := newTestApplier(t, "#!/bin/bash\n", func(string) (string, error) {
-		return "Installed prx v0.3.0 to /home/example/.local/bin/prx\n", nil
+		return "Installed nnx v0.3.0 to /home/example/.local/bin/nnx\n", nil
 	})
 	_, err := applier.Apply(context.Background(), "v0.4.0")
 	if err == nil || !strings.Contains(err.Error(), "instead of v0.4.0") {
@@ -76,7 +76,7 @@ func TestApplyFailsWhenTheInstallerReportsAnotherVersion(t *testing.T) {
 
 func TestApplyReportsTheInstallerFailureTail(t *testing.T) {
 	applier := newTestApplier(t, "#!/bin/bash\n", func(string) (string, error) {
-		return strings.Repeat("noise\n", 8) + "prx install: checksum verification failed\n", errStub
+		return strings.Repeat("noise\n", 8) + "nnx install: checksum verification failed\n", errStub
 	})
 	_, err := applier.Apply(context.Background(), "v0.4.0")
 	if err == nil || !strings.Contains(err.Error(), "checksum verification failed") {
@@ -102,13 +102,13 @@ func TestApplyRejectsValuesThatAreNotReleaseTags(t *testing.T) {
 // HOME に空白を含む環境でも置き換えの報告は読み取れなければならない。
 func TestApplyReadsInstallPathsThatContainSpaces(t *testing.T) {
 	applier := newTestApplier(t, "#!/bin/bash\n", func(string) (string, error) {
-		return "Installed prx v0.4.0 to /Users/Ada Lovelace/.local/bin/prx\n", nil
+		return "Installed nnx v0.4.0 to /Users/Ada Lovelace/.local/bin/nnx\n", nil
 	})
 	result, err := applier.Apply(context.Background(), "v0.4.0")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.InstalledPath != "/Users/Ada Lovelace/.local/bin/prx" {
+	if result.InstalledPath != "/Users/Ada Lovelace/.local/bin/nnx" {
 		t.Fatalf("installed path=%q", result.InstalledPath)
 	}
 }
@@ -143,13 +143,13 @@ func TestApplyFailsOnAnEmptyInstaller(t *testing.T) {
 // 常駐サーバーの環境は launchd が渡す極小のものなので、PATH と HOME は明示して渡す。
 func TestInstallerEnvironmentAlwaysCarriesPathAndHome(t *testing.T) {
 	t.Setenv("PATH", "")
-	t.Setenv("TMPDIR", "/tmp/prx-test")
+	t.Setenv("TMPDIR", "/tmp/nnx-test")
 	environment := installerEnvironment()
 	joined := strings.Join(environment, "\n")
 	if !strings.Contains(joined, "PATH="+fallbackPath) {
 		t.Fatalf("environment=%v", environment)
 	}
-	if !strings.Contains(joined, "HOME=") || !strings.Contains(joined, "TMPDIR=/tmp/prx-test") {
+	if !strings.Contains(joined, "HOME=") || !strings.Contains(joined, "TMPDIR=/tmp/nnx-test") {
 		t.Fatalf("environment=%v", environment)
 	}
 }
@@ -179,7 +179,7 @@ func TestRunInstallerExecutesTheStagedScript(t *testing.T) {
 	applier := New()
 	directory := t.TempDir()
 	script := directory + "/install.sh"
-	body := "#!/bin/bash\nif [ -t 0 ]; then echo tty; fi\necho Installed prx v0.4.0 to $HOME/.local/bin/prx\n"
+	body := "#!/bin/bash\nif [ -t 0 ]; then echo tty; fi\necho Installed nnx v0.4.0 to $HOME/.local/bin/nnx\n"
 	if err := os.WriteFile(script, []byte(body), 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -190,7 +190,7 @@ func TestRunInstallerExecutesTheStagedScript(t *testing.T) {
 	if strings.Contains(output, "tty") {
 		t.Fatalf("the installer was given a terminal: %q", output)
 	}
-	if !strings.Contains(output, "Installed prx v0.4.0 to ") {
+	if !strings.Contains(output, "Installed nnx v0.4.0 to ") {
 		t.Fatalf("output=%q", output)
 	}
 }

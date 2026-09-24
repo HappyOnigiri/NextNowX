@@ -12,18 +12,18 @@ import (
 
 	"github.com/spf13/cobra"
 
-	prx "github.com/HappyOnigiri/PRX"
-	"github.com/HappyOnigiri/PRX/internal/daemon"
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/launchd"
-	"github.com/HappyOnigiri/PRX/internal/release"
-	"github.com/HappyOnigiri/PRX/internal/tui"
-	"github.com/HappyOnigiri/PRX/internal/update"
+	nnx "github.com/HappyOnigiri/nnx"
+	"github.com/HappyOnigiri/nnx/internal/daemon"
+	"github.com/HappyOnigiri/nnx/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/launchd"
+	"github.com/HappyOnigiri/nnx/internal/release"
+	"github.com/HappyOnigiri/nnx/internal/tui"
+	"github.com/HappyOnigiri/nnx/internal/update"
 )
 
 // 以下は差し替えられるよう変数にする。go test は配布元へ出られず、標準入力も端末ではない。
 var (
-	updateBuildVersion    = prx.Version
+	updateBuildVersion    = nnx.Version
 	updateReleaseProvider = func() release.Provider { return release.New() }
 	updateApplier         = func() updateApplyFunc { return update.New().Apply }
 	updateIsTerminal      = tui.IsTerminal
@@ -42,7 +42,7 @@ type updateReleaseResponse struct {
 	URL         string `json:"url,omitempty"`
 }
 
-// updateResponse は `prx update` の応答。スキップはサーバーが出す案内のための設定なので、
+// updateResponse は `nnx update` の応答。スキップはサーバーが出す案内のための設定なので、
 // 案内を出さない CLI では読みも書きもしない。
 type updateResponse struct {
 	Enabled         bool                    `json:"enabled"`
@@ -61,12 +61,12 @@ func (s *state) updateCommand() *cobra.Command {
 	var apply bool
 	command := &cobra.Command{
 		Use:   "update",
-		Short: "Check for a newer PRX release and install it",
-		Long: "Check for a newer PRX release and install it.\n\n" +
-			"The check reads the public GitHub releases of PRX without credentials, and the install runs the " +
+		Short: "Check for a newer Next Now X release and install it",
+		Long: "Check for a newer Next Now X release and install it.\n\n" +
+			"The check reads the public GitHub releases of Next Now X without credentials, and the install runs the " +
 			"install.sh attached to the release being installed.\n" +
 			"Development builds and demo runs report that updates are disabled.",
-		Example: "prx update",
+		Example: "nnx update",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return s.runUpdate(cmd.Context(), apply)
@@ -78,7 +78,7 @@ func (s *state) updateCommand() *cobra.Command {
 
 func (s *state) runUpdate(ctx context.Context, apply bool) error {
 	version := updateBuildVersion()
-	// --demo は serve だけのフラグなので、`prx update` が demo で走ることはない。
+	// --demo は serve だけのフラグなので、`nnx update` が demo で走ることはない。
 	// demo の無効化は RPC 経路が持つ。
 	if domain.IsDevelopmentBuild(version) {
 		return s.reportDisabledUpdate(version, apply)
@@ -133,10 +133,10 @@ func (s *state) confirmUpdate(ctx context.Context, status domain.UpdateStatus) (
 	defer closeInput()
 	answer, err := tui.Select(ctx, input, s.errOut, tui.Selection{
 		Title:       "Install " + status.LatestVersion + "?",
-		Description: "The installer replaces the prx binary in ~/.local/bin.",
+		Description: "The installer replaces the nnx binary in ~/.local/bin.",
 		Initial:     0,
 		Options: []tui.Option{
-			{Value: "install", Label: "Install now", Description: "download and replace the prx binary"},
+			{Value: "install", Label: "Install now", Description: "download and replace the nnx binary"},
 			{Value: "cancel", Label: "Not now", Description: "leave the installed version unchanged"},
 		},
 	})
@@ -214,10 +214,10 @@ func renderUpdateStatus(status domain.UpdateStatus) humanRenderer {
 			return renderMessage("%s.", capitalize(updateDisabledMessage))(out)
 		}
 		if !status.UpdateAvailable {
-			return renderMessage("PRX %s is up to date.", status.CurrentVersion)(out)
+			return renderMessage("Next Now X %s is up to date.", status.CurrentVersion)(out)
 		}
 		if _, err := fmt.Fprintf(
-			out, "PRX %s is installed. %s is available.\n", status.CurrentVersion, status.LatestVersion,
+			out, "Next Now X %s is installed. %s is available.\n", status.CurrentVersion, status.LatestVersion,
 		); err != nil {
 			return err
 		}
@@ -252,13 +252,13 @@ func writeReleaseNote(out io.Writer, note domain.ReleaseNote) error {
 
 func renderUpdateApplied(result domain.UpdateResult) humanRenderer {
 	return func(out io.Writer) error {
-		if _, err := fmt.Fprintf(out, "Installed prx %s to %s.\n", result.Version, result.InstalledPath); err != nil {
+		if _, err := fmt.Fprintf(out, "Installed nnx %s to %s.\n", result.Version, result.InstalledPath); err != nil {
 			return err
 		}
 		if !result.RestartRequired {
 			return nil
 		}
-		return renderMessage("Restart the running prx serve to use the new version.")(out)
+		return renderMessage("Restart the running nnx serve to use the new version.")(out)
 	}
 }
 

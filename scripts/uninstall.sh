@@ -5,34 +5,34 @@ usage() {
   cat <<'EOF'
 Usage: uninstall.sh [--help] [-y|--yes]
 
-Stop PRX, remove its LaunchAgent, and remove the binary installed at
-~/.local/bin/prx. Configuration, databases, run state, and logs are kept.
+Stop Next Now X, remove its LaunchAgent, and remove the binary installed at
+~/.local/bin/nnx. Configuration, databases, run state, and logs are kept.
 
 Use --yes when running without an interactive terminal.
 EOF
 }
 
 fail() {
-  echo "prx uninstall: $*" >&2
+  echo "nnx uninstall: $*" >&2
   exit 1
 }
 
 print_retained_data() {
   local home=$1
   echo ''
-  echo 'PRX will keep these files:'
-  printf '  %q  (configuration, database, and run state)\n' "$home/Library/Application Support/prx/"
-  printf '  %q  (server logs)\n' "$home/Library/Logs/prx/"
+  echo 'Next Now X will keep these files:'
+  printf '  %q  (configuration, database, and run state)\n' "$home/Library/Application Support/nnx/"
+  printf '  %q  (server logs)\n' "$home/Library/Logs/nnx/"
   echo 'Keeping these files lets a later installation reuse the existing data.'
 }
 
 print_manual_process_advice() {
-  echo 'Stop any PRX process started with prx serve --addr, prx serve --demo,'
-  echo 'or a custom PRX_RUN_DIR manually; this script only manages the standard daemon.'
+  echo 'Stop any Next Now X process started with nnx serve --addr, nnx serve --demo,'
+  echo 'or a custom NNX_RUN_DIR manually; this script only manages the standard daemon.'
 }
 
-run_prx() {
-  env -u PRX_RUN_DIR "$prx" "$@"
+run_nnx() {
+  env -u NNX_RUN_DIR "$nnx" "$@"
 }
 
 main() {
@@ -56,10 +56,10 @@ main() {
     return 0
   fi
 
-  [ "$(uname -s)" = Darwin ] || fail "prx only runs on macOS"
+  [ "$(uname -s)" = Darwin ] || fail "nnx only runs on macOS"
   [[ "${HOME:-}" = /* ]] || fail "HOME must be an absolute path"
 
-  local home=$HOME installed="$HOME/.local/bin/prx" standard_entry=false standard_symlink_target=''
+  local home=$HOME installed="$HOME/.local/bin/nnx" standard_entry=false standard_symlink_target=''
   if [ -d "$installed" ] && [ ! -L "$installed" ]; then
     print_retained_data "$home" >&2
     fail "$installed is a directory; it was not changed"
@@ -80,18 +80,18 @@ main() {
   fi
 
   if [ -x "$installed" ]; then
-    prx=$installed
+    nnx=$installed
   else
-    prx=$(command -v prx 2>/dev/null || true)
-    [ -n "$prx" ] && [ -x "$prx" ] || {
+    nnx=$(command -v nnx 2>/dev/null || true)
+    [ -n "$nnx" ] && [ -x "$nnx" ] || {
       print_retained_data "$home" >&2
       print_manual_process_advice >&2
-      fail "prx was not found on PATH or at $installed; automatic cleanup was not run"
+      fail "nnx was not found on PATH or at $installed; automatic cleanup was not run"
     }
   fi
 
-  echo 'PRX uninstall will:'
-  echo '  stop the standard PRX server and remove its LaunchAgent'
+  echo 'Next Now X uninstall will:'
+  echo '  stop the standard Next Now X server and remove its LaunchAgent'
   if [ "$standard_entry" = true ]; then
     if [ -L "$installed" ]; then
       printf '  remove the symlink %q (its target will be kept)\n' "$installed"
@@ -105,8 +105,8 @@ main() {
   fi
   print_retained_data "$home"
   print_manual_process_advice
-  if [ -n "${PRX_RUN_DIR:-}" ]; then
-    printf '  The current PRX_RUN_DIR is %q; it will not be inspected or changed.\n' "$PRX_RUN_DIR"
+  if [ -n "${NNX_RUN_DIR:-}" ]; then
+    printf '  The current NNX_RUN_DIR is %q; it will not be inspected or changed.\n' "$NNX_RUN_DIR"
   fi
 
   if [ "$assume_yes" != true ]; then
@@ -121,22 +121,22 @@ main() {
     esac
   fi
 
-  if ! run_prx daemon stop; then
-    fail 'daemon stop failed; the binary was left in place; rerun this script after stopping PRX'
+  if ! run_nnx daemon stop; then
+    fail 'daemon stop failed; the binary was left in place; rerun this script after stopping Next Now X'
   fi
-  if ! run_prx daemon uninstall; then
+  if ! run_nnx daemon uninstall; then
     fail 'daemon uninstall failed; the binary was left in place; rerun this script'
   fi
 
   local status compact_status
-  if ! status=$(run_prx --json daemon); then
+  if ! status=$(run_nnx --json daemon); then
     fail 'could not verify the daemon state; the binary was left in place; rerun this script'
   fi
   compact_status=$(printf '%s' "$status" | tr -d '[:space:]')
   case "$compact_status" in
     *'"running":false'*) ;;
     *)
-      fail 'the PRX server is still running or its state is unknown; the binary was left in place'
+      fail 'the Next Now X server is still running or its state is unknown; the binary was left in place'
       ;;
   esac
   case "$compact_status" in
@@ -147,27 +147,27 @@ main() {
   esac
 
   if [ -L "$installed" ]; then
-    rm -f "$installed" || fail "could not remove $installed; delete it after stopping PRX"
+    rm -f "$installed" || fail "could not remove $installed; delete it after stopping Next Now X"
     printf 'Removed symlink %q (the target was kept)\n' "$installed"
     if [ -n "$standard_symlink_target" ]; then
       printf 'Kept symlink target %q\n' "$standard_symlink_target"
     fi
   elif [ -x "$installed" ] && [ ! -d "$installed" ]; then
-    rm -f "$installed" || fail "could not remove $installed; delete it after stopping PRX"
+    rm -f "$installed" || fail "could not remove $installed; delete it after stopping Next Now X"
     printf 'Removed %q\n' "$installed"
   elif [ "$standard_entry" = true ]; then
     printf 'Kept %q because it is not an executable regular file\n' "$installed"
   fi
-  if [ "$prx" != "$installed" ]; then
-    printf 'Kept %q because it is outside the standard installation path\n' "$prx"
+  if [ "$nnx" != "$installed" ]; then
+    printf 'Kept %q because it is outside the standard installation path\n' "$nnx"
   fi
 
   echo ''
-  echo 'If you later want to remove the retained PRX data, stop separately started'
+  echo 'If you later want to remove the retained Next Now X data, stop separately started'
   echo 'servers and CLI commands first, then run:'
-  printf '  rm -rf %q\n' "$home/Library/Application Support/prx/"
-  printf '  rm -rf %q\n' "$home/Library/Logs/prx/"
-  echo 'Review PRX_DB, PRX_CONFIG, PRX_RUN_DIR, and command-specific paths separately.'
+  printf '  rm -rf %q\n' "$home/Library/Application Support/nnx/"
+  printf '  rm -rf %q\n' "$home/Library/Logs/nnx/"
+  echo 'Review NNX_DB, NNX_CONFIG, NNX_RUN_DIR, and command-specific paths separately.'
   echo 'The PATH entry for ~/.local/bin was not changed; remove it from your shell configuration only if unused.'
 }
 

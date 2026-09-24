@@ -8,8 +8,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/HappyOnigiri/PRX/internal/config"
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/config"
+	"github.com/HappyOnigiri/nnx/internal/domain"
 )
 
 func (s *Service) SyncStatus(ctx context.Context) (domain.GitHubSyncStatus, error) {

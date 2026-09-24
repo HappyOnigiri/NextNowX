@@ -11,7 +11,7 @@ const task = makeTask({
 const pullRequest = makePullRequest({
   host: "github.com",
   owner: "acme",
-  repository: "prx",
+  repository: "nnx",
   author: "carol",
 });
 
@@ -28,7 +28,7 @@ describe("matchesGraphSearch", () => {
   it.each([
     ["github.com", "host"],
     ["acme", "owner"],
-    ["prx", "repository"],
+    ["nnx", "repository"],
     ["carol", "author"],
   ])("matches %s from the pull request %s", (query) => {
     expect(matchesGraphSearch(task, pullRequest, query)).toBe(true);

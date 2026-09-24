@@ -12,14 +12,14 @@ import (
 
 	"connectrpc.com/connect"
 
-	prxv1 "github.com/HappyOnigiri/PRX/gen/prx/v1"
-	"github.com/HappyOnigiri/PRX/gen/prx/v1/prxv1connect"
-	"github.com/HappyOnigiri/PRX/internal/app"
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/filepicker"
-	githubprovider "github.com/HappyOnigiri/PRX/internal/github"
-	"github.com/HappyOnigiri/PRX/internal/rpc"
-	"github.com/HappyOnigiri/PRX/internal/store"
+	nnxv1 "github.com/HappyOnigiri/nnx/gen/nnx/v1"
+	"github.com/HappyOnigiri/nnx/gen/nnx/v1/nnxv1connect"
+	"github.com/HappyOnigiri/nnx/internal/app"
+	"github.com/HappyOnigiri/nnx/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/filepicker"
+	githubprovider "github.com/HappyOnigiri/nnx/internal/github"
+	"github.com/HappyOnigiri/nnx/internal/rpc"
+	"github.com/HappyOnigiri/nnx/internal/store"
 )
 
 // newRPCProject は feature が所属すべき project を作る。主題が入れ物ではなく
@@ -27,11 +27,11 @@ import (
 func newRPCProject(
 	t *testing.T,
 	ctx context.Context,
-	client prxv1connect.PRXServiceClient,
+	client nnxv1connect.NNXServiceClient,
 	title string,
 ) string {
 	t.Helper()
-	project, err := client.CreateProject(ctx, connect.NewRequest(&prxv1.CreateProjectRequest{Title: title}))
+	project, err := client.CreateProject(ctx, connect.NewRequest(&nnxv1.CreateProjectRequest{Title: title}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +43,7 @@ func TestRPCReadsOnlyRegisteredMarkdownDocuments(t *testing.T) {
 	client := newTestClient(t)
 	feature, err := client.CreateFeature(
 		ctx,
-		connect.NewRequest(&prxv1.CreateFeatureRequest{
+		connect.NewRequest(&nnxv1.CreateFeatureRequest{
 			Title:     "Markdown preview",
 			ProjectId: newRPCProject(t, ctx, client, "Markdown preview"),
 		}),
@@ -54,7 +54,7 @@ func TestRPCReadsOnlyRegisteredMarkdownDocuments(t *testing.T) {
 	task, err := client.CreateTask(
 		ctx,
 		connect.NewRequest(
-			&prxv1.CreateTaskRequest{
+			&nnxv1.CreateTaskRequest{
 				FeatureId: feature.Msg.GetFeature().GetId(),
 				Title:     "Documented task",
 			},
@@ -71,10 +71,10 @@ func TestRPCReadsOnlyRegisteredMarkdownDocuments(t *testing.T) {
 	document, err := client.AddDocument(
 		ctx,
 		connect.NewRequest(
-			&prxv1.AddDocumentRequest{
+			&nnxv1.AddDocumentRequest{
 				TaskId: task.Msg.GetTask().GetId(),
 				Title:  "Plan",
-				Source: &prxv1.AddDocumentRequest_LocalFile{LocalFile: path},
+				Source: &nnxv1.AddDocumentRequest_LocalFile{LocalFile: path},
 			},
 		),
 	)
@@ -83,7 +83,7 @@ func TestRPCReadsOnlyRegisteredMarkdownDocuments(t *testing.T) {
 	}
 	preview, err := client.ReadDocumentContent(
 		ctx,
-		connect.NewRequest(&prxv1.ReadDocumentContentRequest{Id: document.Msg.GetDocument().GetId()}),
+		connect.NewRequest(&nnxv1.ReadDocumentContentRequest{Id: document.Msg.GetDocument().GetId()}),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -95,10 +95,10 @@ func TestRPCReadsOnlyRegisteredMarkdownDocuments(t *testing.T) {
 	urlDocument, err := client.AddDocument(
 		ctx,
 		connect.NewRequest(
-			&prxv1.AddDocumentRequest{
+			&nnxv1.AddDocumentRequest{
 				TaskId: task.Msg.GetTask().GetId(),
 				Title:  "Runbook",
-				Source: &prxv1.AddDocumentRequest_Url{Url: "https://example.com/runbook"},
+				Source: &nnxv1.AddDocumentRequest_Url{Url: "https://example.com/runbook"},
 			},
 		),
 	)
@@ -107,19 +107,19 @@ func TestRPCReadsOnlyRegisteredMarkdownDocuments(t *testing.T) {
 	}
 	_, err = client.ReadDocumentContent(
 		ctx,
-		connect.NewRequest(&prxv1.ReadDocumentContentRequest{Id: urlDocument.Msg.GetDocument().GetId()}),
+		connect.NewRequest(&nnxv1.ReadDocumentContentRequest{Id: urlDocument.Msg.GetDocument().GetId()}),
 	)
-	if got := errorDetailCode(t, err); got != prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_DOCUMENT_KIND {
+	if got := errorDetailCode(t, err); got != nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_DOCUMENT_KIND {
 		t.Fatalf("URL preview code=%s err=%v", got, err)
 	}
 
 	missingDocument, err := client.AddDocument(
 		ctx,
 		connect.NewRequest(
-			&prxv1.AddDocumentRequest{
+			&nnxv1.AddDocumentRequest{
 				TaskId: task.Msg.GetTask().GetId(),
 				Title:  "Missing",
-				Source: &prxv1.AddDocumentRequest_LocalFile{LocalFile: filepath.Join(t.TempDir(), "missing.md")},
+				Source: &nnxv1.AddDocumentRequest_LocalFile{LocalFile: filepath.Join(t.TempDir(), "missing.md")},
 			},
 		),
 	)
@@ -128,9 +128,9 @@ func TestRPCReadsOnlyRegisteredMarkdownDocuments(t *testing.T) {
 	}
 	_, err = client.ReadDocumentContent(
 		ctx,
-		connect.NewRequest(&prxv1.ReadDocumentContentRequest{Id: missingDocument.Msg.GetDocument().GetId()}),
+		connect.NewRequest(&nnxv1.ReadDocumentContentRequest{Id: missingDocument.Msg.GetDocument().GetId()}),
 	)
-	if got := errorDetailCode(t, err); got != prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DOCUMENT_READ_FAILED {
+	if got := errorDetailCode(t, err); got != nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DOCUMENT_READ_FAILED {
 		t.Fatalf("missing preview code=%s err=%v", got, err)
 	}
 
@@ -141,10 +141,10 @@ func TestRPCReadsOnlyRegisteredMarkdownDocuments(t *testing.T) {
 	largeDocument, err := client.AddDocument(
 		ctx,
 		connect.NewRequest(
-			&prxv1.AddDocumentRequest{
+			&nnxv1.AddDocumentRequest{
 				TaskId: task.Msg.GetTask().GetId(),
 				Title:  "Large",
-				Source: &prxv1.AddDocumentRequest_LocalFile{LocalFile: largePath},
+				Source: &nnxv1.AddDocumentRequest_LocalFile{LocalFile: largePath},
 			},
 		),
 	)
@@ -153,9 +153,9 @@ func TestRPCReadsOnlyRegisteredMarkdownDocuments(t *testing.T) {
 	}
 	_, err = client.ReadDocumentContent(
 		ctx,
-		connect.NewRequest(&prxv1.ReadDocumentContentRequest{Id: largeDocument.Msg.GetDocument().GetId()}),
+		connect.NewRequest(&nnxv1.ReadDocumentContentRequest{Id: largeDocument.Msg.GetDocument().GetId()}),
 	)
-	if got := errorDetailCode(t, err); got != prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DOCUMENT_TOO_LARGE {
+	if got := errorDetailCode(t, err); got != nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DOCUMENT_TOO_LARGE {
 		t.Fatalf("large preview code=%s err=%v", got, err)
 	}
 
@@ -163,10 +163,10 @@ func TestRPCReadsOnlyRegisteredMarkdownDocuments(t *testing.T) {
 	storedDocument, err := client.AddDocument(
 		ctx,
 		connect.NewRequest(
-			&prxv1.AddDocumentRequest{
+			&nnxv1.AddDocumentRequest{
 				TaskId: task.Msg.GetTask().GetId(),
 				Title:  "Stored",
-				Source: &prxv1.AddDocumentRequest_Markdown{Markdown: stored},
+				Source: &nnxv1.AddDocumentRequest_Markdown{Markdown: stored},
 			},
 		),
 	)
@@ -175,7 +175,7 @@ func TestRPCReadsOnlyRegisteredMarkdownDocuments(t *testing.T) {
 	}
 	storedPreview, err := client.ReadDocumentContent(
 		ctx,
-		connect.NewRequest(&prxv1.ReadDocumentContentRequest{Id: storedDocument.Msg.GetDocument().GetId()}),
+		connect.NewRequest(&nnxv1.ReadDocumentContentRequest{Id: storedDocument.Msg.GetDocument().GetId()}),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -191,10 +191,10 @@ func TestRPCReadsOnlyRegisteredMarkdownDocuments(t *testing.T) {
 	binaryDocument, err := client.AddDocument(
 		ctx,
 		connect.NewRequest(
-			&prxv1.AddDocumentRequest{
+			&nnxv1.AddDocumentRequest{
 				TaskId: task.Msg.GetTask().GetId(),
 				Title:  "Binary",
-				Source: &prxv1.AddDocumentRequest_LocalFile{LocalFile: binaryPath},
+				Source: &nnxv1.AddDocumentRequest_LocalFile{LocalFile: binaryPath},
 			},
 		),
 	)
@@ -203,9 +203,9 @@ func TestRPCReadsOnlyRegisteredMarkdownDocuments(t *testing.T) {
 	}
 	_, err = client.ReadDocumentContent(
 		ctx,
-		connect.NewRequest(&prxv1.ReadDocumentContentRequest{Id: binaryDocument.Msg.GetDocument().GetId()}),
+		connect.NewRequest(&nnxv1.ReadDocumentContentRequest{Id: binaryDocument.Msg.GetDocument().GetId()}),
 	)
-	if got := errorDetailCode(t, err); got != prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DOCUMENT_NOT_TEXT {
+	if got := errorDetailCode(t, err); got != nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DOCUMENT_NOT_TEXT {
 		t.Fatalf("binary preview code=%s err=%v", got, err)
 	}
 }
@@ -221,7 +221,7 @@ func TestRPCSelectsLocalFilesAndReportsCancellation(t *testing.T) {
 		return "/tmp/plan.md", false, nil
 	}))
 	response, err := selected.SelectLocalFile(
-		context.Background(), connect.NewRequest(&prxv1.SelectLocalFileRequest{}),
+		context.Background(), connect.NewRequest(&nnxv1.SelectLocalFileRequest{}),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -234,7 +234,7 @@ func TestRPCSelectsLocalFilesAndReportsCancellation(t *testing.T) {
 		return "", true, nil
 	}))
 	response, err = canceled.SelectLocalFile(
-		context.Background(), connect.NewRequest(&prxv1.SelectLocalFileRequest{}),
+		context.Background(), connect.NewRequest(&nnxv1.SelectLocalFileRequest{}),
 	)
 	if err != nil || !response.Msg.GetCanceled() || response.Msg.GetPath() != "" {
 		t.Fatalf("response=%+v err=%v", response.Msg, err)
@@ -261,7 +261,7 @@ func TestRPCClassifiesLocalFilePickerErrors(t *testing.T) {
 				return "", false, test.err
 			}))
 			_, err := client.SelectLocalFile(
-				context.Background(), connect.NewRequest(&prxv1.SelectLocalFileRequest{}),
+				context.Background(), connect.NewRequest(&nnxv1.SelectLocalFileRequest{}),
 			)
 			if connect.CodeOf(err) != test.code {
 				t.Fatalf("code=%s err=%v", connect.CodeOf(err), err)
@@ -281,13 +281,13 @@ func TestRPCRejectsConcurrentLocalFilePickers(t *testing.T) {
 	firstDone := make(chan error, 1)
 	go func() {
 		_, err := client.SelectLocalFile(
-			context.Background(), connect.NewRequest(&prxv1.SelectLocalFileRequest{}),
+			context.Background(), connect.NewRequest(&nnxv1.SelectLocalFileRequest{}),
 		)
 		firstDone <- err
 	}()
 	<-started
 	_, err := client.SelectLocalFile(
-		context.Background(), connect.NewRequest(&prxv1.SelectLocalFileRequest{}),
+		context.Background(), connect.NewRequest(&nnxv1.SelectLocalFileRequest{}),
 	)
 	if connect.CodeOf(err) != connect.CodeResourceExhausted {
 		t.Fatalf("code=%s err=%v", connect.CodeOf(err), err)
@@ -298,14 +298,14 @@ func TestRPCRejectsConcurrentLocalFilePickers(t *testing.T) {
 	}
 }
 
-func newPickerClient(t *testing.T, picker rpc.LocalFilePicker) prxv1connect.PRXServiceClient {
+func newPickerClient(t *testing.T, picker rpc.LocalFilePicker) nnxv1connect.NNXServiceClient {
 	t.Helper()
 	path, handler := rpc.NewWithFilePicker(internalErrorService{}, picker)
 	mux := http.NewServeMux()
 	mux.Handle(path, handler)
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
-	return prxv1connect.NewPRXServiceClient(server.Client(), server.URL)
+	return nnxv1connect.NewNNXServiceClient(server.Client(), server.URL)
 }
 
 func TestRPCSharesDomainValidation(t *testing.T) {
@@ -322,10 +322,10 @@ func TestRPCSharesDomainValidation(t *testing.T) {
 	mux.Handle(path, handler)
 	server := httptest.NewServer(mux)
 	defer server.Close()
-	client := prxv1connect.NewPRXServiceClient(server.Client(), server.URL)
+	client := nnxv1connect.NewNNXServiceClient(server.Client(), server.URL)
 	feature, err := client.CreateFeature(
 		ctx,
-		connect.NewRequest(&prxv1.CreateFeatureRequest{
+		connect.NewRequest(&nnxv1.CreateFeatureRequest{
 			Title:     "RPC feature",
 			ProjectId: newRPCProject(t, ctx, client, "RPC feature"),
 		}),
@@ -333,13 +333,13 @@ func TestRPCSharesDomainValidation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if feature.Msg.GetFeature().GetStatus() != prxv1.FeatureStatus_FEATURE_STATUS_AUTO {
+	if feature.Msg.GetFeature().GetStatus() != nnxv1.FeatureStatus_FEATURE_STATUS_AUTO {
 		t.Fatalf("feature status=%s", feature.Msg.GetFeature().GetStatus())
 	}
 	a, err := client.CreateTask(
 		ctx,
 		connect.NewRequest(
-			&prxv1.CreateTaskRequest{
+			&nnxv1.CreateTaskRequest{
 				FeatureId: feature.Msg.GetFeature().GetId(),
 				Title:     "A",
 			},
@@ -351,7 +351,7 @@ func TestRPCSharesDomainValidation(t *testing.T) {
 	b, err := client.CreateTask(
 		ctx,
 		connect.NewRequest(
-			&prxv1.CreateTaskRequest{
+			&nnxv1.CreateTaskRequest{
 				FeatureId: feature.Msg.GetFeature().GetId(),
 				Title:     "B",
 			},
@@ -363,7 +363,7 @@ func TestRPCSharesDomainValidation(t *testing.T) {
 	if _, err = client.AddDependency(
 		ctx,
 		connect.NewRequest(
-			&prxv1.AddDependencyRequest{BlockerTaskId: a.Msg.GetTask().GetId(), BlockedTaskId: b.Msg.GetTask().GetId()},
+			&nnxv1.AddDependencyRequest{BlockerTaskId: a.Msg.GetTask().GetId(), BlockedTaskId: b.Msg.GetTask().GetId()},
 		),
 	); err != nil {
 		t.Fatal(err)
@@ -371,7 +371,7 @@ func TestRPCSharesDomainValidation(t *testing.T) {
 	_, err = client.AddDependency(
 		ctx,
 		connect.NewRequest(
-			&prxv1.AddDependencyRequest{BlockerTaskId: b.Msg.GetTask().GetId(), BlockedTaskId: a.Msg.GetTask().GetId()},
+			&nnxv1.AddDependencyRequest{BlockerTaskId: b.Msg.GetTask().GetId(), BlockedTaskId: a.Msg.GetTask().GetId()},
 		),
 	)
 	if connect.CodeOf(err) != connect.CodeFailedPrecondition {
@@ -387,17 +387,17 @@ func TestRPCSharesDomainValidation(t *testing.T) {
 		if detailErr != nil {
 			t.Fatal(detailErr)
 		}
-		errorDetail, ok := value.(*prxv1.ErrorDetail)
+		errorDetail, ok := value.(*nnxv1.ErrorDetail)
 		if !ok {
 			continue
 		}
-		foundCycleDetail = errorDetail.GetCode() == prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_CYCLE &&
+		foundCycleDetail = errorDetail.GetCode() == nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_CYCLE &&
 			len(errorDetail.GetPath()) >= 3
 	}
 	if !foundCycleDetail {
 		t.Fatalf("cycle RPC error missing structured detail: %v", connectErr.Details())
 	}
-	snapshot, err := client.GetSnapshot(ctx, connect.NewRequest(&prxv1.GetSnapshotRequest{}))
+	snapshot, err := client.GetSnapshot(ctx, connect.NewRequest(&nnxv1.GetSnapshotRequest{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -408,7 +408,7 @@ func TestRPCSharesDomainValidation(t *testing.T) {
 		t.Fatalf("unexpected structured task state: %+v", snapshot.Msg.GetSnapshot().GetTasks()[1])
 	}
 	if snapshot.Msg.GetSnapshot().GetTasks()[1].GetBlockedReason().GetCode() !=
-		prxv1.BlockedReasonCode_BLOCKED_REASON_CODE_WAITING_FOR_BLOCKER {
+		nnxv1.BlockedReasonCode_BLOCKED_REASON_CODE_WAITING_FOR_BLOCKER {
 		t.Fatalf("blocked reason=%+v", snapshot.Msg.GetSnapshot().GetTasks()[1].GetBlockedReason())
 	}
 }
@@ -418,7 +418,7 @@ func TestRPCImplementationPlanLifecycle(t *testing.T) {
 	client := newTestClient(t)
 	feature, err := client.CreateFeature(
 		ctx,
-		connect.NewRequest(&prxv1.CreateFeatureRequest{
+		connect.NewRequest(&nnxv1.CreateFeatureRequest{
 			Title:     "RPC plans",
 			ProjectId: newRPCProject(t, ctx, client, "RPC plans"),
 		}),
@@ -428,7 +428,7 @@ func TestRPCImplementationPlanLifecycle(t *testing.T) {
 	}
 	task, err := client.CreateTask(
 		ctx,
-		connect.NewRequest(&prxv1.CreateTaskRequest{
+		connect.NewRequest(&nnxv1.CreateTaskRequest{
 			FeatureId: feature.Msg.GetFeature().GetId(),
 			Title:     "Store a plan",
 		}),
@@ -440,8 +440,8 @@ func TestRPCImplementationPlanLifecycle(t *testing.T) {
 	const content = "# RPC plan\n\nKeep it in SQLite.\n"
 	stored, err := client.AddDocument(
 		ctx,
-		connect.NewRequest(&prxv1.AddDocumentRequest{
-			TaskId: taskID, Source: &prxv1.AddDocumentRequest_Markdown{Markdown: content}, IsImplementationPlan: true,
+		connect.NewRequest(&nnxv1.AddDocumentRequest{
+			TaskId: taskID, Source: &nnxv1.AddDocumentRequest_Markdown{Markdown: content}, IsImplementationPlan: true,
 		}),
 	)
 	if err != nil {
@@ -450,51 +450,51 @@ func TestRPCImplementationPlanLifecycle(t *testing.T) {
 	planID := stored.Msg.GetDocument().GetId()
 	read, err := client.GetDocument(
 		ctx,
-		connect.NewRequest(&prxv1.GetDocumentRequest{Id: planID}),
+		connect.NewRequest(&nnxv1.GetDocumentRequest{Id: planID}),
 	)
 	if err != nil || read.Msg.GetContent() != content || !read.Msg.GetDocument().GetIsImplementationPlan() {
 		t.Fatalf("read plan=%+v err=%v", read.Msg, err)
 	}
-	snapshot, err := client.GetSnapshot(ctx, connect.NewRequest(&prxv1.GetSnapshotRequest{}))
+	snapshot, err := client.GetSnapshot(ctx, connect.NewRequest(&nnxv1.GetSnapshotRequest{}))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(snapshot.Msg.GetSnapshot().GetTasks()) != 1 ||
 		!snapshot.Msg.GetSnapshot().GetTasks()[0].GetHasImplementationPlan() ||
-		snapshot.Msg.GetSnapshot().GetTasks()[0].GetDisplayState() != prxv1.TaskDisplayState_TASK_DISPLAY_STATE_DESIGNED {
+		snapshot.Msg.GetSnapshot().GetTasks()[0].GetDisplayState() != nnxv1.TaskDisplayState_TASK_DISPLAY_STATE_DESIGNED {
 		t.Fatalf("snapshot task=%+v", snapshot.Msg.GetSnapshot().GetTasks())
 	}
 	_, err = client.UpdateDocument(
 		ctx,
-		connect.NewRequest(&prxv1.UpdateDocumentRequest{
-			Id: planID, Source: &prxv1.UpdateDocumentRequest_Markdown{Markdown: " \n\t"},
+		connect.NewRequest(&nnxv1.UpdateDocumentRequest{
+			Id: planID, Source: &nnxv1.UpdateDocumentRequest_Markdown{Markdown: " \n\t"},
 		}),
 	)
-	if errorDetailCode(t, err) != prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_DOCUMENT {
+	if errorDetailCode(t, err) != nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_DOCUMENT {
 		t.Fatalf("blank plan error=%v", err)
 	}
 	_, err = client.UpdateDocument(
 		ctx,
-		connect.NewRequest(&prxv1.UpdateDocumentRequest{
-			Id: planID, Source: &prxv1.UpdateDocumentRequest_Markdown{Markdown: strings.Repeat("x", (1<<20)+1)},
+		connect.NewRequest(&nnxv1.UpdateDocumentRequest{
+			Id: planID, Source: &nnxv1.UpdateDocumentRequest_Markdown{Markdown: strings.Repeat("x", (1<<20)+1)},
 		}),
 	)
-	if errorDetailCode(t, err) != prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DOCUMENT_TOO_LARGE {
+	if errorDetailCode(t, err) != nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DOCUMENT_TOO_LARGE {
 		t.Fatalf("large plan error=%v", err)
 	}
 	_, err = client.DeleteDocument(
 		ctx,
-		connect.NewRequest(&prxv1.DeleteDocumentRequest{Id: planID}),
+		connect.NewRequest(&nnxv1.DeleteDocumentRequest{Id: planID}),
 	)
 	if err != nil {
 		t.Fatalf("delete plan err=%v", err)
 	}
-	snapshot, err = client.GetSnapshot(ctx, connect.NewRequest(&prxv1.GetSnapshotRequest{}))
+	snapshot, err = client.GetSnapshot(ctx, connect.NewRequest(&nnxv1.GetSnapshotRequest{}))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if snapshot.Msg.GetSnapshot().GetTasks()[0].GetHasImplementationPlan() ||
-		snapshot.Msg.GetSnapshot().GetTasks()[0].GetDisplayState() != prxv1.TaskDisplayState_TASK_DISPLAY_STATE_NOT_STARTED {
+		snapshot.Msg.GetSnapshot().GetTasks()[0].GetDisplayState() != nnxv1.TaskDisplayState_TASK_DISPLAY_STATE_NOT_STARTED {
 		t.Fatalf("snapshot after deletion=%+v", snapshot.Msg.GetSnapshot().GetTasks()[0])
 	}
 }
@@ -514,7 +514,7 @@ func TestRPCLifecyclePersistsAndDeletesResources(t *testing.T) {
 
 	featureResponse, err := client.CreateFeature(
 		ctx,
-		connect.NewRequest(&prxv1.CreateFeatureRequest{
+		connect.NewRequest(&nnxv1.CreateFeatureRequest{
 			Title:     "RPC lifecycle",
 			ProjectId: newRPCProject(t, ctx, client, "RPC lifecycle"),
 		}),
@@ -523,10 +523,10 @@ func TestRPCLifecyclePersistsAndDeletesResources(t *testing.T) {
 		t.Fatal(err)
 	}
 	featureID := featureResponse.Msg.GetFeature().GetId()
-	createTask := func(title string) *prxv1.Task {
+	createTask := func(title string) *nnxv1.Task {
 		response, err := client.CreateTask(
 			ctx,
-			connect.NewRequest(&prxv1.CreateTaskRequest{FeatureId: featureID, Title: title}),
+			connect.NewRequest(&nnxv1.CreateTaskRequest{FeatureId: featureID, Title: title}),
 		)
 		if err != nil {
 			t.Fatal(err)
@@ -540,7 +540,7 @@ func TestRPCLifecyclePersistsAndDeletesResources(t *testing.T) {
 
 	if _, err := client.AddDependency(
 		ctx,
-		connect.NewRequest(&prxv1.AddDependencyRequest{
+		connect.NewRequest(&nnxv1.AddDependencyRequest{
 			BlockerTaskId: blocker.GetId(),
 			BlockedTaskId: blocked.GetId(),
 		}),
@@ -549,15 +549,15 @@ func TestRPCLifecyclePersistsAndDeletesResources(t *testing.T) {
 	}
 	if _, err := client.RemoveDependency(
 		ctx,
-		connect.NewRequest(&prxv1.RemoveDependencyRequest{
+		connect.NewRequest(&nnxv1.RemoveDependencyRequest{
 			BlockerTaskId: blocker.GetId(),
 			BlockedTaskId: blocked.GetId(),
 		}),
 	); err != nil {
 		t.Fatal(err)
 	}
-	getSnapshot := func() *prxv1.Snapshot {
-		response, err := client.GetSnapshot(ctx, connect.NewRequest(&prxv1.GetSnapshotRequest{}))
+	getSnapshot := func() *nnxv1.Snapshot {
+		response, err := client.GetSnapshot(ctx, connect.NewRequest(&nnxv1.GetSnapshotRequest{}))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -568,7 +568,7 @@ func TestRPCLifecyclePersistsAndDeletesResources(t *testing.T) {
 	}
 	if _, err := client.AddDependency(
 		ctx,
-		connect.NewRequest(&prxv1.AddDependencyRequest{
+		connect.NewRequest(&nnxv1.AddDependencyRequest{
 			BlockerTaskId: blocker.GetId(),
 			BlockedTaskId: blocked.GetId(),
 		}),
@@ -578,7 +578,7 @@ func TestRPCLifecyclePersistsAndDeletesResources(t *testing.T) {
 
 	attached, err := client.AttachPullRequest(
 		ctx,
-		connect.NewRequest(&prxv1.AttachPullRequestRequest{TaskId: blocker.GetId(), Url: mergedURL}),
+		connect.NewRequest(&nnxv1.AttachPullRequestRequest{TaskId: blocker.GetId(), Url: mergedURL}),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -587,7 +587,7 @@ func TestRPCLifecyclePersistsAndDeletesResources(t *testing.T) {
 	// ではなく GitHub 上の状態がすでに載っている。
 	attachedPR := attached.Msg.GetPullRequest()
 	if attachedPR.GetOwner() != "acme" || attachedPR.GetRepository() != "api" || attachedPR.GetNumber() != 42 ||
-		attachedPR.GetUrl() != mergedURL || attachedPR.GetState() != prxv1.PullRequestState_PULL_REQUEST_STATE_MERGED ||
+		attachedPR.GetUrl() != mergedURL || attachedPR.GetState() != nnxv1.PullRequestState_PULL_REQUEST_STATE_MERGED ||
 		attachedPR.GetStale() || attachedPR.GetGithubUpdatedAt() == "" || attachedPR.GetLastSyncedAt() == "" {
 		t.Fatalf("attached pull request=%+v", attachedPR)
 	}
@@ -595,7 +595,7 @@ func TestRPCLifecyclePersistsAndDeletesResources(t *testing.T) {
 	// stale フラグと失敗内容を保持する。
 	attachedFailed, err := client.AttachPullRequest(
 		ctx,
-		connect.NewRequest(&prxv1.AttachPullRequestRequest{TaskId: failedTask.GetId(), Url: failedURL}),
+		connect.NewRequest(&nnxv1.AttachPullRequestRequest{TaskId: failedTask.GetId(), Url: failedURL}),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -607,7 +607,7 @@ func TestRPCLifecyclePersistsAndDeletesResources(t *testing.T) {
 
 	syncResponse, err := client.Sync(
 		ctx,
-		connect.NewRequest(&prxv1.SyncRequest{FeatureId: featureID}),
+		connect.NewRequest(&nnxv1.SyncRequest{FeatureId: featureID}),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -619,7 +619,7 @@ func TestRPCLifecyclePersistsAndDeletesResources(t *testing.T) {
 	if len(snapshot.GetPullRequests()) != 2 {
 		t.Fatalf("pull requests=%d, want 2", len(snapshot.GetPullRequests()))
 	}
-	var mergedPR, failedPR *prxv1.PullRequest
+	var mergedPR, failedPR *nnxv1.PullRequest
 	for _, pullRequest := range snapshot.GetPullRequests() {
 		switch pullRequest.GetTaskId() {
 		case blocker.GetId():
@@ -628,11 +628,11 @@ func TestRPCLifecyclePersistsAndDeletesResources(t *testing.T) {
 			failedPR = pullRequest
 		}
 	}
-	if mergedPR == nil || mergedPR.GetState() != prxv1.PullRequestState_PULL_REQUEST_STATE_MERGED ||
+	if mergedPR == nil || mergedPR.GetState() != nnxv1.PullRequestState_PULL_REQUEST_STATE_MERGED ||
 		mergedPR.GetNodeId() != "fixture:42" || mergedPR.GetAuthor() != "octocat" ||
 		len(mergedPR.GetAssignees()) != 1 || mergedPR.GetAssignees()[0] != "alice" ||
-		mergedPR.GetReviewState() != prxv1.ReviewState_REVIEW_STATE_APPROVED ||
-		mergedPR.GetMergeability() != prxv1.Mergeability_MERGEABILITY_MERGEABLE ||
+		mergedPR.GetReviewState() != nnxv1.ReviewState_REVIEW_STATE_APPROVED ||
+		mergedPR.GetMergeability() != nnxv1.Mergeability_MERGEABILITY_MERGEABLE ||
 		mergedPR.GetGithubUpdatedAt() == "" || mergedPR.GetLastSyncedAt() == "" ||
 		mergedPR.GetSyncError() != "" || mergedPR.GetStale() {
 		t.Fatalf("synced pull request=%+v", mergedPR)
@@ -644,10 +644,10 @@ func TestRPCLifecyclePersistsAndDeletesResources(t *testing.T) {
 
 	deletedDocument, err := client.AddDocument(
 		ctx,
-		connect.NewRequest(&prxv1.AddDocumentRequest{
+		connect.NewRequest(&nnxv1.AddDocumentRequest{
 			FeatureId: featureID,
 			Title:     "Deleted document",
-			Source:    &prxv1.AddDocumentRequest_Url{Url: "https://example.com/deleted"},
+			Source:    &nnxv1.AddDocumentRequest_Url{Url: "https://example.com/deleted"},
 		}),
 	)
 	if err != nil {
@@ -655,10 +655,10 @@ func TestRPCLifecyclePersistsAndDeletesResources(t *testing.T) {
 	}
 	_, err = client.AddDocument(
 		ctx,
-		connect.NewRequest(&prxv1.AddDocumentRequest{
+		connect.NewRequest(&nnxv1.AddDocumentRequest{
 			TaskId: failedTask.GetId(),
 			Title:  "Cascade document",
-			Source: &prxv1.AddDocumentRequest_Url{Url: "https://example.com/cascade"},
+			Source: &nnxv1.AddDocumentRequest_Url{Url: "https://example.com/cascade"},
 		}),
 	)
 	if err != nil {
@@ -666,7 +666,7 @@ func TestRPCLifecyclePersistsAndDeletesResources(t *testing.T) {
 	}
 	if _, err := client.DeleteDocument(
 		ctx,
-		connect.NewRequest(&prxv1.DeleteDocumentRequest{Id: deletedDocument.Msg.GetDocument().GetId()}),
+		connect.NewRequest(&nnxv1.DeleteDocumentRequest{Id: deletedDocument.Msg.GetDocument().GetId()}),
 	); err != nil {
 		t.Fatal(err)
 	}
@@ -677,7 +677,7 @@ func TestRPCLifecyclePersistsAndDeletesResources(t *testing.T) {
 
 	if _, err := client.DetachPullRequest(
 		ctx,
-		connect.NewRequest(&prxv1.DetachPullRequestRequest{TaskId: blocker.GetId()}),
+		connect.NewRequest(&nnxv1.DetachPullRequestRequest{TaskId: blocker.GetId()}),
 	); err != nil {
 		t.Fatal(err)
 	}
@@ -688,7 +688,7 @@ func TestRPCLifecyclePersistsAndDeletesResources(t *testing.T) {
 
 	if _, err := client.DeleteTask(
 		ctx,
-		connect.NewRequest(&prxv1.DeleteTaskRequest{Id: deletedTask.GetId()}),
+		connect.NewRequest(&nnxv1.DeleteTaskRequest{Id: deletedTask.GetId()}),
 	); err != nil {
 		t.Fatal(err)
 	}
@@ -701,10 +701,10 @@ func TestRPCLifecyclePersistsAndDeletesResources(t *testing.T) {
 
 	_, err = client.DeleteFeature(
 		ctx,
-		connect.NewRequest(&prxv1.DeleteFeatureRequest{Id: featureID}),
+		connect.NewRequest(&nnxv1.DeleteFeatureRequest{Id: featureID}),
 	)
 	if err == nil || connect.CodeOf(err) != connect.CodeFailedPrecondition ||
-		errorDetailCode(t, err) != prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_REFERENCES_EXIST {
+		errorDetailCode(t, err) != nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_REFERENCES_EXIST {
 		t.Fatalf("non-cascade feature deletion code=%s err=%v", connect.CodeOf(err), err)
 	}
 	snapshot = getSnapshot()
@@ -714,7 +714,7 @@ func TestRPCLifecyclePersistsAndDeletesResources(t *testing.T) {
 		t.Fatalf("state after rejected feature deletion=%+v", snapshot)
 	}
 
-	validation, err := client.Validate(ctx, connect.NewRequest(&prxv1.ValidateRequest{}))
+	validation, err := client.Validate(ctx, connect.NewRequest(&nnxv1.ValidateRequest{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -724,7 +724,7 @@ func TestRPCLifecyclePersistsAndDeletesResources(t *testing.T) {
 
 	if _, err := client.DeleteFeature(
 		ctx,
-		connect.NewRequest(&prxv1.DeleteFeatureRequest{Id: featureID, Cascade: true}),
+		connect.NewRequest(&nnxv1.DeleteFeatureRequest{Id: featureID, Cascade: true}),
 	); err != nil {
 		t.Fatal(err)
 	}
@@ -740,7 +740,7 @@ func TestRPCRejectsUnknownEnumValues(t *testing.T) {
 	client := newTestClient(t)
 	feature, err := client.CreateFeature(
 		ctx,
-		connect.NewRequest(&prxv1.CreateFeatureRequest{
+		connect.NewRequest(&nnxv1.CreateFeatureRequest{
 			Title:     "Enum feature",
 			ProjectId: newRPCProject(t, ctx, client, "Enum feature"),
 		}),
@@ -751,7 +751,7 @@ func TestRPCRejectsUnknownEnumValues(t *testing.T) {
 	task, err := client.CreateTask(
 		ctx,
 		connect.NewRequest(
-			&prxv1.CreateTaskRequest{
+			&nnxv1.CreateTaskRequest{
 				FeatureId: feature.Msg.GetFeature().GetId(),
 				Title:     "A",
 			},
@@ -761,38 +761,38 @@ func TestRPCRejectsUnknownEnumValues(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	unknownTaskStatus := prxv1.TaskStatus(999)
+	unknownTaskStatus := nnxv1.TaskStatus(999)
 	if _, err = client.UpdateTask(
 		ctx,
-		connect.NewRequest(&prxv1.UpdateTaskRequest{Id: task.Msg.GetTask().GetId(), Status: &unknownTaskStatus}),
+		connect.NewRequest(&nnxv1.UpdateTaskRequest{Id: task.Msg.GetTask().GetId(), Status: &unknownTaskStatus}),
 	); errorDetailCode(
 		t,
 		err,
-	) != prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_STATUS {
+	) != nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_STATUS {
 		t.Fatalf("unknown task status err=%v", err)
 	}
 
-	unknownFeatureStatus := prxv1.FeatureStatus(999)
+	unknownFeatureStatus := nnxv1.FeatureStatus(999)
 	if _, err = client.UpdateFeature(
 		ctx,
 		connect.NewRequest(
-			&prxv1.UpdateFeatureRequest{Id: feature.Msg.GetFeature().GetId(), Status: &unknownFeatureStatus},
+			&nnxv1.UpdateFeatureRequest{Id: feature.Msg.GetFeature().GetId(), Status: &unknownFeatureStatus},
 		),
 	); errorDetailCode(
 		t,
 		err,
-	) != prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_STATUS {
+	) != nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_STATUS {
 		t.Fatalf("unknown feature status err=%v", err)
 	}
 
-	snapshot, err := client.GetSnapshot(ctx, connect.NewRequest(&prxv1.GetSnapshotRequest{}))
+	snapshot, err := client.GetSnapshot(ctx, connect.NewRequest(&nnxv1.GetSnapshotRequest{}))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(snapshot.Msg.GetSnapshot().GetTasks()) != 1 {
 		t.Fatalf("rejected requests changed state: %+v", snapshot.Msg.GetSnapshot().GetTasks())
 	}
-	if snapshot.Msg.GetSnapshot().GetTasks()[0].GetStatus() != prxv1.TaskStatus_TASK_STATUS_NOT_STARTED {
+	if snapshot.Msg.GetSnapshot().GetTasks()[0].GetStatus() != nnxv1.TaskStatus_TASK_STATUS_NOT_STARTED {
 		t.Fatalf("task status=%s", snapshot.Msg.GetSnapshot().GetTasks()[0].GetStatus())
 	}
 }
@@ -802,7 +802,7 @@ func TestRPCReportsDistinctErrorCodesPerCause(t *testing.T) {
 	client := newTestClient(t)
 	feature, err := client.CreateFeature(
 		ctx,
-		connect.NewRequest(&prxv1.CreateFeatureRequest{
+		connect.NewRequest(&nnxv1.CreateFeatureRequest{
 			Title:     "Cause feature",
 			ProjectId: newRPCProject(t, ctx, client, "Cause feature"),
 		}),
@@ -813,7 +813,7 @@ func TestRPCReportsDistinctErrorCodesPerCause(t *testing.T) {
 	prTask, err := client.CreateTask(
 		ctx,
 		connect.NewRequest(
-			&prxv1.CreateTaskRequest{
+			&nnxv1.CreateTaskRequest{
 				FeatureId: feature.Msg.GetFeature().GetId(),
 				Title:     "Ship API",
 			},
@@ -823,18 +823,18 @@ func TestRPCReportsDistinctErrorCodesPerCause(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	completed := prxv1.TaskStatus_TASK_STATUS_COMPLETED
+	completed := nnxv1.TaskStatus_TASK_STATUS_COMPLETED
 	_, err = client.UpdateTask(
 		ctx,
-		connect.NewRequest(&prxv1.UpdateTaskRequest{Id: prTask.Msg.GetTask().GetId(), Status: &completed}),
+		connect.NewRequest(&nnxv1.UpdateTaskRequest{Id: prTask.Msg.GetTask().GetId(), Status: &completed}),
 	)
 	if err != nil {
 		t.Fatalf("PR task completion override: %v", err)
 	}
-	closed := prxv1.TaskStatus_TASK_STATUS_CLOSED
+	closed := nnxv1.TaskStatus_TASK_STATUS_CLOSED
 	closedTask, err := client.UpdateTask(
 		ctx,
-		connect.NewRequest(&prxv1.UpdateTaskRequest{Id: prTask.Msg.GetTask().GetId(), Status: &closed}),
+		connect.NewRequest(&nnxv1.UpdateTaskRequest{Id: prTask.Msg.GetTask().GetId(), Status: &closed}),
 	)
 	if err != nil || closedTask.Msg.GetTask().GetStatus() != closed {
 		t.Fatalf("PR task closed override: task=%+v err=%v", closedTask.Msg.GetTask(), err)
@@ -843,28 +843,28 @@ func TestRPCReportsDistinctErrorCodesPerCause(t *testing.T) {
 	_, err = client.AddDocument(
 		ctx,
 		connect.NewRequest(
-			&prxv1.AddDocumentRequest{
+			&nnxv1.AddDocumentRequest{
 				TaskId: prTask.Msg.GetTask().GetId(),
 				Title:  "Spec",
-				Source: &prxv1.AddDocumentRequest_Url{Url: "ftp://example.com/spec"},
+				Source: &nnxv1.AddDocumentRequest_Url{Url: "ftp://example.com/spec"},
 			},
 		),
 	)
-	if got := errorDetailCode(t, err); got != prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_DOCUMENT_URL {
+	if got := errorDetailCode(t, err); got != nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_DOCUMENT_URL {
 		t.Fatalf("document URL scheme code=%s err=%v", got, err)
 	}
 
 	_, err = client.AddDocument(
 		ctx,
 		connect.NewRequest(
-			&prxv1.AddDocumentRequest{
+			&nnxv1.AddDocumentRequest{
 				TaskId: prTask.Msg.GetTask().GetId(),
 				Title:  "Spec",
-				Source: &prxv1.AddDocumentRequest_Url{Url: "  "},
+				Source: &nnxv1.AddDocumentRequest_Url{Url: "  "},
 			},
 		),
 	)
-	if got := errorDetailCode(t, err); got != prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_DOCUMENT {
+	if got := errorDetailCode(t, err); got != nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_DOCUMENT {
 		t.Fatalf("missing document value code=%s err=%v", got, err)
 	}
 }
@@ -875,9 +875,9 @@ func TestRPCMapsInternalDomainErrorToInternal(t *testing.T) {
 	mux.Handle(path, handler)
 	server := httptest.NewServer(mux)
 	defer server.Close()
-	client := prxv1connect.NewPRXServiceClient(server.Client(), server.URL)
+	client := nnxv1connect.NewNNXServiceClient(server.Client(), server.URL)
 
-	_, err := client.GetSnapshot(context.Background(), connect.NewRequest(&prxv1.GetSnapshotRequest{}))
+	_, err := client.GetSnapshot(context.Background(), connect.NewRequest(&nnxv1.GetSnapshotRequest{}))
 	if connect.CodeOf(err) != connect.CodeInternal {
 		t.Fatalf("internal RPC code=%s err=%v", connect.CodeOf(err), err)
 	}
@@ -891,12 +891,12 @@ func (internalErrorService) Snapshot(context.Context) (domain.Snapshot, error) {
 	return domain.Snapshot{}, domain.NewError(domain.DomainErrorCodeInternal, "internal error")
 }
 
-func newTestClient(t *testing.T) prxv1connect.PRXServiceClient {
+func newTestClient(t *testing.T) nnxv1connect.NNXServiceClient {
 	t.Helper()
 	return newTestClientWithFixture(t, "demo")
 }
 
-func newTestClientWithFixture(t *testing.T, fixturePath string) prxv1connect.PRXServiceClient {
+func newTestClientWithFixture(t *testing.T, fixturePath string) nnxv1connect.NNXServiceClient {
 	t.Helper()
 	ctx := context.Background()
 	database, err := store.Open(ctx, filepath.Join(t.TempDir(), "rpc.db"))
@@ -913,10 +913,10 @@ func newTestClientWithFixture(t *testing.T, fixturePath string) prxv1connect.PRX
 	mux.Handle(path, handler)
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
-	return prxv1connect.NewPRXServiceClient(server.Client(), server.URL)
+	return nnxv1connect.NewNNXServiceClient(server.Client(), server.URL)
 }
 
-func errorDetailCode(t *testing.T, err error) prxv1.DomainErrorCode {
+func errorDetailCode(t *testing.T, err error) nnxv1.DomainErrorCode {
 	t.Helper()
 	var connectErr *connect.Error
 	if !errors.As(err, &connectErr) {
@@ -927,11 +927,11 @@ func errorDetailCode(t *testing.T, err error) prxv1.DomainErrorCode {
 		if detailErr != nil {
 			t.Fatal(detailErr)
 		}
-		if errorDetail, ok := value.(*prxv1.ErrorDetail); ok {
+		if errorDetail, ok := value.(*nnxv1.ErrorDetail); ok {
 			return errorDetail.GetCode()
 		}
 	}
-	return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_UNSPECIFIED
+	return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_UNSPECIFIED
 }
 
 // project の RPC はライフサイクル全体を担う。作成、UpdateProject によるアーカイブ、
@@ -941,7 +941,7 @@ func TestRPCProjectLifecycleAndArchiveEnforcement(t *testing.T) {
 	client := newTestClient(t)
 	project, err := client.CreateProject(
 		ctx,
-		connect.NewRequest(&prxv1.CreateProjectRequest{
+		connect.NewRequest(&nnxv1.CreateProjectRequest{
 			Title: "Payments platform", Description: "Shared work",
 		}),
 	)
@@ -954,7 +954,7 @@ func TestRPCProjectLifecycleAndArchiveEnforcement(t *testing.T) {
 	}
 	feature, err := client.CreateFeature(
 		ctx,
-		connect.NewRequest(&prxv1.CreateFeatureRequest{Title: "Checkout", ProjectId: projectID}),
+		connect.NewRequest(&nnxv1.CreateFeatureRequest{Title: "Checkout", ProjectId: projectID}),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -966,12 +966,12 @@ func TestRPCProjectLifecycleAndArchiveEnforcement(t *testing.T) {
 	archived := true
 	updated, err := client.UpdateProject(
 		ctx,
-		connect.NewRequest(&prxv1.UpdateProjectRequest{Id: projectID, Archived: &archived}),
+		connect.NewRequest(&nnxv1.UpdateProjectRequest{Id: projectID, Archived: &archived}),
 	)
 	if err != nil || !updated.Msg.GetProject().GetArchived() {
 		t.Fatalf("archived project=%+v err=%v", updated.Msg.GetProject(), err)
 	}
-	snapshot, err := client.GetSnapshot(ctx, connect.NewRequest(&prxv1.GetSnapshotRequest{}))
+	snapshot, err := client.GetSnapshot(ctx, connect.NewRequest(&nnxv1.GetSnapshotRequest{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -985,25 +985,25 @@ func TestRPCProjectLifecycleAndArchiveEnforcement(t *testing.T) {
 	}
 	_, err = client.CreateTask(
 		ctx,
-		connect.NewRequest(&prxv1.CreateTaskRequest{FeatureId: featureID, Title: "Blocked by the archive"}),
+		connect.NewRequest(&nnxv1.CreateTaskRequest{FeatureId: featureID, Title: "Blocked by the archive"}),
 	)
 	if connect.CodeOf(err) != connect.CodeFailedPrecondition ||
-		errorDetailCode(t, err) != prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_ARCHIVED_READ_ONLY {
+		errorDetailCode(t, err) != nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_ARCHIVED_READ_ONLY {
 		t.Fatalf("write inside archived project code=%s err=%v", connect.CodeOf(err), err)
 	}
 	if _, err := client.DeleteProject(
 		ctx,
-		connect.NewRequest(&prxv1.DeleteProjectRequest{Id: projectID}),
+		connect.NewRequest(&nnxv1.DeleteProjectRequest{Id: projectID}),
 	); connect.CodeOf(err) != connect.CodeFailedPrecondition {
 		t.Fatalf("delete without cascade code=%s err=%v", connect.CodeOf(err), err)
 	}
 	if _, err := client.DeleteProject(
 		ctx,
-		connect.NewRequest(&prxv1.DeleteProjectRequest{Id: projectID, Cascade: true}),
+		connect.NewRequest(&nnxv1.DeleteProjectRequest{Id: projectID, Cascade: true}),
 	); err != nil {
 		t.Fatal(err)
 	}
-	snapshot, err = client.GetSnapshot(ctx, connect.NewRequest(&prxv1.GetSnapshotRequest{}))
+	snapshot, err = client.GetSnapshot(ctx, connect.NewRequest(&nnxv1.GetSnapshotRequest{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1019,7 +1019,7 @@ func TestRPCProjectDocumentUsesTheSharedDocumentModel(t *testing.T) {
 	client := newTestClient(t)
 	project, err := client.CreateProject(
 		ctx,
-		connect.NewRequest(&prxv1.CreateProjectRequest{Title: "Payments"}),
+		connect.NewRequest(&nnxv1.CreateProjectRequest{Title: "Payments"}),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -1027,10 +1027,10 @@ func TestRPCProjectDocumentUsesTheSharedDocumentModel(t *testing.T) {
 	projectID := project.Msg.GetProject().GetId()
 	document, err := client.AddDocument(
 		ctx,
-		connect.NewRequest(&prxv1.AddDocumentRequest{
+		connect.NewRequest(&nnxv1.AddDocumentRequest{
 			ProjectId: projectID,
 			Title:     "Charter",
-			Source:    &prxv1.AddDocumentRequest_Url{Url: "https://example.com/charter"},
+			Source:    &nnxv1.AddDocumentRequest_Url{Url: "https://example.com/charter"},
 		}),
 	)
 	if err != nil {
@@ -1042,15 +1042,15 @@ func TestRPCProjectDocumentUsesTheSharedDocumentModel(t *testing.T) {
 	}
 	_, err = client.AddDocument(
 		ctx,
-		connect.NewRequest(&prxv1.AddDocumentRequest{
+		connect.NewRequest(&nnxv1.AddDocumentRequest{
 			ProjectId: projectID,
 			Title:     "Plan",
-			Source:    &prxv1.AddDocumentRequest_Url{Url: "https://example.com/plan"},
+			Source:    &nnxv1.AddDocumentRequest_Url{Url: "https://example.com/plan"},
 
 			IsImplementationPlan: true,
 		}),
 	)
-	if errorDetailCode(t, err) != prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_PARENT {
+	if errorDetailCode(t, err) != nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_PARENT {
 		t.Fatalf("project plan document err=%v", err)
 	}
 }

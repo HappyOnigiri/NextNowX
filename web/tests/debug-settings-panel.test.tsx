@@ -7,7 +7,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { formatBrowserDebugSection } from "../src/debug-text";
-import { DebugProblemCode } from "../src/gen/prx/v1/prx_pb";
+import { DebugProblemCode } from "../src/gen/nnx/v1/nnx_pb";
 import { setDisplayLanguage } from "../src/i18n";
 import { DebugSettingsPanel } from "../src/views/DebugSettingsPanel";
 
@@ -36,7 +36,8 @@ vi.mock("../src/hooks", () => ({
   useQueryDiagnostics: () => debugMocks.diagnostics,
 }));
 
-const reportText = "PRX diagnostic report\n\nproblems:\n  detected: none\n";
+const reportText =
+  "Next Now X diagnostic report\n\nproblems:\n  detected: none\n";
 
 function reportBody() {
   return document.querySelector(".settings-debug-text")?.textContent;
@@ -72,9 +73,9 @@ describe("DebugSettingsPanel", () => {
     debugMocks.report = makeReport([
       {
         code: DebugProblemCode.DATABASE_INTEGRITY_ERRORS,
-        target: "~/prx/prx.db",
+        target: "~/nnx/nnx.db",
         evidence: "1 integrity errors",
-        nextCommand: "prx validate",
+        nextCommand: "nnx validate",
       },
     ]);
     render(<DebugSettingsPanel />);
@@ -85,8 +86,8 @@ describe("DebugSettingsPanel", () => {
     expect(
       screen.getByText("Stored dependency data failed validation"),
     ).toBeInTheDocument();
-    expect(screen.getByText("~/prx/prx.db")).toBeInTheDocument();
-    expect(screen.getByText("prx validate")).toBeInTheDocument();
+    expect(screen.getByText("~/nnx/nnx.db")).toBeInTheDocument();
+    expect(screen.getByText("nnx validate")).toBeInTheDocument();
     expect(reportBody()).toBe(reportText);
   });
 
@@ -197,10 +198,10 @@ describe("browser debug section", () => {
 
   it("follows the server layout and reports a version mismatch", () => {
     const meta = document.createElement("meta");
-    meta.name = "prx-version";
+    meta.name = "nnx-version";
     meta.content = "9.9.9";
     document.head.appendChild(meta);
-    localStorage.setItem("prx.webui.settings", '{"language":"ja"}');
+    localStorage.setItem("nnx.webui.settings", '{"language":"ja"}');
 
     const text = formatBrowserDebugSection([
       { name: "snapshot", state: "error: boom" },

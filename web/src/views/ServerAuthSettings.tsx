@@ -1,6 +1,6 @@
 import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { GithubAuthMethodType } from "../gen/prx/v1/prx_pb";
+import { GithubAuthMethodType } from "../gen/nnx/v1/nnx_pb";
 import { IconButton } from "./IconButton";
 import {
   emptyAuthDraft,

@@ -2,7 +2,7 @@ import { useNavigate, useSearch } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { useState, type SyntheticEvent } from "react";
 import { useTranslation } from "react-i18next";
-import type { Project } from "../gen/prx/v1/prx_pb";
+import type { Project } from "../gen/nnx/v1/nnx_pb";
 import { useSnapshot } from "../hooks";
 import { formatError } from "../i18n/domain";
 import {

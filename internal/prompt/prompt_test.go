@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/prompt"
+	"github.com/HappyOnigiri/nnx/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/prompt"
 )
 
 func designTask() domain.Task {
@@ -191,7 +191,7 @@ func TestRenderBatchFillsAnOmittedTemplateWithItsDefault(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"F-3", "T-7", "T-9", "SubAgent", "prx prompt TASK_ID"} {
+	for _, want := range []string{"F-3", "T-7", "T-9", "SubAgent", "nnx prompt TASK_ID"} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("default batch prompt does not mention %q: %q", want, body)
 		}
@@ -371,7 +371,7 @@ func TestDefaultBatchDesignTemplatesSendEverySubAgentToTheDesignPrompt(t *testin
 			t.Fatal(err)
 		}
 		for _, want := range []string{
-			"prx prompt TASK_ID --kind design", "prx plan set TASK_ID --file PATH", "git worktree",
+			"nnx prompt TASK_ID --kind design", "nnx plan set TASK_ID --file PATH", "git worktree",
 		} {
 			if !strings.Contains(body, want) {
 				t.Fatalf("the %s batch design prompt does not mention %q: %q", language, want, body)
@@ -413,7 +413,7 @@ func TestDefaultBatchTemplatesAskForTheImplementationPrompt(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !strings.Contains(body, "prx prompt TASK_ID --kind implementation") {
+		if !strings.Contains(body, "nnx prompt TASK_ID --kind implementation") {
 			t.Fatalf("the %s batch prompt does not pin the prompt kind: %q", language, body)
 		}
 	}

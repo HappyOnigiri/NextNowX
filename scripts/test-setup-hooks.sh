@@ -7,13 +7,13 @@ unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_PREFIX \
   GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES
 
 script_directory=$(cd "$(dirname "$0")" && pwd)
-root=$(mktemp -d "${TMPDIR:-/tmp}/prx-setup-hooks-test.XXXXXX")
+root=$(mktemp -d "${TMPDIR:-/tmp}/nnx-setup-hooks-test.XXXXXX")
 trap 'rm -rf "$root"' EXIT
 # 宛先の表示は git が解決した実パスなので、期待値もシンボリックリンクを解いた形にそろえる。
 root=$(cd "$root" && pwd -P)
 
 git_quiet() {
-  git -c user.name=prx -c user.email=prx@example.com -c commit.gpgsign=false "$@"
+  git -c user.name=nnx -c user.email=nnx@example.com -c commit.gpgsign=false "$@"
 }
 
 assert_contains() {

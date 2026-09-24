@@ -11,16 +11,16 @@ import (
 
 	"connectrpc.com/connect"
 
-	prxv1 "github.com/HappyOnigiri/PRX/gen/prx/v1"
-	"github.com/HappyOnigiri/PRX/gen/prx/v1/prxv1connect"
-	"github.com/HappyOnigiri/PRX/internal/app"
-	"github.com/HappyOnigiri/PRX/internal/config"
-	"github.com/HappyOnigiri/PRX/internal/prompt"
-	"github.com/HappyOnigiri/PRX/internal/rpc"
-	"github.com/HappyOnigiri/PRX/internal/store"
+	nnxv1 "github.com/HappyOnigiri/nnx/gen/nnx/v1"
+	"github.com/HappyOnigiri/nnx/gen/nnx/v1/nnxv1connect"
+	"github.com/HappyOnigiri/nnx/internal/app"
+	"github.com/HappyOnigiri/nnx/internal/config"
+	"github.com/HappyOnigiri/nnx/internal/prompt"
+	"github.com/HappyOnigiri/nnx/internal/rpc"
+	"github.com/HappyOnigiri/nnx/internal/store"
 )
 
-func newPromptClient(t *testing.T) prxv1connect.PRXServiceClient {
+func newPromptClient(t *testing.T) nnxv1connect.NNXServiceClient {
 	t.Helper()
 	// 組み込みテンプレートは実効言語で決まる。設定は auto のままなので、
 	// 期待値が実行環境のロケールで変わらないよう言語を固定する。
@@ -40,12 +40,12 @@ func newPromptClient(t *testing.T) prxv1connect.PRXServiceClient {
 	return newConfigClient(t, app.NewWithConfig(database, nil, configStore))
 }
 
-func createPromptTask(t *testing.T, client prxv1connect.PRXServiceClient) string {
+func createPromptTask(t *testing.T, client nnxv1connect.NNXServiceClient) string {
 	t.Helper()
 	ctx := context.Background()
 	feature, err := client.CreateFeature(
 		ctx,
-		connect.NewRequest(&prxv1.CreateFeatureRequest{
+		connect.NewRequest(&nnxv1.CreateFeatureRequest{
 			Title:     "Prompts",
 			ProjectId: newRPCProject(t, ctx, client, "Prompts"),
 		}),
@@ -53,7 +53,7 @@ func createPromptTask(t *testing.T, client prxv1connect.PRXServiceClient) string
 	if err != nil {
 		t.Fatal(err)
 	}
-	task, err := client.CreateTask(ctx, connect.NewRequest(&prxv1.CreateTaskRequest{
+	task, err := client.CreateTask(ctx, connect.NewRequest(&nnxv1.CreateTaskRequest{
 		FeatureId: feature.Msg.GetFeature().GetId(),
 		Title:     "Add the checkout API",
 		Scope:     "Server only",
@@ -69,7 +69,7 @@ func TestRPCPromptTemplatesRoundTripAndDriveTheTaskPrompt(t *testing.T) {
 	client := newPromptClient(t)
 	taskID := createPromptTask(t, client)
 
-	stored, err := client.GetPromptTemplates(ctx, connect.NewRequest(&prxv1.GetPromptTemplatesRequest{}))
+	stored, err := client.GetPromptTemplates(ctx, connect.NewRequest(&nnxv1.GetPromptTemplatesRequest{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +87,7 @@ func TestRPCPromptTemplatesRoundTripAndDriveTheTaskPrompt(t *testing.T) {
 			stored.Msg.GetRequiredPlaceholder(), prompt.RequiredPlaceholder())
 	}
 
-	updated, err := client.UpdatePromptTemplates(ctx, connect.NewRequest(&prxv1.UpdatePromptTemplatesRequest{
+	updated, err := client.UpdatePromptTemplates(ctx, connect.NewRequest(&nnxv1.UpdatePromptTemplatesRequest{
 		Design:         "Design {{task_id}}: {{task_title}}\n",
 		Implementation: "Implement {{task_id}} in {{feature_id}}\n",
 	}))
@@ -100,7 +100,7 @@ func TestRPCPromptTemplatesRoundTripAndDriveTheTaskPrompt(t *testing.T) {
 
 	// 組み込みの組は保存済みの組と併せて提供される。エディタが実際に書き込む
 	// 前に、復元したら何が書かれるかを見せられるようにするため。
-	customized, err := client.GetPromptTemplates(ctx, connect.NewRequest(&prxv1.GetPromptTemplatesRequest{}))
+	customized, err := client.GetPromptTemplates(ctx, connect.NewRequest(&nnxv1.GetPromptTemplatesRequest{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,11 +110,11 @@ func TestRPCPromptTemplatesRoundTripAndDriveTheTaskPrompt(t *testing.T) {
 		t.Fatalf("built-in templates=%+v", customized.Msg.GetBuiltIn())
 	}
 
-	design, err := client.GetTaskPrompt(ctx, connect.NewRequest(&prxv1.GetTaskPromptRequest{TaskId: taskID}))
+	design, err := client.GetTaskPrompt(ctx, connect.NewRequest(&nnxv1.GetTaskPromptRequest{TaskId: taskID}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if design.Msg.GetKind() != prxv1.TaskPromptKind_TASK_PROMPT_KIND_DESIGN ||
+	if design.Msg.GetKind() != nnxv1.TaskPromptKind_TASK_PROMPT_KIND_DESIGN ||
 		design.Msg.GetPrompt() != "Design "+taskID+": Add the checkout API\n" ||
 		design.Msg.GetTaskId() != taskID {
 		t.Fatalf("design prompt=%+v", design.Msg)
@@ -122,19 +122,19 @@ func TestRPCPromptTemplatesRoundTripAndDriveTheTaskPrompt(t *testing.T) {
 
 	// 計画を登録すると、呼び出し元からの他の入力なしに、同じリクエストが
 	// 描画するテンプレートが変わる。
-	if _, err := client.AddDocument(ctx, connect.NewRequest(&prxv1.AddDocumentRequest{
+	if _, err := client.AddDocument(ctx, connect.NewRequest(&nnxv1.AddDocumentRequest{
 		TaskId:               taskID,
 		Title:                "Plan",
-		Source:               &prxv1.AddDocumentRequest_Markdown{Markdown: "# Plan\n"},
+		Source:               &nnxv1.AddDocumentRequest_Markdown{Markdown: "# Plan\n"},
 		IsImplementationPlan: true,
 	})); err != nil {
 		t.Fatal(err)
 	}
-	implementation, err := client.GetTaskPrompt(ctx, connect.NewRequest(&prxv1.GetTaskPromptRequest{TaskId: taskID}))
+	implementation, err := client.GetTaskPrompt(ctx, connect.NewRequest(&nnxv1.GetTaskPromptRequest{TaskId: taskID}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if implementation.Msg.GetKind() != prxv1.TaskPromptKind_TASK_PROMPT_KIND_IMPLEMENTATION ||
+	if implementation.Msg.GetKind() != nnxv1.TaskPromptKind_TASK_PROMPT_KIND_IMPLEMENTATION ||
 		!strings.HasPrefix(implementation.Msg.GetPrompt(), "Implement "+taskID+" in F-") {
 		t.Fatalf("implementation prompt=%+v", implementation.Msg)
 	}
@@ -144,20 +144,20 @@ func TestRPCPromptFailuresUseTheConfigurationVocabulary(t *testing.T) {
 	ctx := context.Background()
 	client := newPromptClient(t)
 
-	_, err := client.GetTaskPrompt(ctx, connect.NewRequest(&prxv1.GetTaskPromptRequest{TaskId: "T-404"}))
-	if errorDetailCode(t, err) != prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_NOT_FOUND {
+	_, err := client.GetTaskPrompt(ctx, connect.NewRequest(&nnxv1.GetTaskPromptRequest{TaskId: "T-404"}))
+	if errorDetailCode(t, err) != nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_NOT_FOUND {
 		t.Fatalf("missing task error=%v", err)
 	}
 
-	_, err = client.UpdatePromptTemplates(ctx, connect.NewRequest(&prxv1.UpdatePromptTemplatesRequest{
+	_, err = client.UpdatePromptTemplates(ctx, connect.NewRequest(&nnxv1.UpdatePromptTemplatesRequest{
 		Design:         "no target",
 		Implementation: "Implement {{task_id}}",
 	}))
-	if errorDetailCode(t, err) != prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_CONFIG {
+	if errorDetailCode(t, err) != nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_CONFIG {
 		t.Fatalf("invalid template error=%v", err)
 	}
 	// 拒否された書き込みは保存済みの組をそのままにしている。
-	stored, err := client.GetPromptTemplates(ctx, connect.NewRequest(&prxv1.GetPromptTemplatesRequest{}))
+	stored, err := client.GetPromptTemplates(ctx, connect.NewRequest(&nnxv1.GetPromptTemplatesRequest{}))
 	if err != nil || stored.Msg.GetTemplates().GetDesign() != prompt.DefaultTemplates(prompt.LanguageEnglish).Design {
 		t.Fatalf("stored templates=%+v err=%v", stored.Msg.GetTemplates(), err)
 	}
@@ -169,23 +169,23 @@ func TestRPCPromptMethodsAreUnavailableWithoutConfigStore(t *testing.T) {
 	mux.Handle(path, handler)
 	server := httptest.NewServer(mux)
 	defer server.Close()
-	client := prxv1connect.NewPRXServiceClient(server.Client(), server.URL)
+	client := nnxv1connect.NewNNXServiceClient(server.Client(), server.URL)
 	ctx := context.Background()
 	for name, call := range map[string]func() error{
 		"GetPromptTemplates": func() error {
-			_, err := client.GetPromptTemplates(ctx, connect.NewRequest(&prxv1.GetPromptTemplatesRequest{}))
+			_, err := client.GetPromptTemplates(ctx, connect.NewRequest(&nnxv1.GetPromptTemplatesRequest{}))
 			return err
 		},
 		"UpdatePromptTemplates": func() error {
-			_, err := client.UpdatePromptTemplates(ctx, connect.NewRequest(&prxv1.UpdatePromptTemplatesRequest{}))
+			_, err := client.UpdatePromptTemplates(ctx, connect.NewRequest(&nnxv1.UpdatePromptTemplatesRequest{}))
 			return err
 		},
 		"GetTaskPrompt": func() error {
-			_, err := client.GetTaskPrompt(ctx, connect.NewRequest(&prxv1.GetTaskPromptRequest{TaskId: "T-1"}))
+			_, err := client.GetTaskPrompt(ctx, connect.NewRequest(&nnxv1.GetTaskPromptRequest{TaskId: "T-1"}))
 			return err
 		},
 		"GetBatchPrompt": func() error {
-			_, err := client.GetBatchPrompt(ctx, connect.NewRequest(&prxv1.GetBatchPromptRequest{
+			_, err := client.GetBatchPrompt(ctx, connect.NewRequest(&nnxv1.GetBatchPromptRequest{
 				FeatureId: "F-1", TaskIds: []string{"T-1"},
 			}))
 			return err
@@ -207,7 +207,7 @@ func TestRPCBatchPromptCoversTheSelectedTasksOfOneFeature(t *testing.T) {
 	client := newPromptClient(t)
 	featureID, taskIDs := createBatchFeature(t, client, "Batch", "First task", "Second task")
 
-	stored, err := client.GetPromptTemplates(ctx, connect.NewRequest(&prxv1.GetPromptTemplatesRequest{}))
+	stored, err := client.GetPromptTemplates(ctx, connect.NewRequest(&nnxv1.GetPromptTemplatesRequest{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -219,7 +219,7 @@ func TestRPCBatchPromptCoversTheSelectedTasksOfOneFeature(t *testing.T) {
 		t.Fatalf("batch vocabulary=%+v", stored.Msg)
 	}
 
-	if _, err := client.UpdatePromptTemplates(ctx, connect.NewRequest(&prxv1.UpdatePromptTemplatesRequest{
+	if _, err := client.UpdatePromptTemplates(ctx, connect.NewRequest(&nnxv1.UpdatePromptTemplatesRequest{
 		Design:         prompt.DefaultTemplates(prompt.LanguageEnglish).Design,
 		Implementation: prompt.DefaultTemplates(prompt.LanguageEnglish).Implementation,
 		Batch:          "Batch {{feature_id}}\n{{task_list}}\n",
@@ -227,7 +227,7 @@ func TestRPCBatchPromptCoversTheSelectedTasksOfOneFeature(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	batch, err := client.GetBatchPrompt(ctx, connect.NewRequest(&prxv1.GetBatchPromptRequest{
+	batch, err := client.GetBatchPrompt(ctx, connect.NewRequest(&nnxv1.GetBatchPromptRequest{
 		FeatureId: featureID, TaskIds: taskIDs,
 	}))
 	if err != nil {
@@ -250,19 +250,19 @@ func TestRPCBatchPromptRejectsASelectionTheFeatureDoesNotOwn(t *testing.T) {
 	featureID, taskIDs := createBatchFeature(t, client, "Batch", "First task")
 	otherFeatureID, otherTaskIDs := createBatchFeature(t, client, "Other", "Other task")
 
-	_, err := client.GetBatchPrompt(ctx, connect.NewRequest(&prxv1.GetBatchPromptRequest{
+	_, err := client.GetBatchPrompt(ctx, connect.NewRequest(&nnxv1.GetBatchPromptRequest{
 		FeatureId: featureID, TaskIds: []string{taskIDs[0], "T-404"},
 	}))
-	if errorDetailCode(t, err) != prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_NOT_FOUND {
+	if errorDetailCode(t, err) != nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_NOT_FOUND {
 		t.Fatalf("missing task error=%v", err)
 	}
 
 	// 別の feature のタスクは存在しないタスクとは違う。読み手は実在する作業を
 	// 選んだのだから、メッセージはそれがどの feature のものかを伝える必要がある。
-	_, err = client.GetBatchPrompt(ctx, connect.NewRequest(&prxv1.GetBatchPromptRequest{
+	_, err = client.GetBatchPrompt(ctx, connect.NewRequest(&nnxv1.GetBatchPromptRequest{
 		FeatureId: featureID, TaskIds: []string{taskIDs[0], otherTaskIDs[0]},
 	}))
-	if errorDetailCode(t, err) != prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_PARENT ||
+	if errorDetailCode(t, err) != nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_PARENT ||
 		!strings.Contains(err.Error(), otherTaskIDs[0]) {
 		t.Fatalf("foreign task error=%v", err)
 	}
@@ -270,10 +270,10 @@ func TestRPCBatchPromptRejectsASelectionTheFeatureDoesNotOwn(t *testing.T) {
 		t.Fatal("the two features share an identifier")
 	}
 
-	_, err = client.GetBatchPrompt(ctx, connect.NewRequest(&prxv1.GetBatchPromptRequest{
+	_, err = client.GetBatchPrompt(ctx, connect.NewRequest(&nnxv1.GetBatchPromptRequest{
 		FeatureId: featureID,
 	}))
-	if errorDetailCode(t, err) != prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_PARENT {
+	if errorDetailCode(t, err) != nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_PARENT {
 		t.Fatalf("empty selection error=%v", err)
 	}
 }
@@ -285,22 +285,22 @@ func TestRPCBatchPromptRejectsASelectionMissingABlocker(t *testing.T) {
 	ctx := context.Background()
 	client := newPromptClient(t)
 	featureID, taskIDs := createBatchFeature(t, client, "Batch", "First task", "Second task")
-	if _, err := client.AddDependency(ctx, connect.NewRequest(&prxv1.AddDependencyRequest{
+	if _, err := client.AddDependency(ctx, connect.NewRequest(&nnxv1.AddDependencyRequest{
 		BlockerTaskId: taskIDs[0], BlockedTaskId: taskIDs[1],
 	})); err != nil {
 		t.Fatal(err)
 	}
 
-	_, err := client.GetBatchPrompt(ctx, connect.NewRequest(&prxv1.GetBatchPromptRequest{
+	_, err := client.GetBatchPrompt(ctx, connect.NewRequest(&nnxv1.GetBatchPromptRequest{
 		FeatureId: featureID, TaskIds: []string{taskIDs[1]},
 	}))
-	if errorDetailCode(t, err) != prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_PARENT ||
+	if errorDetailCode(t, err) != nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_PARENT ||
 		!strings.Contains(err.Error(), taskIDs[0]) {
 		t.Fatalf("missing blocker error=%v", err)
 	}
 
 	// batch が待ち相手を含んだ途端、同じタスクが描画されるようになる。
-	batch, err := client.GetBatchPrompt(ctx, connect.NewRequest(&prxv1.GetBatchPromptRequest{
+	batch, err := client.GetBatchPrompt(ctx, connect.NewRequest(&nnxv1.GetBatchPromptRequest{
 		FeatureId: featureID, TaskIds: taskIDs,
 	}))
 	if err != nil {
@@ -317,14 +317,14 @@ func TestRPCPromptOverridesResolveAtProjectAndFeatureScope(t *testing.T) {
 	ctx := context.Background()
 	client := newPromptClient(t)
 	projectID := newRPCProject(t, ctx, client, "Prompt overrides")
-	feature, err := client.CreateFeature(ctx, connect.NewRequest(&prxv1.CreateFeatureRequest{
+	feature, err := client.CreateFeature(ctx, connect.NewRequest(&nnxv1.CreateFeatureRequest{
 		Title: "Override feature", ProjectId: projectID,
 	}))
 	if err != nil {
 		t.Fatal(err)
 	}
 	featureID := feature.Msg.GetFeature().GetId()
-	task, err := client.CreateTask(ctx, connect.NewRequest(&prxv1.CreateTaskRequest{
+	task, err := client.CreateTask(ctx, connect.NewRequest(&nnxv1.CreateTaskRequest{
 		FeatureId: featureID, Title: "Override task",
 	}))
 	if err != nil {
@@ -333,9 +333,9 @@ func TestRPCPromptOverridesResolveAtProjectAndFeatureScope(t *testing.T) {
 	taskID := task.Msg.GetTask().GetId()
 	projectDesign := "Project design {{task_id}}"
 	featureBatch := "Feature batch {{task_list}}"
-	updatedProject, err := client.UpdateProject(ctx, connect.NewRequest(&prxv1.UpdateProjectRequest{
+	updatedProject, err := client.UpdateProject(ctx, connect.NewRequest(&nnxv1.UpdateProjectRequest{
 		Id:              projectID,
-		PromptOverrides: &prxv1.PromptTemplateOverridesUpdate{Design: &projectDesign},
+		PromptOverrides: &nnxv1.PromptTemplateOverridesUpdate{Design: &projectDesign},
 	}))
 	if err != nil {
 		t.Fatal(err)
@@ -343,9 +343,9 @@ func TestRPCPromptOverridesResolveAtProjectAndFeatureScope(t *testing.T) {
 	if updatedProject.Msg.GetProject().GetPromptOverrides().GetDesign() != projectDesign {
 		t.Fatalf("project overrides=%+v", updatedProject.Msg.GetProject().GetPromptOverrides())
 	}
-	updatedFeature, err := client.UpdateFeature(ctx, connect.NewRequest(&prxv1.UpdateFeatureRequest{
+	updatedFeature, err := client.UpdateFeature(ctx, connect.NewRequest(&nnxv1.UpdateFeatureRequest{
 		Id:              featureID,
-		PromptOverrides: &prxv1.PromptTemplateOverridesUpdate{Batch: &featureBatch},
+		PromptOverrides: &nnxv1.PromptTemplateOverridesUpdate{Batch: &featureBatch},
 	}))
 	if err != nil {
 		t.Fatal(err)
@@ -353,22 +353,22 @@ func TestRPCPromptOverridesResolveAtProjectAndFeatureScope(t *testing.T) {
 	if updatedFeature.Msg.GetFeature().GetPromptOverrides().GetBatch() != featureBatch {
 		t.Fatalf("feature overrides=%+v", updatedFeature.Msg.GetFeature().GetPromptOverrides())
 	}
-	result, err := client.GetTaskPrompt(ctx, connect.NewRequest(&prxv1.GetTaskPromptRequest{TaskId: taskID}))
+	result, err := client.GetTaskPrompt(ctx, connect.NewRequest(&nnxv1.GetTaskPromptRequest{TaskId: taskID}))
 	if err != nil || result.Msg.GetPrompt() != "Project design "+taskID {
 		t.Fatalf("task prompt=%+v err=%v", result.Msg, err)
 	}
-	batch, err := client.GetBatchPrompt(ctx, connect.NewRequest(&prxv1.GetBatchPromptRequest{
+	batch, err := client.GetBatchPrompt(ctx, connect.NewRequest(&nnxv1.GetBatchPromptRequest{
 		FeatureId: featureID, TaskIds: []string{taskID},
 	}))
 	if err != nil || !strings.HasPrefix(batch.Msg.GetPrompt(), "Feature batch ") {
 		t.Fatalf("batch prompt=%+v err=%v", batch.Msg, err)
 	}
 	bad := "missing {{task_id}}?"
-	_, err = client.UpdateFeature(ctx, connect.NewRequest(&prxv1.UpdateFeatureRequest{
+	_, err = client.UpdateFeature(ctx, connect.NewRequest(&nnxv1.UpdateFeatureRequest{
 		Id:              featureID,
-		PromptOverrides: &prxv1.PromptTemplateOverridesUpdate{Batch: &bad},
+		PromptOverrides: &nnxv1.PromptTemplateOverridesUpdate{Batch: &bad},
 	}))
-	if errorDetailCode(t, err) != prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_PROMPT_TEMPLATE ||
+	if errorDetailCode(t, err) != nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_PROMPT_TEMPLATE ||
 		!strings.Contains(err.Error(), "feature prompt override batch") {
 		t.Fatalf("invalid override error=%v", err)
 	}
@@ -376,7 +376,7 @@ func TestRPCPromptOverridesResolveAtProjectAndFeatureScope(t *testing.T) {
 
 func createBatchFeature(
 	t *testing.T,
-	client prxv1connect.PRXServiceClient,
+	client nnxv1connect.NNXServiceClient,
 	featureTitle string,
 	taskTitles ...string,
 ) (string, []string) {
@@ -384,7 +384,7 @@ func createBatchFeature(
 	ctx := context.Background()
 	feature, err := client.CreateFeature(
 		ctx,
-		connect.NewRequest(&prxv1.CreateFeatureRequest{
+		connect.NewRequest(&nnxv1.CreateFeatureRequest{
 			Title:     featureTitle,
 			ProjectId: newRPCProject(t, ctx, client, featureTitle),
 		}),
@@ -395,7 +395,7 @@ func createBatchFeature(
 	featureID := feature.Msg.GetFeature().GetId()
 	taskIDs := make([]string, 0, len(taskTitles))
 	for _, title := range taskTitles {
-		task, err := client.CreateTask(ctx, connect.NewRequest(&prxv1.CreateTaskRequest{
+		task, err := client.CreateTask(ctx, connect.NewRequest(&nnxv1.CreateTaskRequest{
 			FeatureId: featureID, Title: title,
 		}))
 		if err != nil {
@@ -413,7 +413,7 @@ func TestRPCLanguageConfigSwitchesTheBuiltInTemplates(t *testing.T) {
 	client := newPromptClient(t)
 	taskID := createPromptTask(t, client)
 
-	settings, err := client.GetConfig(ctx, connect.NewRequest(&prxv1.GetConfigRequest{}))
+	settings, err := client.GetConfig(ctx, connect.NewRequest(&nnxv1.GetConfigRequest{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -422,7 +422,7 @@ func TestRPCLanguageConfigSwitchesTheBuiltInTemplates(t *testing.T) {
 		t.Fatalf("config=%+v", settings.Msg.GetConfig())
 	}
 
-	updated, err := client.UpdateLanguageConfig(ctx, connect.NewRequest(&prxv1.UpdateLanguageConfigRequest{
+	updated, err := client.UpdateLanguageConfig(ctx, connect.NewRequest(&nnxv1.UpdateLanguageConfigRequest{
 		Language: string(prompt.LanguageJapanese),
 	}))
 	if err != nil {
@@ -433,7 +433,7 @@ func TestRPCLanguageConfigSwitchesTheBuiltInTemplates(t *testing.T) {
 		t.Fatalf("config=%+v", updated.Msg.GetConfig())
 	}
 
-	stored, err := client.GetPromptTemplates(ctx, connect.NewRequest(&prxv1.GetPromptTemplatesRequest{}))
+	stored, err := client.GetPromptTemplates(ctx, connect.NewRequest(&nnxv1.GetPromptTemplatesRequest{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -443,7 +443,7 @@ func TestRPCLanguageConfigSwitchesTheBuiltInTemplates(t *testing.T) {
 		t.Fatalf("design template=%q, want the japanese built-in template", stored.Msg.GetTemplates().GetDesign())
 	}
 
-	design, err := client.GetTaskPrompt(ctx, connect.NewRequest(&prxv1.GetTaskPromptRequest{TaskId: taskID}))
+	design, err := client.GetTaskPrompt(ctx, connect.NewRequest(&nnxv1.GetTaskPromptRequest{TaskId: taskID}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -451,10 +451,10 @@ func TestRPCLanguageConfigSwitchesTheBuiltInTemplates(t *testing.T) {
 		t.Fatalf("design prompt=%q, want japanese", design.Msg.GetPrompt())
 	}
 
-	_, err = client.UpdateLanguageConfig(ctx, connect.NewRequest(&prxv1.UpdateLanguageConfigRequest{
+	_, err = client.UpdateLanguageConfig(ctx, connect.NewRequest(&nnxv1.UpdateLanguageConfigRequest{
 		Language: "fr",
 	}))
-	if errorDetailCode(t, err) != prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_CONFIG {
+	if errorDetailCode(t, err) != nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_CONFIG {
 		t.Fatalf("unsupported language error=%v", err)
 	}
 }
@@ -466,7 +466,7 @@ func TestRPCTaskPromptHonoursTheRequestedKind(t *testing.T) {
 	client := newPromptClient(t)
 	taskID := createPromptTask(t, client)
 
-	if _, err := client.UpdatePromptTemplates(ctx, connect.NewRequest(&prxv1.UpdatePromptTemplatesRequest{
+	if _, err := client.UpdatePromptTemplates(ctx, connect.NewRequest(&nnxv1.UpdatePromptTemplatesRequest{
 		Design:         "Design {{task_id}}\n",
 		Implementation: "Implement {{task_id}}\n",
 	})); err != nil {
@@ -474,44 +474,44 @@ func TestRPCTaskPromptHonoursTheRequestedKind(t *testing.T) {
 	}
 
 	// 計画がなくても implementation を選べる。
-	implementation, err := client.GetTaskPrompt(ctx, connect.NewRequest(&prxv1.GetTaskPromptRequest{
-		TaskId: taskID, Kind: prxv1.TaskPromptKind_TASK_PROMPT_KIND_IMPLEMENTATION,
+	implementation, err := client.GetTaskPrompt(ctx, connect.NewRequest(&nnxv1.GetTaskPromptRequest{
+		TaskId: taskID, Kind: nnxv1.TaskPromptKind_TASK_PROMPT_KIND_IMPLEMENTATION,
 	}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if implementation.Msg.GetKind() != prxv1.TaskPromptKind_TASK_PROMPT_KIND_IMPLEMENTATION ||
+	if implementation.Msg.GetKind() != nnxv1.TaskPromptKind_TASK_PROMPT_KIND_IMPLEMENTATION ||
 		implementation.Msg.GetPrompt() != "Implement "+taskID+"\n" {
 		t.Fatalf("implementation prompt=%+v", implementation.Msg)
 	}
 
-	if _, err := client.AddDocument(ctx, connect.NewRequest(&prxv1.AddDocumentRequest{
+	if _, err := client.AddDocument(ctx, connect.NewRequest(&nnxv1.AddDocumentRequest{
 		TaskId:               taskID,
 		Title:                "Plan",
-		Source:               &prxv1.AddDocumentRequest_Markdown{Markdown: "# Plan\n"},
+		Source:               &nnxv1.AddDocumentRequest_Markdown{Markdown: "# Plan\n"},
 		IsImplementationPlan: true,
 	})); err != nil {
 		t.Fatal(err)
 	}
 
 	// 計画があっても design を選べる。
-	design, err := client.GetTaskPrompt(ctx, connect.NewRequest(&prxv1.GetTaskPromptRequest{
-		TaskId: taskID, Kind: prxv1.TaskPromptKind_TASK_PROMPT_KIND_DESIGN,
+	design, err := client.GetTaskPrompt(ctx, connect.NewRequest(&nnxv1.GetTaskPromptRequest{
+		TaskId: taskID, Kind: nnxv1.TaskPromptKind_TASK_PROMPT_KIND_DESIGN,
 	}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if design.Msg.GetKind() != prxv1.TaskPromptKind_TASK_PROMPT_KIND_DESIGN ||
+	if design.Msg.GetKind() != nnxv1.TaskPromptKind_TASK_PROMPT_KIND_DESIGN ||
 		design.Msg.GetPrompt() != "Design "+taskID+"\n" {
 		t.Fatalf("design prompt=%+v", design.Msg)
 	}
 
 	// 未指定は従来どおり計画の有無から導出する。
-	derived, err := client.GetTaskPrompt(ctx, connect.NewRequest(&prxv1.GetTaskPromptRequest{TaskId: taskID}))
+	derived, err := client.GetTaskPrompt(ctx, connect.NewRequest(&nnxv1.GetTaskPromptRequest{TaskId: taskID}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if derived.Msg.GetKind() != prxv1.TaskPromptKind_TASK_PROMPT_KIND_IMPLEMENTATION {
+	if derived.Msg.GetKind() != nnxv1.TaskPromptKind_TASK_PROMPT_KIND_IMPLEMENTATION {
 		t.Fatalf("derived prompt=%+v", derived.Msg)
 	}
 }
@@ -524,7 +524,7 @@ func TestRPCBatchPromptHonoursTheRequestedKind(t *testing.T) {
 	featureID, taskIDs := createBatchFeature(t, client, "Batch", "First task")
 
 	english := prompt.DefaultTemplates(prompt.LanguageEnglish)
-	stored, err := client.GetPromptTemplates(ctx, connect.NewRequest(&prxv1.GetPromptTemplatesRequest{}))
+	stored, err := client.GetPromptTemplates(ctx, connect.NewRequest(&nnxv1.GetPromptTemplatesRequest{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -534,7 +534,7 @@ func TestRPCBatchPromptHonoursTheRequestedKind(t *testing.T) {
 			stored.Msg.GetTemplates().GetBatchDesign())
 	}
 
-	if _, err := client.UpdatePromptTemplates(ctx, connect.NewRequest(&prxv1.UpdatePromptTemplatesRequest{
+	if _, err := client.UpdatePromptTemplates(ctx, connect.NewRequest(&nnxv1.UpdatePromptTemplatesRequest{
 		Design:         english.Design,
 		Implementation: english.Implementation,
 		Batch:          "Batch {{feature_id}}\n{{task_list}}\n",
@@ -543,26 +543,26 @@ func TestRPCBatchPromptHonoursTheRequestedKind(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	design, err := client.GetBatchPrompt(ctx, connect.NewRequest(&prxv1.GetBatchPromptRequest{
-		FeatureId: featureID, TaskIds: taskIDs, Kind: prxv1.TaskPromptKind_TASK_PROMPT_KIND_DESIGN,
+	design, err := client.GetBatchPrompt(ctx, connect.NewRequest(&nnxv1.GetBatchPromptRequest{
+		FeatureId: featureID, TaskIds: taskIDs, Kind: nnxv1.TaskPromptKind_TASK_PROMPT_KIND_DESIGN,
 	}))
 	if err != nil {
 		t.Fatal(err)
 	}
 	want := "Design batch " + featureID + "\n- " + taskIDs[0] + ": First task\n"
 	if design.Msg.GetPrompt() != want ||
-		design.Msg.GetKind() != prxv1.TaskPromptKind_TASK_PROMPT_KIND_DESIGN {
+		design.Msg.GetKind() != nnxv1.TaskPromptKind_TASK_PROMPT_KIND_DESIGN {
 		t.Fatalf("batch design prompt=%+v, want %q", design.Msg, want)
 	}
 
-	implementation, err := client.GetBatchPrompt(ctx, connect.NewRequest(&prxv1.GetBatchPromptRequest{
+	implementation, err := client.GetBatchPrompt(ctx, connect.NewRequest(&nnxv1.GetBatchPromptRequest{
 		FeatureId: featureID, TaskIds: taskIDs,
 	}))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !strings.HasPrefix(implementation.Msg.GetPrompt(), "Batch "+featureID) ||
-		implementation.Msg.GetKind() != prxv1.TaskPromptKind_TASK_PROMPT_KIND_IMPLEMENTATION {
+		implementation.Msg.GetKind() != nnxv1.TaskPromptKind_TASK_PROMPT_KIND_IMPLEMENTATION {
 		t.Fatalf("batch prompt=%+v", implementation.Msg)
 	}
 }
@@ -572,12 +572,12 @@ func TestRPCBatchPromptHonoursTheRequestedKind(t *testing.T) {
 func TestRPCLanguageConfigSwitchesTheBatchDesignTemplate(t *testing.T) {
 	ctx := context.Background()
 	client := newPromptClient(t)
-	if _, err := client.UpdateLanguageConfig(ctx, connect.NewRequest(&prxv1.UpdateLanguageConfigRequest{
+	if _, err := client.UpdateLanguageConfig(ctx, connect.NewRequest(&nnxv1.UpdateLanguageConfigRequest{
 		Language: string(prompt.LanguageJapanese),
 	})); err != nil {
 		t.Fatal(err)
 	}
-	stored, err := client.GetPromptTemplates(ctx, connect.NewRequest(&prxv1.GetPromptTemplatesRequest{}))
+	stored, err := client.GetPromptTemplates(ctx, connect.NewRequest(&nnxv1.GetPromptTemplatesRequest{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -595,14 +595,14 @@ func TestRPCBatchDesignOverrideResolvesAtFeatureScope(t *testing.T) {
 	featureID, taskIDs := createBatchFeature(t, client, "Batch", "First task")
 
 	featureBatchDesign := "Feature design {{feature_id}}\n{{task_list}}\n"
-	if _, err := client.UpdateFeature(ctx, connect.NewRequest(&prxv1.UpdateFeatureRequest{
+	if _, err := client.UpdateFeature(ctx, connect.NewRequest(&nnxv1.UpdateFeatureRequest{
 		Id:              featureID,
-		PromptOverrides: &prxv1.PromptTemplateOverridesUpdate{BatchDesign: &featureBatchDesign},
+		PromptOverrides: &nnxv1.PromptTemplateOverridesUpdate{BatchDesign: &featureBatchDesign},
 	})); err != nil {
 		t.Fatal(err)
 	}
-	design, err := client.GetBatchPrompt(ctx, connect.NewRequest(&prxv1.GetBatchPromptRequest{
-		FeatureId: featureID, TaskIds: taskIDs, Kind: prxv1.TaskPromptKind_TASK_PROMPT_KIND_DESIGN,
+	design, err := client.GetBatchPrompt(ctx, connect.NewRequest(&nnxv1.GetBatchPromptRequest{
+		FeatureId: featureID, TaskIds: taskIDs, Kind: nnxv1.TaskPromptKind_TASK_PROMPT_KIND_DESIGN,
 	}))
 	if err != nil {
 		t.Fatal(err)
@@ -612,13 +612,13 @@ func TestRPCBatchDesignOverrideResolvesAtFeatureScope(t *testing.T) {
 		t.Fatalf("batch design prompt=%q, want %q", design.Msg.GetPrompt(), want)
 	}
 	// 実装用の一括は上書きしていないので、グローバルの組み込み文面のまま。
-	implementation, err := client.GetBatchPrompt(ctx, connect.NewRequest(&prxv1.GetBatchPromptRequest{
+	implementation, err := client.GetBatchPrompt(ctx, connect.NewRequest(&nnxv1.GetBatchPromptRequest{
 		FeatureId: featureID, TaskIds: taskIDs,
 	}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasPrefix(implementation.Msg.GetPrompt(), "Implement the PRX tasks of feature "+featureID) {
+	if !strings.HasPrefix(implementation.Msg.GetPrompt(), "Implement the Next Now X tasks of feature "+featureID) {
 		t.Fatalf("batch prompt=%q", implementation.Msg.GetPrompt())
 	}
 }

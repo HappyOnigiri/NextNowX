@@ -5,7 +5,7 @@ import {
   DocumentKind,
   TaskBlockLabel,
   TaskDisplayState,
-} from "../src/gen/prx/v1/prx_pb";
+} from "../src/gen/nnx/v1/nnx_pb";
 import { TaskNode, type TaskFlowNode } from "../src/views/TaskNode";
 
 describe("TaskNode", () => {

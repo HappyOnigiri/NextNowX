@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/runstate"
+	"github.com/HappyOnigiri/nnx/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/runstate"
 )
 
 // レポートはデータベースを開けない実行のためにあるので、オープンの失敗が
@@ -21,12 +21,12 @@ func TestDebugSucceedsWhenTheServiceCannotBeOpened(t *testing.T) {
 	var out, errOut bytes.Buffer
 	err := Execute(
 		context.Background(),
-		[]string{"--db", "/nonexistent/directory/prx.db", "debug"},
+		[]string{"--db", "/nonexistent/directory/nnx.db", "debug"},
 		&out,
 		&errOut,
 		func(context.Context, ServiceOptions) (Service, io.Closer, error) {
 			return nil, nil, &ServiceOpenError{
-				DatabasePath: "/nonexistent/directory/prx.db",
+				DatabasePath: "/nonexistent/directory/nnx.db",
 				Err:          errors.New("create database directory: permission denied"),
 			}
 		},
@@ -40,7 +40,7 @@ func TestDebugSucceedsWhenTheServiceCannotBeOpened(t *testing.T) {
 		t.Fatalf("report did not explain the failure:\n%s", text)
 	}
 	// オープンが試みた解決済みの場所は、読み手が最初に必要とする情報。
-	if !strings.Contains(text, "database_path: /nonexistent/directory/prx.db") {
+	if !strings.Contains(text, "database_path: /nonexistent/directory/nnx.db") {
 		t.Fatalf("report omitted the attempted database path:\n%s", text)
 	}
 }
@@ -99,7 +99,7 @@ func TestDebugDoesNotStartAnAutomaticSync(t *testing.T) {
 func TestDebugRecordsHowEachLocationWasSelected(t *testing.T) {
 	// 設定ストアは渡されたパスの隣にロックファイルを作るので、環境変数の値は
 	// 一時ディレクトリを指す。
-	t.Setenv("PRX_CONFIG", filepath.Join(t.TempDir(), "from-environment.yaml"))
+	t.Setenv("NNX_CONFIG", filepath.Join(t.TempDir(), "from-environment.yaml"))
 	var got ServiceOptions
 	root, _ := newRootWithState(
 		io.Discard,

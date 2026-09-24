@@ -3,14 +3,14 @@ package cli
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/domain"
 )
 
 func (s *state) planCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:     "plan TASK_ID",
 		Short:   "Show or manage a task's implementation plan document",
-		Example: "prx plan T-1",
+		Example: "nnx plan T-1",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			value, err := s.service.GetImplementationPlan(cmd.Context(), args[0])
@@ -26,7 +26,7 @@ func (s *state) planCommand() *cobra.Command {
 	set := &cobra.Command{
 		Use:     "set TASK_ID",
 		Short:   "Create or replace a task's implementation plan document",
-		Example: "prx plan set T-1 --file plan.md\nprx plan set T-1 --url https://example.com/plan",
+		Example: "nnx plan set T-1 --file plan.md\nnnx plan set T-1 --url https://example.com/plan",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			source := documentSourceFlags{url: url, localFile: localFile, markdownFile: file, stdin: stdin}
@@ -49,7 +49,7 @@ func (s *state) planCommand() *cobra.Command {
 	deleteCmd := &cobra.Command{
 		Use:     "delete TASK_ID",
 		Short:   "Delete a task's implementation plan document",
-		Example: "prx plan delete T-1",
+		Example: "nnx plan delete T-1",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := s.service.DeleteImplementationPlan(cmd.Context(), args[0]); err != nil {

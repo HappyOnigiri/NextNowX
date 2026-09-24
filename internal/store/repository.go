@@ -11,8 +11,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/HappyOnigiri/PRX/internal/db"
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/db"
+	"github.com/HappyOnigiri/nnx/internal/domain"
 )
 
 const (

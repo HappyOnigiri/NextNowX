@@ -7,7 +7,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { TaskPromptKind } from "../src/gen/prx/v1/prx_pb";
+import { TaskPromptKind } from "../src/gen/nnx/v1/nnx_pb";
 import { setDisplayLanguage } from "../src/i18n";
 import { TaskPromptCopyButton } from "../src/views/TaskPromptCopyButton";
 

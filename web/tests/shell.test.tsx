@@ -12,7 +12,7 @@ import {
   FeatureStatus,
   UpdateStatusSchema,
   type UpdateStatus,
-} from "../src/gen/prx/v1/prx_pb";
+} from "../src/gen/nnx/v1/nnx_pb";
 import { setDisplayLanguage } from "../src/i18n";
 import { AppShell } from "../src/shell";
 import { makeFeature, makeProject, makeSnapshot } from "./factories";
@@ -117,7 +117,10 @@ vi.mock("../src/views/UpdateDialog", () => ({
     status: { latestVersion: string };
     onClose: () => void;
   }) => (
-    <div role="dialog" aria-label={`PRX ${status.latestVersion} is available`}>
+    <div
+      role="dialog"
+      aria-label={`Next Now X ${status.latestVersion} is available`}
+    >
       <button type="button" onClick={onClose}>
         Close update
       </button>
@@ -130,8 +133,8 @@ describe("AppShell", () => {
   // isDemoMode は document を直接見るので、失敗した検証が meta を残すと
   // 以降のケースがすべてデモモードで動いてしまう。
   afterEach(() => {
-    document.querySelector('meta[name="prx-demo"]')?.remove();
-    document.querySelector('meta[name="prx-demo-session"]')?.remove();
+    document.querySelector('meta[name="nnx-demo"]')?.remove();
+    document.querySelector('meta[name="nnx-demo-session"]')?.remove();
   });
   beforeEach(async () => {
     localStorage.clear();
@@ -208,7 +211,7 @@ describe("AppShell", () => {
     const notice = screen.getByRole("button", { name: "Update to v0.5.0" });
     fireEvent.click(notice);
     expect(
-      screen.getByRole("dialog", { name: "PRX v0.5.0 is available" }),
+      screen.getByRole("dialog", { name: "Next Now X v0.5.0 is available" }),
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Close update" }));
@@ -274,13 +277,13 @@ describe("AppShell", () => {
       expect(document.documentElement.dataset["theme"]).toBe("dark");
     });
     expect(
-      JSON.parse(localStorage.getItem("prx.webui.settings") ?? "{}"),
+      JSON.parse(localStorage.getItem("nnx.webui.settings") ?? "{}"),
     ).toEqual({ language: "ja", theme: "dark" });
   });
 
   it("keeps the demo reset warning visible and identifies temporary storage", () => {
     const meta = document.createElement("meta");
-    meta.name = "prx-demo";
+    meta.name = "nnx-demo";
     meta.content = "true";
     document.head.append(meta);
 
@@ -301,11 +304,11 @@ describe("AppShell", () => {
 
   it("keeps the dismissed demo warning hidden until another session is served", () => {
     const demoMeta = document.createElement("meta");
-    demoMeta.name = "prx-demo";
+    demoMeta.name = "nnx-demo";
     demoMeta.content = "true";
     document.head.append(demoMeta);
     const sessionMeta = document.createElement("meta");
-    sessionMeta.name = "prx-demo-session";
+    sessionMeta.name = "nnx-demo-session";
     sessionMeta.content = "session-1";
     document.head.append(sessionMeta);
 

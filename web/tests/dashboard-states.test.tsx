@@ -6,7 +6,7 @@ import {
   TaskBlockLabel,
   TaskDisplayState,
   type Snapshot,
-} from "../src/gen/prx/v1/prx_pb";
+} from "../src/gen/nnx/v1/nnx_pb";
 import { AutoSyncStatusContext, type AutoSyncStatus } from "../src/sync-status";
 import { filterTaskSearchResults, parseTaskSearch } from "../src/task-search";
 import { Dashboard } from "../src/views/Dashboard";

@@ -2,8 +2,8 @@ root = "."
 tmp_dir = "tmp"
 
 [build]
-cmd = "go build -trimpath -o ./tmp/prx ./cmd/prx"
-entrypoint = ["./tmp/prx", "serve", "--addr", "127.0.0.1:7332"]
+cmd = "go build -trimpath -o ./tmp/nnx ./cmd/nnx"
+entrypoint = ["./tmp/nnx", "serve", "--addr", "127.0.0.1:7332"]
 include_dir = ["cmd", "gen", "internal"]
 include_ext = ["go"]
 include_file = ["go.mod", "go.sum"]

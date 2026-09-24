@@ -14,11 +14,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	prx "github.com/HappyOnigiri/PRX"
-	"github.com/HappyOnigiri/PRX/internal/config"
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/launchd"
-	"github.com/HappyOnigiri/PRX/internal/runstate"
+	nnx "github.com/HappyOnigiri/nnx"
+	"github.com/HappyOnigiri/nnx/internal/config"
+	"github.com/HappyOnigiri/nnx/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/launchd"
+	"github.com/HappyOnigiri/nnx/internal/runstate"
 )
 
 // automaticSyncTimeout は通常のコマンド実行前に走る日和見的な更新の上限。
@@ -32,7 +32,7 @@ type state struct {
 	configPathSource string
 	json             bool
 	fixture          string
-	// noSampleData は `prx setup` のローカルフラグ。初回のサンプル投入だけを止める。
+	// noSampleData は `nnx setup` のローカルフラグ。初回のサンプル投入だけを止める。
 	noSampleData bool
 	demo         bool
 	out          io.Writer
@@ -78,9 +78,9 @@ func NewRoot(out, errOut io.Writer, openService OpenService) *cobra.Command {
 func newRootWithState(out, errOut io.Writer, openService OpenService) (*cobra.Command, *state) {
 	s := &state{out: out, errOut: errOut, openService: openService}
 	root := &cobra.Command{
-		Use:           "prx",
+		Use:           "nnx",
 		Short:         "Manage pull-request dependency roadmaps",
-		Version:       prx.Version(),
+		Version:       nnx.Version(),
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
@@ -166,9 +166,9 @@ func newRootWithState(out, errOut io.Writer, openService OpenService) (*cobra.Co
 	}
 	root.SetOut(out)
 	root.SetErr(errOut)
-	root.PersistentFlags().StringVar(&s.dbPath, "db", "", "SQLite database path (env: PRX_DB)")
+	root.PersistentFlags().StringVar(&s.dbPath, "db", "", "SQLite database path (env: NNX_DB)")
 	root.PersistentFlags().
-		StringVar(&s.configPath, "config", "", "YAML configuration path (env: PRX_CONFIG)")
+		StringVar(&s.configPath, "config", "", "YAML configuration path (env: NNX_CONFIG)")
 	root.PersistentFlags().BoolVar(&s.json, "json", false, "output JSON")
 	root.PersistentFlags().StringVar(&s.fixture, "github-fixture", "", "GitHub fixture JSON path, or demo")
 	s.addCommands(root)
@@ -239,8 +239,8 @@ func (s *state) helpCommand(root *cobra.Command) *cobra.Command {
 // applyEnvironmentPaths は環境変数のフォールバックをフラグの既定値としてではなく
 // 実行時に解決する。フラグの既定値は、失敗時のヒントに含まれるヘルプに出てしまうため。
 func (s *state) applyEnvironmentPaths() {
-	s.dbPath, s.dbPathSource = resolvePathSource(s.dbPath, "PRX_DB")
-	s.configPath, s.configPathSource = resolvePathSource(s.configPath, "PRX_CONFIG")
+	s.dbPath, s.dbPathSource = resolvePathSource(s.dbPath, "NNX_DB")
+	s.configPath, s.configPathSource = resolvePathSource(s.configPath, "NNX_CONFIG")
 }
 
 // resolvePathSource は場所を決めたのがフラグ・環境変数・既定値のどれかを記録する。
@@ -314,7 +314,7 @@ func offlineCommandName(command *cobra.Command) string {
 			return current.Name()
 		case "update":
 			// `task update` のような変更コマンドと名前が衝突するので、
-			// ルート直下の `prx update` だけをストレージ不要と見なす。
+			// ルート直下の `nnx update` だけをストレージ不要と見なす。
 			if current.Parent() != nil && current.Parent().Parent() == nil {
 				return current.Name()
 			}

@@ -53,9 +53,9 @@ export const prompt = {
       tabsLabel: "Batch prompt kind",
       tab: { design: "Design", implementation: "Implementation" },
       designDescription:
-        "One prompt covering the tasks you select. It names each task so the agent hands it to a SubAgent that fetches the design prompt from PRX and registers a plan. A dependent task is designed after the work it waits for. Edit global wording in Settings › Prompts, or override it from a project or feature edit dialog.",
+        "One prompt covering the tasks you select. It names each task so the agent hands it to a SubAgent that fetches the design prompt from Next Now X and registers a plan. A dependent task is designed after the work it waits for. Edit global wording in Settings › Prompts, or override it from a project or feature edit dialog.",
       implementationDescription:
-        "One prompt covering the tasks you select. It names each task so the agent fetches its instructions from PRX. A dependent task is implemented after the work it waits for, with its pull request stacked on that work. Edit global wording in Settings › Prompts, or override it from a project or feature edit dialog.",
+        "One prompt covering the tasks you select. It names each task so the agent fetches its instructions from Next Now X. A dependent task is implemented after the work it waits for, with its pull request stacked on that work. Edit global wording in Settings › Prompts, or override it from a project or feature edit dialog.",
       designEmpty: "No task in this feature is waiting to be designed.",
       implementationEmpty: "No task in this feature is ready to implement.",
       selectAll: "Select all",
@@ -128,9 +128,9 @@ export const prompt = {
       tabsLabel: "一括プロンプトの種類",
       tab: { design: "設計", implementation: "実装" },
       designDescription:
-        "選んだタスクをまとめた 1 つのプロンプトです。エージェントは各タスクを SubAgent に渡し、SubAgent は PRX から設計プロンプトを取得して実装計画を登録します。依存関係があるタスクは依存元の設計後に設計されます。グローバルの文面は設定 › プロンプトで、プロジェクトやフィーチャー固有の文面は各編集ダイアログで変更できます。",
+        "選んだタスクをまとめた 1 つのプロンプトです。エージェントは各タスクを SubAgent に渡し、SubAgent は Next Now X から設計プロンプトを取得して実装計画を登録します。依存関係があるタスクは依存元の設計後に設計されます。グローバルの文面は設定 › プロンプトで、プロジェクトやフィーチャー固有の文面は各編集ダイアログで変更できます。",
       implementationDescription:
-        "選んだタスクをまとめた 1 つのプロンプトです。各タスクの指示はエージェントが PRX から取得します。依存関係があるタスクは依存元の完了後に実装され、その PR は依存元の PR に積まれます。グローバルの文面は設定 › プロンプトで、プロジェクトやフィーチャー固有の文面は各編集ダイアログで変更できます。",
+        "選んだタスクをまとめた 1 つのプロンプトです。各タスクの指示はエージェントが Next Now X から取得します。依存関係があるタスクは依存元の完了後に実装され、その PR は依存元の PR に積まれます。グローバルの文面は設定 › プロンプトで、プロジェクトやフィーチャー固有の文面は各編集ダイアログで変更できます。",
       designEmpty: "このフィーチャーに設計を待っているタスクはありません。",
       implementationEmpty:
         "このフィーチャーに実装へ着手できるタスクはありません。",

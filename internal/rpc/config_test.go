@@ -14,13 +14,13 @@ import (
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	prxv1 "github.com/HappyOnigiri/PRX/gen/prx/v1"
-	"github.com/HappyOnigiri/PRX/gen/prx/v1/prxv1connect"
-	"github.com/HappyOnigiri/PRX/internal/app"
-	"github.com/HappyOnigiri/PRX/internal/config"
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/rpc"
-	"github.com/HappyOnigiri/PRX/internal/store"
+	nnxv1 "github.com/HappyOnigiri/nnx/gen/nnx/v1"
+	"github.com/HappyOnigiri/nnx/gen/nnx/v1/nnxv1connect"
+	"github.com/HappyOnigiri/nnx/internal/app"
+	"github.com/HappyOnigiri/nnx/internal/config"
+	"github.com/HappyOnigiri/nnx/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/rpc"
+	"github.com/HappyOnigiri/nnx/internal/store"
 )
 
 func TestRPCGitHubConfigCRUDNeverReturnsInlineToken(t *testing.T) {
@@ -45,7 +45,7 @@ func TestRPCGitHubConfigCRUDNeverReturnsInlineToken(t *testing.T) {
 	}
 	client := newConfigClient(t, app.NewWithConfig(database, nil, configStore))
 
-	configuration, err := client.GetConfig(ctx, connect.NewRequest(&prxv1.GetConfigRequest{}))
+	configuration, err := client.GetConfig(ctx, connect.NewRequest(&nnxv1.GetConfigRequest{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +62,7 @@ func TestRPCGitHubConfigCRUDNeverReturnsInlineToken(t *testing.T) {
 		t.Fatalf("RPC response exposed inline token: %s", encoded)
 	}
 
-	host, err := client.AddGitHubHost(ctx, connect.NewRequest(&prxv1.AddGitHubHostRequest{Host: "ghe.example.com"}))
+	host, err := client.AddGitHubHost(ctx, connect.NewRequest(&nnxv1.AddGitHubHostRequest{Host: "ghe.example.com"}))
 	if err != nil || host.Msg.GetHost().GetApiUrl() != "https://ghe.example.com/api/v3/" {
 		t.Fatalf("add host=%+v err=%v", host.Msg.GetHost(), err)
 	}
@@ -71,43 +71,43 @@ func TestRPCGitHubConfigCRUDNeverReturnsInlineToken(t *testing.T) {
 	}
 	interval, err := client.UpdateGitHubSyncConfig(
 		ctx,
-		connect.NewRequest(&prxv1.UpdateGitHubSyncConfigRequest{IntervalSeconds: 600}),
+		connect.NewRequest(&nnxv1.UpdateGitHubSyncConfigRequest{IntervalSeconds: 600}),
 	)
 	if err != nil || interval.Msg.GetConfig().GetAutoSyncIntervalSeconds() != 600 {
 		t.Fatalf("updated interval=%+v err=%v", interval.Msg.GetConfig(), err)
 	}
 	statusBefore, err := client.GetGitHubSyncStatus(
 		ctx,
-		connect.NewRequest(&prxv1.GetGitHubSyncStatusRequest{}),
+		connect.NewRequest(&nnxv1.GetGitHubSyncStatusRequest{}),
 	)
 	if err != nil || statusBefore.Msg.GetStatus().LastUpdatedAt != nil {
 		t.Fatalf("initial sync status=%+v err=%v", statusBefore.Msg.GetStatus(), err)
 	}
 	automatic, err := client.SyncGitHubIfDue(
 		ctx,
-		connect.NewRequest(&prxv1.SyncGitHubIfDueRequest{}),
+		connect.NewRequest(&nnxv1.SyncGitHubIfDueRequest{}),
 	)
 	if err != nil || !automatic.Msg.GetRan() || automatic.Msg.GetStatus().LastUpdatedAt == nil {
 		t.Fatalf("automatic sync=%+v err=%v", automatic.Msg, err)
 	}
 	apiURL := "https://ghe.example.com/api/v3/"
-	updatedHost, err := client.UpdateGitHubHost(ctx, connect.NewRequest(&prxv1.UpdateGitHubHostRequest{
+	updatedHost, err := client.UpdateGitHubHost(ctx, connect.NewRequest(&nnxv1.UpdateGitHubHostRequest{
 		Host: "ghe.example.com", ApiUrl: &apiURL,
 	}))
 	if err != nil || updatedHost.Msg.GetHost().GetApiUrl() != apiURL {
 		t.Fatalf("update host=%+v err=%v", updatedHost.Msg.GetHost(), err)
 	}
 
-	added, err := client.AddGitHubAuthMethod(ctx, connect.NewRequest(&prxv1.AddGitHubAuthMethodRequest{
+	added, err := client.AddGitHubAuthMethod(ctx, connect.NewRequest(&nnxv1.AddGitHubAuthMethodRequest{
 		Id: "ghe-inline", Host: "ghe.example.com",
-		Type:  prxv1.GithubAuthMethodType_GITHUB_AUTH_METHOD_TYPE_INLINE,
+		Type:  nnxv1.GithubAuthMethodType_GITHUB_AUTH_METHOD_TYPE_INLINE,
 		Token: stringPointer("ghe_rpc_secret"),
 	}))
 	if err != nil || added.Msg.GetAuthMethod().GetSecretHint() != "ghe_…cret" {
 		t.Fatalf("add auth=%+v err=%v", added.Msg.GetAuthMethod(), err)
 	}
 	newID := "ghe-renamed"
-	updated, err := client.UpdateGitHubAuthMethod(ctx, connect.NewRequest(&prxv1.UpdateGitHubAuthMethodRequest{
+	updated, err := client.UpdateGitHubAuthMethod(ctx, connect.NewRequest(&nnxv1.UpdateGitHubAuthMethodRequest{
 		Id: "ghe-inline", NewId: &newID,
 	}))
 	if err != nil || updated.Msg.GetAuthMethod().GetId() != newID ||
@@ -123,32 +123,32 @@ func TestRPCGitHubConfigCRUDNeverReturnsInlineToken(t *testing.T) {
 	}
 	if _, err := client.ReorderGitHubAuthMethods(
 		ctx,
-		connect.NewRequest(&prxv1.ReorderGitHubAuthMethodsRequest{Ids: []string{newID, "work"}}),
+		connect.NewRequest(&nnxv1.ReorderGitHubAuthMethodsRequest{Ids: []string{newID, "work"}}),
 	); err != nil {
 		t.Fatal(err)
 	}
-	validation, err := client.ValidateConfig(ctx, connect.NewRequest(&prxv1.ValidateConfigRequest{}))
+	validation, err := client.ValidateConfig(ctx, connect.NewRequest(&nnxv1.ValidateConfigRequest{}))
 	if err != nil || !validation.Msg.GetValid() || len(validation.Msg.GetErrors()) != 0 ||
 		len(validation.Msg.GetWarnings()) != 0 {
 		t.Fatalf("validation=%+v err=%v", validation.Msg, err)
 	}
 	if _, err := client.DeleteGitHubAuthMethod(
 		ctx,
-		connect.NewRequest(&prxv1.DeleteGitHubAuthMethodRequest{Id: newID}),
+		connect.NewRequest(&nnxv1.DeleteGitHubAuthMethodRequest{Id: newID}),
 	); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := client.DeleteGitHubHost(
 		ctx,
-		connect.NewRequest(&prxv1.DeleteGitHubHostRequest{Host: "ghe.example.com"}),
+		connect.NewRequest(&nnxv1.DeleteGitHubHostRequest{Host: "ghe.example.com"}),
 	); err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = client.AddGitHubAuthMethod(ctx, connect.NewRequest(&prxv1.AddGitHubAuthMethodRequest{
-		Id: "invalid", Host: "github.com", Type: prxv1.GithubAuthMethodType(99),
+	_, err = client.AddGitHubAuthMethod(ctx, connect.NewRequest(&nnxv1.AddGitHubAuthMethodRequest{
+		Id: "invalid", Host: "github.com", Type: nnxv1.GithubAuthMethodType(99),
 	}))
-	if errorDetailCode(t, err) != prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_CONFIG {
+	if errorDetailCode(t, err) != nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_CONFIG {
 		t.Fatalf("invalid auth type error=%v", err)
 	}
 	jsonValue, err := json.Marshal(configuration.Msg.GetConfig())
@@ -163,8 +163,8 @@ func TestRPCConfigMethodsAreUnavailableWithoutConfigStore(t *testing.T) {
 	mux.Handle(path, handler)
 	server := httptest.NewServer(mux)
 	defer server.Close()
-	client := prxv1connect.NewPRXServiceClient(server.Client(), server.URL)
-	_, err := client.GetConfig(context.Background(), connect.NewRequest(&prxv1.GetConfigRequest{}))
+	client := nnxv1connect.NewNNXServiceClient(server.Client(), server.URL)
+	_, err := client.GetConfig(context.Background(), connect.NewRequest(&nnxv1.GetConfigRequest{}))
 	if connect.CodeOf(err) != connect.CodeUnimplemented {
 		t.Fatalf("config without store code=%s err=%v", connect.CodeOf(err), err)
 	}
@@ -183,7 +183,7 @@ func TestRPCTaskLabelConfigAndSnapshotResolution(t *testing.T) {
 	}
 	client := newConfigClient(t, app.NewWithConfig(database, nil, configStore))
 
-	initial, err := client.GetTaskLabelConfig(ctx, connect.NewRequest(&prxv1.GetTaskLabelConfigRequest{}))
+	initial, err := client.GetTaskLabelConfig(ctx, connect.NewRequest(&nnxv1.GetTaskLabelConfigRequest{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,8 +194,8 @@ func TestRPCTaskLabelConfigAndSnapshotResolution(t *testing.T) {
 	}
 	text := "Working"
 	color := "#A1B2C3"
-	updated, err := client.UpdateTaskLabelConfig(ctx, connect.NewRequest(&prxv1.UpdateTaskLabelConfigRequest{
-		Overrides: &prxv1.TaskLabelOverridesUpdate{Values: map[string]*prxv1.TaskLabelOverrideUpdate{
+	updated, err := client.UpdateTaskLabelConfig(ctx, connect.NewRequest(&nnxv1.UpdateTaskLabelConfigRequest{
+		Overrides: &nnxv1.TaskLabelOverridesUpdate{Values: map[string]*nnxv1.TaskLabelOverrideUpdate{
 			string(domain.TaskLabelStatusInProgress): {Text: &text, Color: &color},
 		}},
 	}))
@@ -206,21 +206,21 @@ func TestRPCTaskLabelConfigAndSnapshotResolution(t *testing.T) {
 	if override.GetText() != text || override.GetColor() != "#a1b2c3" {
 		t.Fatalf("updated override=%+v", override)
 	}
-	project, err := client.CreateProject(ctx, connect.NewRequest(&prxv1.CreateProjectRequest{Title: "Label project"}))
+	project, err := client.CreateProject(ctx, connect.NewRequest(&nnxv1.CreateProjectRequest{Title: "Label project"}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	feature, err := client.CreateFeature(ctx, connect.NewRequest(&prxv1.CreateFeatureRequest{
+	feature, err := client.CreateFeature(ctx, connect.NewRequest(&nnxv1.CreateFeatureRequest{
 		Title: "Label feature", ProjectId: project.Msg.GetProject().GetId(),
 	}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	snapshot, err := client.GetSnapshot(ctx, connect.NewRequest(&prxv1.GetSnapshotRequest{}))
+	snapshot, err := client.GetSnapshot(ctx, connect.NewRequest(&nnxv1.GetSnapshotRequest{}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	var appearance *prxv1.TaskLabelAppearance
+	var appearance *nnxv1.TaskLabelAppearance
 	for _, item := range snapshot.Msg.GetSnapshot().GetFeatures() {
 		if item.GetId() == feature.Msg.GetFeature().GetId() {
 			for _, candidate := range item.GetTaskLabelAppearances().GetValues() {
@@ -233,24 +233,24 @@ func TestRPCTaskLabelConfigAndSnapshotResolution(t *testing.T) {
 	if appearance == nil || appearance.GetText() != text || !appearance.GetTextOverridden() {
 		t.Fatalf("snapshot appearance=%+v", appearance)
 	}
-	_, err = client.UpdateTaskLabelConfig(ctx, connect.NewRequest(&prxv1.UpdateTaskLabelConfigRequest{
-		Overrides: &prxv1.TaskLabelOverridesUpdate{Values: map[string]*prxv1.TaskLabelOverrideUpdate{
+	_, err = client.UpdateTaskLabelConfig(ctx, connect.NewRequest(&nnxv1.UpdateTaskLabelConfigRequest{
+		Overrides: &nnxv1.TaskLabelOverridesUpdate{Values: map[string]*nnxv1.TaskLabelOverrideUpdate{
 			"status.missing": {Text: &text},
 		}},
 	}))
-	if errorDetailCode(t, err) != prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_TASK_LABEL {
+	if errorDetailCode(t, err) != nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_TASK_LABEL {
 		t.Fatalf("invalid key error=%v", err)
 	}
 }
 
-func newConfigClient(t *testing.T, service *app.Service) prxv1connect.PRXServiceClient {
+func newConfigClient(t *testing.T, service *app.Service) nnxv1connect.NNXServiceClient {
 	t.Helper()
 	path, handler := rpc.New(service)
 	mux := http.NewServeMux()
 	mux.Handle(path, handler)
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
-	return prxv1connect.NewPRXServiceClient(server.Client(), server.URL)
+	return nnxv1connect.NewNNXServiceClient(server.Client(), server.URL)
 }
 
 func containsSecret(value, secret string) bool {
@@ -378,7 +378,7 @@ func (noopRepository) Snapshot(context.Context) (domain.Snapshot, error) {
 }
 func (noopRepository) Validate(context.Context) []string { return nil }
 
-// TestRPCValidateConfigReportsUnknownFields は、新しい PRX が書いた設定でも
+// TestRPCValidateConfigReportsUnknownFields は、新しい Next Now X が書いた設定でも
 // サーバーが使えることを保ち、CLI が出すのと同じ警告を WebUI にも渡す。
 func TestRPCValidateConfigReportsUnknownFields(t *testing.T) {
 	ctx := context.Background()
@@ -397,10 +397,10 @@ func TestRPCValidateConfigReportsUnknownFields(t *testing.T) {
 	}
 	client := newConfigClient(t, app.NewWithConfig(database, nil, configStore))
 
-	if _, err := client.GetConfig(ctx, connect.NewRequest(&prxv1.GetConfigRequest{})); err != nil {
+	if _, err := client.GetConfig(ctx, connect.NewRequest(&nnxv1.GetConfigRequest{})); err != nil {
 		t.Fatalf("unknown fields blocked a configuration read: %v", err)
 	}
-	validation, err := client.ValidateConfig(ctx, connect.NewRequest(&prxv1.ValidateConfigRequest{}))
+	validation, err := client.ValidateConfig(ctx, connect.NewRequest(&nnxv1.ValidateConfigRequest{}))
 	if err != nil || !validation.Msg.GetValid() || len(validation.Msg.GetErrors()) != 0 {
 		t.Fatalf("validation=%+v err=%v", validation.Msg, err)
 	}

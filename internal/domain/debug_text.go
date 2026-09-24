@@ -12,7 +12,7 @@ import (
 // 両者がこの 1 つの描画を共有するため、issue に貼ったレポートはどちらで作っても同じになる。
 func FormatDebugReport(report DebugReport) string {
 	out := &debugText{}
-	out.line("PRX diagnostic report")
+	out.line("Next Now X diagnostic report")
 	writeDebugProblems(out, report.Problems)
 	writeDebugBuild(out, report.Build)
 	writeDebugRuntime(out, report.Runtime)

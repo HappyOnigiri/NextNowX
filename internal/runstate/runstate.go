@@ -1,4 +1,4 @@
-// Package runstate は稼働中の `prx serve` を 1 つのファイルで記録する。多重起動防止の
+// Package runstate は稼働中の `nnx serve` を 1 つのファイルで記録する。多重起動防止の
 // flock と稼働発見の記録を同じ inode に載せることで、アドレスを書いた本人が今も生きて
 // いることをロック 1 つで保証する。docs/design/daemon.md を参照。
 package runstate
@@ -17,8 +17,8 @@ import (
 const SchemaVersion = 1
 
 // DirEnvironmentVariable は記録の置き場所を差し替える。テストの子プロセスを実ユーザーの
-// 記録から隔離するために必要で、`prx debug` の環境変数一覧にも載る。
-const DirEnvironmentVariable = "PRX_RUN_DIR"
+// 記録から隔離するために必要で、`nnx debug` の環境変数一覧にも載る。
+const DirEnvironmentVariable = "NNX_RUN_DIR"
 
 // State は稼働中のサーバーについて、外側のプロセスが知る必要のある事実を運ぶ。
 type State struct {
@@ -52,7 +52,7 @@ func Dir() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("resolve run state directory: %w", err)
 	}
-	return filepath.Join(dir, "prx", "run"), nil
+	return filepath.Join(dir, "nnx", "run"), nil
 }
 
 // Path は記録ファイルの位置を返す。

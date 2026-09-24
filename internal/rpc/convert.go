@@ -3,12 +3,12 @@ package rpc
 import (
 	"sort"
 
-	prxv1 "github.com/HappyOnigiri/PRX/gen/prx/v1"
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	nnxv1 "github.com/HappyOnigiri/nnx/gen/nnx/v1"
+	"github.com/HappyOnigiri/nnx/internal/domain"
 )
 
-func protoProject(v domain.Project) *prxv1.Project {
-	return &prxv1.Project{
+func protoProject(v domain.Project) *nnxv1.Project {
+	return &nnxv1.Project{
 		Id:                 v.ID,
 		Title:              v.Title,
 		Description:        v.Description,
@@ -20,8 +20,8 @@ func protoProject(v domain.Project) *prxv1.Project {
 	}
 }
 
-func protoFeature(v domain.Feature) *prxv1.Feature {
-	return &prxv1.Feature{
+func protoFeature(v domain.Feature) *nnxv1.Feature {
+	return &nnxv1.Feature{
 		Id:                   v.ID,
 		ProjectId:            v.ProjectID,
 		ReadOnly:             v.ReadOnly,
@@ -44,15 +44,15 @@ func protoFeature(v domain.Feature) *prxv1.Feature {
 	}
 }
 
-func protoTaskLabelOverrides(values domain.TaskLabelOverrides) *prxv1.TaskLabelOverrides {
-	result := &prxv1.TaskLabelOverrides{Values: map[string]*prxv1.TaskLabelOverride{}}
+func protoTaskLabelOverrides(values domain.TaskLabelOverrides) *nnxv1.TaskLabelOverrides {
+	result := &nnxv1.TaskLabelOverrides{Values: map[string]*nnxv1.TaskLabelOverride{}}
 	for key, value := range values {
-		result.Values[string(key)] = &prxv1.TaskLabelOverride{Text: value.Text, Color: value.Color}
+		result.Values[string(key)] = &nnxv1.TaskLabelOverride{Text: value.Text, Color: value.Color}
 	}
 	return result
 }
 
-func domainTaskLabelOverridesUpdate(value *prxv1.TaskLabelOverridesUpdate) *domain.TaskLabelOverridesUpdate {
+func domainTaskLabelOverridesUpdate(value *nnxv1.TaskLabelOverridesUpdate) *domain.TaskLabelOverridesUpdate {
 	if value == nil {
 		return nil
 	}
@@ -69,7 +69,7 @@ func domainTaskLabelOverridesUpdate(value *prxv1.TaskLabelOverridesUpdate) *doma
 	return &result
 }
 
-func protoTaskLabelAppearances(values domain.TaskLabelAppearances) *prxv1.TaskLabelAppearances {
+func protoTaskLabelAppearances(values domain.TaskLabelAppearances) *nnxv1.TaskLabelAppearances {
 	if len(values) == 0 {
 		return nil
 	}
@@ -78,10 +78,10 @@ func protoTaskLabelAppearances(values domain.TaskLabelAppearances) *prxv1.TaskLa
 		keys = append(keys, key)
 	}
 	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
-	result := &prxv1.TaskLabelAppearances{Values: make([]*prxv1.TaskLabelAppearance, 0, len(keys))}
+	result := &nnxv1.TaskLabelAppearances{Values: make([]*nnxv1.TaskLabelAppearance, 0, len(keys))}
 	for _, key := range keys {
 		value := values[key]
-		result.Values = append(result.Values, &prxv1.TaskLabelAppearance{
+		result.Values = append(result.Values, &nnxv1.TaskLabelAppearance{
 			Key: string(key), Text: value.Text, Color: value.Color,
 			TextOverridden: value.TextOverridden, ColorOverridden: value.ColorOverridden,
 		})
@@ -89,8 +89,8 @@ func protoTaskLabelAppearances(values domain.TaskLabelAppearances) *prxv1.TaskLa
 	return result
 }
 
-func protoPromptTemplateOverrides(v domain.PromptTemplateOverrides) *prxv1.PromptTemplateOverrides {
-	return &prxv1.PromptTemplateOverrides{
+func protoPromptTemplateOverrides(v domain.PromptTemplateOverrides) *nnxv1.PromptTemplateOverrides {
+	return &nnxv1.PromptTemplateOverrides{
 		Design:         v.Design,
 		Implementation: v.Implementation,
 		Batch:          v.Batch,
@@ -99,7 +99,7 @@ func protoPromptTemplateOverrides(v domain.PromptTemplateOverrides) *prxv1.Promp
 }
 
 func domainPromptTemplateOverridesUpdate(
-	value *prxv1.PromptTemplateOverridesUpdate,
+	value *nnxv1.PromptTemplateOverridesUpdate,
 ) *domain.PromptTemplateOverridesUpdate {
 	if value == nil {
 		return nil
@@ -124,8 +124,8 @@ func domainPromptTemplateOverridesUpdate(
 	return result
 }
 
-func protoTask(v domain.Task) *prxv1.Task {
-	return &prxv1.Task{
+func protoTask(v domain.Task) *nnxv1.Task {
+	return &nnxv1.Task{
 		Id:                    v.ID,
 		FeatureId:             v.FeatureID,
 		Title:                 v.Title,
@@ -143,16 +143,16 @@ func protoTask(v domain.Task) *prxv1.Task {
 	}
 }
 
-func protoDependency(v domain.Dependency) *prxv1.Dependency {
-	return &prxv1.Dependency{
+func protoDependency(v domain.Dependency) *nnxv1.Dependency {
+	return &nnxv1.Dependency{
 		BlockerTaskId: v.BlockerTaskID,
 		BlockedTaskId: v.BlockedTaskID,
 		CreatedAt:     v.CreatedAt.Format(timeFormat),
 	}
 }
 
-func protoPullRequest(v domain.PullRequest) *prxv1.PullRequest {
-	result := &prxv1.PullRequest{
+func protoPullRequest(v domain.PullRequest) *nnxv1.PullRequest {
+	result := &nnxv1.PullRequest{
 		TaskId:       v.TaskID,
 		Host:         v.Host,
 		Owner:        v.Owner,
@@ -188,8 +188,8 @@ func protoPullRequest(v domain.PullRequest) *prxv1.PullRequest {
 	return result
 }
 
-func protoDocument(v domain.Document) *prxv1.Document {
-	return &prxv1.Document{
+func protoDocument(v domain.Document) *nnxv1.Document {
+	return &nnxv1.Document{
 		Id:                   v.ID,
 		ProjectId:            v.ProjectID,
 		FeatureId:            v.FeatureID,
@@ -203,8 +203,8 @@ func protoDocument(v domain.Document) *prxv1.Document {
 	}
 }
 
-func protoSnapshot(v domain.Snapshot) *prxv1.Snapshot {
-	result := &prxv1.Snapshot{}
+func protoSnapshot(v domain.Snapshot) *nnxv1.Snapshot {
+	result := &nnxv1.Snapshot{}
 	for _, item := range v.Projects {
 		result.Projects = append(result.Projects, protoProject(item))
 	}
@@ -238,42 +238,42 @@ func protoSnapshot(v domain.Snapshot) *prxv1.Snapshot {
 	return result
 }
 
-func protoFeatureStatus(value domain.FeatureStatus) prxv1.FeatureStatus {
+func protoFeatureStatus(value domain.FeatureStatus) nnxv1.FeatureStatus {
 	switch value {
 	case domain.FeatureStatusAuto:
-		return prxv1.FeatureStatus_FEATURE_STATUS_AUTO
+		return nnxv1.FeatureStatus_FEATURE_STATUS_AUTO
 	case domain.FeatureStatusActive:
-		return prxv1.FeatureStatus_FEATURE_STATUS_ACTIVE
+		return nnxv1.FeatureStatus_FEATURE_STATUS_ACTIVE
 	case domain.FeatureStatusPaused:
-		return prxv1.FeatureStatus_FEATURE_STATUS_PAUSED
+		return nnxv1.FeatureStatus_FEATURE_STATUS_PAUSED
 	case domain.FeatureStatusCompleted:
-		return prxv1.FeatureStatus_FEATURE_STATUS_COMPLETED
+		return nnxv1.FeatureStatus_FEATURE_STATUS_COMPLETED
 	case domain.FeatureStatusCancelled:
-		return prxv1.FeatureStatus_FEATURE_STATUS_CANCELLED
+		return nnxv1.FeatureStatus_FEATURE_STATUS_CANCELLED
 	default:
-		return prxv1.FeatureStatus_FEATURE_STATUS_UNSPECIFIED
+		return nnxv1.FeatureStatus_FEATURE_STATUS_UNSPECIFIED
 	}
 }
 
 // domainFeatureStatus はサーバーがマップできない値を、空文字列にフォールバック
 // せず拒否する。空文字列はサービス層が「フィールド省略」と解釈するため。
-func domainFeatureStatus(value *prxv1.FeatureStatus) (*domain.FeatureStatus, error) {
+func domainFeatureStatus(value *nnxv1.FeatureStatus) (*domain.FeatureStatus, error) {
 	if value == nil {
 		return nil, nil
 	}
 	var result domain.FeatureStatus
 	switch *value {
-	case prxv1.FeatureStatus_FEATURE_STATUS_AUTO:
+	case nnxv1.FeatureStatus_FEATURE_STATUS_AUTO:
 		result = domain.FeatureStatusAuto
-	case prxv1.FeatureStatus_FEATURE_STATUS_ACTIVE:
+	case nnxv1.FeatureStatus_FEATURE_STATUS_ACTIVE:
 		result = domain.FeatureStatusActive
-	case prxv1.FeatureStatus_FEATURE_STATUS_PAUSED:
+	case nnxv1.FeatureStatus_FEATURE_STATUS_PAUSED:
 		result = domain.FeatureStatusPaused
-	case prxv1.FeatureStatus_FEATURE_STATUS_COMPLETED:
+	case nnxv1.FeatureStatus_FEATURE_STATUS_COMPLETED:
 		result = domain.FeatureStatusCompleted
-	case prxv1.FeatureStatus_FEATURE_STATUS_CANCELLED:
+	case nnxv1.FeatureStatus_FEATURE_STATUS_CANCELLED:
 		result = domain.FeatureStatusCancelled
-	case prxv1.FeatureStatus_FEATURE_STATUS_UNSPECIFIED:
+	case nnxv1.FeatureStatus_FEATURE_STATUS_UNSPECIFIED:
 		return nil, domain.NewError(domain.DomainErrorCodeInvalidStatus, "invalid feature status")
 	default:
 		return nil, domain.NewError(domain.DomainErrorCodeInvalidStatus, "invalid feature status")
@@ -281,42 +281,42 @@ func domainFeatureStatus(value *prxv1.FeatureStatus) (*domain.FeatureStatus, err
 	return &result, nil
 }
 
-func protoTaskStatus(value domain.TaskStatus) prxv1.TaskStatus {
+func protoTaskStatus(value domain.TaskStatus) nnxv1.TaskStatus {
 	switch value {
 	case domain.TaskStatusNotStarted:
-		return prxv1.TaskStatus_TASK_STATUS_NOT_STARTED
+		return nnxv1.TaskStatus_TASK_STATUS_NOT_STARTED
 	case domain.TaskStatusDesigning:
-		return prxv1.TaskStatus_TASK_STATUS_DESIGNING
+		return nnxv1.TaskStatus_TASK_STATUS_DESIGNING
 	case domain.TaskStatusInProgress:
-		return prxv1.TaskStatus_TASK_STATUS_IN_PROGRESS
+		return nnxv1.TaskStatus_TASK_STATUS_IN_PROGRESS
 	case domain.TaskStatusCompleted:
-		return prxv1.TaskStatus_TASK_STATUS_COMPLETED
+		return nnxv1.TaskStatus_TASK_STATUS_COMPLETED
 	case domain.TaskStatusClosed:
-		return prxv1.TaskStatus_TASK_STATUS_CLOSED
+		return nnxv1.TaskStatus_TASK_STATUS_CLOSED
 	default:
-		return prxv1.TaskStatus_TASK_STATUS_UNSPECIFIED
+		return nnxv1.TaskStatus_TASK_STATUS_UNSPECIFIED
 	}
 }
 
 // domainTaskStatus はサーバーがマップできない値を、空文字列にフォールバック
 // せず拒否する。空文字列はサービス層が「フィールド省略」と解釈するため。
-func domainTaskStatus(value *prxv1.TaskStatus) (*domain.TaskStatus, error) {
+func domainTaskStatus(value *nnxv1.TaskStatus) (*domain.TaskStatus, error) {
 	if value == nil {
 		return nil, nil
 	}
 	var result domain.TaskStatus
 	switch *value {
-	case prxv1.TaskStatus_TASK_STATUS_NOT_STARTED:
+	case nnxv1.TaskStatus_TASK_STATUS_NOT_STARTED:
 		result = domain.TaskStatusNotStarted
-	case prxv1.TaskStatus_TASK_STATUS_DESIGNING:
+	case nnxv1.TaskStatus_TASK_STATUS_DESIGNING:
 		result = domain.TaskStatusDesigning
-	case prxv1.TaskStatus_TASK_STATUS_IN_PROGRESS:
+	case nnxv1.TaskStatus_TASK_STATUS_IN_PROGRESS:
 		result = domain.TaskStatusInProgress
-	case prxv1.TaskStatus_TASK_STATUS_COMPLETED:
+	case nnxv1.TaskStatus_TASK_STATUS_COMPLETED:
 		result = domain.TaskStatusCompleted
-	case prxv1.TaskStatus_TASK_STATUS_CLOSED:
+	case nnxv1.TaskStatus_TASK_STATUS_CLOSED:
 		result = domain.TaskStatusClosed
-	case prxv1.TaskStatus_TASK_STATUS_UNSPECIFIED:
+	case nnxv1.TaskStatus_TASK_STATUS_UNSPECIFIED:
 		return nil, domain.NewError(domain.DomainErrorCodeInvalidStatus, "invalid task status")
 	default:
 		return nil, domain.NewError(domain.DomainErrorCodeInvalidStatus, "invalid task status")
@@ -324,143 +324,143 @@ func domainTaskStatus(value *prxv1.TaskStatus) (*domain.TaskStatus, error) {
 	return &result, nil
 }
 
-func protoTaskDisplayState(value domain.TaskDisplayState) prxv1.TaskDisplayState {
-	states := map[domain.TaskDisplayState]prxv1.TaskDisplayState{
-		domain.TaskDisplayStateNotStarted:  prxv1.TaskDisplayState_TASK_DISPLAY_STATE_NOT_STARTED,
-		domain.TaskDisplayStateDesigning:   prxv1.TaskDisplayState_TASK_DISPLAY_STATE_DESIGNING,
-		domain.TaskDisplayStateDesigned:    prxv1.TaskDisplayState_TASK_DISPLAY_STATE_DESIGNED,
-		domain.TaskDisplayStateInProgress:  prxv1.TaskDisplayState_TASK_DISPLAY_STATE_IN_PROGRESS,
-		domain.TaskDisplayStateImplemented: prxv1.TaskDisplayState_TASK_DISPLAY_STATE_IMPLEMENTED,
-		domain.TaskDisplayStateInReview:    prxv1.TaskDisplayState_TASK_DISPLAY_STATE_IN_REVIEW,
-		domain.TaskDisplayStateApproved:    prxv1.TaskDisplayState_TASK_DISPLAY_STATE_APPROVED,
-		domain.TaskDisplayStateMerged:      prxv1.TaskDisplayState_TASK_DISPLAY_STATE_MERGED,
-		domain.TaskDisplayStateCompleted:   prxv1.TaskDisplayState_TASK_DISPLAY_STATE_COMPLETED,
-		domain.TaskDisplayStateClosed:      prxv1.TaskDisplayState_TASK_DISPLAY_STATE_CLOSED,
-		domain.TaskDisplayStateUnknown:     prxv1.TaskDisplayState_TASK_DISPLAY_STATE_UNKNOWN,
+func protoTaskDisplayState(value domain.TaskDisplayState) nnxv1.TaskDisplayState {
+	states := map[domain.TaskDisplayState]nnxv1.TaskDisplayState{
+		domain.TaskDisplayStateNotStarted:  nnxv1.TaskDisplayState_TASK_DISPLAY_STATE_NOT_STARTED,
+		domain.TaskDisplayStateDesigning:   nnxv1.TaskDisplayState_TASK_DISPLAY_STATE_DESIGNING,
+		domain.TaskDisplayStateDesigned:    nnxv1.TaskDisplayState_TASK_DISPLAY_STATE_DESIGNED,
+		domain.TaskDisplayStateInProgress:  nnxv1.TaskDisplayState_TASK_DISPLAY_STATE_IN_PROGRESS,
+		domain.TaskDisplayStateImplemented: nnxv1.TaskDisplayState_TASK_DISPLAY_STATE_IMPLEMENTED,
+		domain.TaskDisplayStateInReview:    nnxv1.TaskDisplayState_TASK_DISPLAY_STATE_IN_REVIEW,
+		domain.TaskDisplayStateApproved:    nnxv1.TaskDisplayState_TASK_DISPLAY_STATE_APPROVED,
+		domain.TaskDisplayStateMerged:      nnxv1.TaskDisplayState_TASK_DISPLAY_STATE_MERGED,
+		domain.TaskDisplayStateCompleted:   nnxv1.TaskDisplayState_TASK_DISPLAY_STATE_COMPLETED,
+		domain.TaskDisplayStateClosed:      nnxv1.TaskDisplayState_TASK_DISPLAY_STATE_CLOSED,
+		domain.TaskDisplayStateUnknown:     nnxv1.TaskDisplayState_TASK_DISPLAY_STATE_UNKNOWN,
 	}
 	if state, ok := states[value]; ok {
 		return state
 	}
-	return prxv1.TaskDisplayState_TASK_DISPLAY_STATE_UNSPECIFIED
+	return nnxv1.TaskDisplayState_TASK_DISPLAY_STATE_UNSPECIFIED
 }
 
-func protoPullRequestState(value domain.PullRequestState) prxv1.PullRequestState {
+func protoPullRequestState(value domain.PullRequestState) nnxv1.PullRequestState {
 	switch value {
 	case domain.PullRequestStateOpen:
-		return prxv1.PullRequestState_PULL_REQUEST_STATE_OPEN
+		return nnxv1.PullRequestState_PULL_REQUEST_STATE_OPEN
 	case domain.PullRequestStateClosed:
-		return prxv1.PullRequestState_PULL_REQUEST_STATE_CLOSED
+		return nnxv1.PullRequestState_PULL_REQUEST_STATE_CLOSED
 	case domain.PullRequestStateMerged:
-		return prxv1.PullRequestState_PULL_REQUEST_STATE_MERGED
+		return nnxv1.PullRequestState_PULL_REQUEST_STATE_MERGED
 	case domain.PullRequestStateUnknown:
-		return prxv1.PullRequestState_PULL_REQUEST_STATE_UNKNOWN
+		return nnxv1.PullRequestState_PULL_REQUEST_STATE_UNKNOWN
 	default:
-		return prxv1.PullRequestState_PULL_REQUEST_STATE_UNSPECIFIED
+		return nnxv1.PullRequestState_PULL_REQUEST_STATE_UNSPECIFIED
 	}
 }
 
-func protoReviewState(value domain.ReviewState) prxv1.ReviewState {
+func protoReviewState(value domain.ReviewState) nnxv1.ReviewState {
 	switch value {
 	case domain.ReviewStateNone:
-		return prxv1.ReviewState_REVIEW_STATE_NONE
+		return nnxv1.ReviewState_REVIEW_STATE_NONE
 	case domain.ReviewStateRequired:
-		return prxv1.ReviewState_REVIEW_STATE_REQUIRED
+		return nnxv1.ReviewState_REVIEW_STATE_REQUIRED
 	case domain.ReviewStateApproved:
-		return prxv1.ReviewState_REVIEW_STATE_APPROVED
+		return nnxv1.ReviewState_REVIEW_STATE_APPROVED
 	case domain.ReviewStateChangesRequested:
-		return prxv1.ReviewState_REVIEW_STATE_CHANGES_REQUESTED
+		return nnxv1.ReviewState_REVIEW_STATE_CHANGES_REQUESTED
 	case domain.ReviewStateUnknown:
-		return prxv1.ReviewState_REVIEW_STATE_UNKNOWN
+		return nnxv1.ReviewState_REVIEW_STATE_UNKNOWN
 	default:
-		return prxv1.ReviewState_REVIEW_STATE_UNSPECIFIED
+		return nnxv1.ReviewState_REVIEW_STATE_UNSPECIFIED
 	}
 }
 
-func protoMergeability(value domain.Mergeability) prxv1.Mergeability {
+func protoMergeability(value domain.Mergeability) nnxv1.Mergeability {
 	switch value {
 	case domain.MergeabilityMergeable:
-		return prxv1.Mergeability_MERGEABILITY_MERGEABLE
+		return nnxv1.Mergeability_MERGEABILITY_MERGEABLE
 	case domain.MergeabilityConflicting:
-		return prxv1.Mergeability_MERGEABILITY_CONFLICTING
+		return nnxv1.Mergeability_MERGEABILITY_CONFLICTING
 	case domain.MergeabilityUnknown:
-		return prxv1.Mergeability_MERGEABILITY_UNKNOWN
+		return nnxv1.Mergeability_MERGEABILITY_UNKNOWN
 	default:
-		return prxv1.Mergeability_MERGEABILITY_UNSPECIFIED
+		return nnxv1.Mergeability_MERGEABILITY_UNSPECIFIED
 	}
 }
 
-func protoCheckState(value domain.CheckState) prxv1.CheckState {
+func protoCheckState(value domain.CheckState) nnxv1.CheckState {
 	switch value {
 	case domain.CheckStateUnknown:
-		return prxv1.CheckState_CHECK_STATE_UNKNOWN
+		return nnxv1.CheckState_CHECK_STATE_UNKNOWN
 	case domain.CheckStateNone:
-		return prxv1.CheckState_CHECK_STATE_NONE
+		return nnxv1.CheckState_CHECK_STATE_NONE
 	case domain.CheckStatePending:
-		return prxv1.CheckState_CHECK_STATE_PENDING
+		return nnxv1.CheckState_CHECK_STATE_PENDING
 	case domain.CheckStateSuccess:
-		return prxv1.CheckState_CHECK_STATE_SUCCESS
+		return nnxv1.CheckState_CHECK_STATE_SUCCESS
 	case domain.CheckStateFailure:
-		return prxv1.CheckState_CHECK_STATE_FAILURE
+		return nnxv1.CheckState_CHECK_STATE_FAILURE
 	default:
-		return prxv1.CheckState_CHECK_STATE_UNSPECIFIED
+		return nnxv1.CheckState_CHECK_STATE_UNSPECIFIED
 	}
 }
 
-func protoPullRequestDisplayState(value domain.PullRequestDisplayState) prxv1.PullRequestDisplayState {
+func protoPullRequestDisplayState(value domain.PullRequestDisplayState) nnxv1.PullRequestDisplayState {
 	const (
-		changesRequestedState = prxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_CHANGES_REQUESTED
-		reviewWaitingState    = prxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_REVIEW_WAITING
+		changesRequestedState = nnxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_CHANGES_REQUESTED
+		reviewWaitingState    = nnxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_REVIEW_WAITING
 	)
-	states := map[domain.PullRequestDisplayState]prxv1.PullRequestDisplayState{
-		domain.PullRequestDisplayStateMerged:           prxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_MERGED,
-		domain.PullRequestDisplayStateClosed:           prxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_CLOSED,
-		domain.PullRequestDisplayStateDraft:            prxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_DRAFT,
-		domain.PullRequestDisplayStateConflict:         prxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_CONFLICT,
+	states := map[domain.PullRequestDisplayState]nnxv1.PullRequestDisplayState{
+		domain.PullRequestDisplayStateMerged:           nnxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_MERGED,
+		domain.PullRequestDisplayStateClosed:           nnxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_CLOSED,
+		domain.PullRequestDisplayStateDraft:            nnxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_DRAFT,
+		domain.PullRequestDisplayStateConflict:         nnxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_CONFLICT,
 		domain.PullRequestDisplayStateChangesRequested: changesRequestedState,
-		domain.PullRequestDisplayStateApproved:         prxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_APPROVED,
+		domain.PullRequestDisplayStateApproved:         nnxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_APPROVED,
 		domain.PullRequestDisplayStateReviewWaiting:    reviewWaitingState,
-		domain.PullRequestDisplayStateOpen:             prxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_OPEN,
-		domain.PullRequestDisplayStateUnknown:          prxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_UNKNOWN,
+		domain.PullRequestDisplayStateOpen:             nnxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_OPEN,
+		domain.PullRequestDisplayStateUnknown:          nnxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_UNKNOWN,
 	}
 	if state, ok := states[value]; ok {
 		return state
 	}
-	return prxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_UNSPECIFIED
+	return nnxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_UNSPECIFIED
 }
 
-func protoDocumentKind(value domain.DocumentKind) prxv1.DocumentKind {
+func protoDocumentKind(value domain.DocumentKind) nnxv1.DocumentKind {
 	switch value {
 	case domain.DocumentKindURL:
-		return prxv1.DocumentKind_DOCUMENT_KIND_URL
+		return nnxv1.DocumentKind_DOCUMENT_KIND_URL
 	case domain.DocumentKindLocalFile:
-		return prxv1.DocumentKind_DOCUMENT_KIND_LOCAL_FILE
+		return nnxv1.DocumentKind_DOCUMENT_KIND_LOCAL_FILE
 	case domain.DocumentKindMarkdown:
-		return prxv1.DocumentKind_DOCUMENT_KIND_MARKDOWN
+		return nnxv1.DocumentKind_DOCUMENT_KIND_MARKDOWN
 	default:
-		return prxv1.DocumentKind_DOCUMENT_KIND_UNSPECIFIED
+		return nnxv1.DocumentKind_DOCUMENT_KIND_UNSPECIFIED
 	}
 }
 
-func protoAddDocumentSource(value *prxv1.AddDocumentRequest) domain.Document {
+func protoAddDocumentSource(value *nnxv1.AddDocumentRequest) domain.Document {
 	switch value.GetSource().(type) {
-	case *prxv1.AddDocumentRequest_Url:
+	case *nnxv1.AddDocumentRequest_Url:
 		return domain.Document{Kind: domain.DocumentKindURL, Locator: value.GetUrl()}
-	case *prxv1.AddDocumentRequest_LocalFile:
+	case *nnxv1.AddDocumentRequest_LocalFile:
 		return domain.Document{Kind: domain.DocumentKindLocalFile, Locator: value.GetLocalFile()}
-	case *prxv1.AddDocumentRequest_Markdown:
+	case *nnxv1.AddDocumentRequest_Markdown:
 		return domain.Document{Kind: domain.DocumentKindMarkdown, Content: value.GetMarkdown()}
 	default:
 		return domain.Document{}
 	}
 }
 
-func protoUpdateDocumentSource(value *prxv1.UpdateDocumentRequest) domain.Document {
+func protoUpdateDocumentSource(value *nnxv1.UpdateDocumentRequest) domain.Document {
 	switch value.GetSource().(type) {
-	case *prxv1.UpdateDocumentRequest_Url:
+	case *nnxv1.UpdateDocumentRequest_Url:
 		return domain.Document{Kind: domain.DocumentKindURL, Locator: value.GetUrl()}
-	case *prxv1.UpdateDocumentRequest_LocalFile:
+	case *nnxv1.UpdateDocumentRequest_LocalFile:
 		return domain.Document{Kind: domain.DocumentKindLocalFile, Locator: value.GetLocalFile()}
-	case *prxv1.UpdateDocumentRequest_Markdown:
+	case *nnxv1.UpdateDocumentRequest_Markdown:
 		return domain.Document{Kind: domain.DocumentKindMarkdown, Content: value.GetMarkdown()}
 	default:
 		return domain.Document{}
@@ -468,14 +468,14 @@ func protoUpdateDocumentSource(value *prxv1.UpdateDocumentRequest) domain.Docume
 }
 
 // protoTaskBlockLabels はドメインの並び順をそのまま保つ。未知の値は落とす。
-func protoTaskBlockLabels(values []domain.TaskBlockLabel) []prxv1.TaskBlockLabel {
-	labels := map[domain.TaskBlockLabel]prxv1.TaskBlockLabel{
-		domain.TaskBlockLabelDependencyUnresolved: prxv1.TaskBlockLabel_TASK_BLOCK_LABEL_DEPENDENCY_UNRESOLVED,
-		domain.TaskBlockLabelConflict:             prxv1.TaskBlockLabel_TASK_BLOCK_LABEL_CONFLICT,
-		domain.TaskBlockLabelChangesRequested:     prxv1.TaskBlockLabel_TASK_BLOCK_LABEL_CHANGES_REQUESTED,
-		domain.TaskBlockLabelCIFailed:             prxv1.TaskBlockLabel_TASK_BLOCK_LABEL_CI_FAILED,
+func protoTaskBlockLabels(values []domain.TaskBlockLabel) []nnxv1.TaskBlockLabel {
+	labels := map[domain.TaskBlockLabel]nnxv1.TaskBlockLabel{
+		domain.TaskBlockLabelDependencyUnresolved: nnxv1.TaskBlockLabel_TASK_BLOCK_LABEL_DEPENDENCY_UNRESOLVED,
+		domain.TaskBlockLabelConflict:             nnxv1.TaskBlockLabel_TASK_BLOCK_LABEL_CONFLICT,
+		domain.TaskBlockLabelChangesRequested:     nnxv1.TaskBlockLabel_TASK_BLOCK_LABEL_CHANGES_REQUESTED,
+		domain.TaskBlockLabelCIFailed:             nnxv1.TaskBlockLabel_TASK_BLOCK_LABEL_CI_FAILED,
 	}
-	result := make([]prxv1.TaskBlockLabel, 0, len(values))
+	result := make([]nnxv1.TaskBlockLabel, 0, len(values))
 	for _, value := range values {
 		if label, ok := labels[value]; ok {
 			result = append(result, label)
@@ -484,78 +484,78 @@ func protoTaskBlockLabels(values []domain.TaskBlockLabel) []prxv1.TaskBlockLabel
 	return result
 }
 
-func protoBlockedReason(task domain.Task) *prxv1.BlockedReason {
-	code := prxv1.BlockedReasonCode_BLOCKED_REASON_CODE_UNSPECIFIED
+func protoBlockedReason(task domain.Task) *nnxv1.BlockedReason {
+	code := nnxv1.BlockedReasonCode_BLOCKED_REASON_CODE_UNSPECIFIED
 	switch task.BlockedCode {
 	case domain.BlockedReasonCodeDependencyDataIncomplete:
-		code = prxv1.BlockedReasonCode_BLOCKED_REASON_CODE_DEPENDENCY_DATA_INCOMPLETE
+		code = nnxv1.BlockedReasonCode_BLOCKED_REASON_CODE_DEPENDENCY_DATA_INCOMPLETE
 	case domain.BlockedReasonCodeWaitingForBlocker:
-		code = prxv1.BlockedReasonCode_BLOCKED_REASON_CODE_WAITING_FOR_BLOCKER
+		code = nnxv1.BlockedReasonCode_BLOCKED_REASON_CODE_WAITING_FOR_BLOCKER
 	}
-	if code == prxv1.BlockedReasonCode_BLOCKED_REASON_CODE_UNSPECIFIED {
+	if code == nnxv1.BlockedReasonCode_BLOCKED_REASON_CODE_UNSPECIFIED {
 		return nil
 	}
-	return &prxv1.BlockedReason{Code: code, BlockerTaskId: task.BlockerTaskID}
+	return &nnxv1.BlockedReason{Code: code, BlockerTaskId: task.BlockerTaskID}
 }
 
-func protoDomainErrorCode(value domain.DomainErrorCode) prxv1.DomainErrorCode {
+func protoDomainErrorCode(value domain.DomainErrorCode) nnxv1.DomainErrorCode {
 	switch value {
 	case domain.DomainErrorCodeCrossFeatureDependency:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_CROSS_FEATURE_DEPENDENCY
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_CROSS_FEATURE_DEPENDENCY
 	case domain.DomainErrorCodeCycle:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_CYCLE
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_CYCLE
 	case domain.DomainErrorCodeDuplicateDependency:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DUPLICATE_DEPENDENCY
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DUPLICATE_DEPENDENCY
 	case domain.DomainErrorCodeDuplicatePullRequest:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DUPLICATE_PULL_REQUEST
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DUPLICATE_PULL_REQUEST
 	case domain.DomainErrorCodeDocumentReadFailed:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DOCUMENT_READ_FAILED
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DOCUMENT_READ_FAILED
 	case domain.DomainErrorCodeDocumentTooLarge:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DOCUMENT_TOO_LARGE
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DOCUMENT_TOO_LARGE
 	case domain.DomainErrorCodeDocumentNotText:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DOCUMENT_NOT_TEXT
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DOCUMENT_NOT_TEXT
 	case domain.DomainErrorCodeDuplicateImplementationPlan:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DUPLICATE_IMPLEMENTATION_PLAN
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DUPLICATE_IMPLEMENTATION_PLAN
 	case domain.DomainErrorCodeInvalidImplementationPlan:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_IMPLEMENTATION_PLAN
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_IMPLEMENTATION_PLAN
 	case domain.DomainErrorCodeImplementationPlanTooLarge:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_IMPLEMENTATION_PLAN_TOO_LARGE
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_IMPLEMENTATION_PLAN_TOO_LARGE
 	case domain.DomainErrorCodeInvalidConfig:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_CONFIG
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_CONFIG
 	case domain.DomainErrorCodeArchivedReadOnly:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_ARCHIVED_READ_ONLY
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_ARCHIVED_READ_ONLY
 	case domain.DomainErrorCodeGitHubAuth:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_GITHUB_AUTH
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_GITHUB_AUTH
 	case domain.DomainErrorCodeInvalidDatabase:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_DATABASE
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_DATABASE
 	case domain.DomainErrorCodeInvalidDocument:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_DOCUMENT
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_DOCUMENT
 	case domain.DomainErrorCodeInvalidDocumentKind:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_DOCUMENT_KIND
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_DOCUMENT_KIND
 	case domain.DomainErrorCodeInvalidDocumentURL:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_DOCUMENT_URL
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_DOCUMENT_URL
 	case domain.DomainErrorCodeInvalidParent:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_PARENT
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_PARENT
 	case domain.DomainErrorCodeInvalidPullRequestURL:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_PULL_REQUEST_URL
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_PULL_REQUEST_URL
 	case domain.DomainErrorCodeInvalidStatus:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_STATUS
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_STATUS
 	case domain.DomainErrorCodeInvalidTitle:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_TITLE
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_TITLE
 	case domain.DomainErrorCodeInvalidPromptTemplate:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_PROMPT_TEMPLATE
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_PROMPT_TEMPLATE
 	case domain.DomainErrorCodeInvalidTaskLabel:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_TASK_LABEL
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_TASK_LABEL
 	case domain.DomainErrorCodeNotFound:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_NOT_FOUND
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_NOT_FOUND
 	case domain.DomainErrorCodeReferencesExist:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_REFERENCES_EXIST
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_REFERENCES_EXIST
 	case domain.DomainErrorCodeUpdateUnavailable:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_UPDATE_UNAVAILABLE
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_UPDATE_UNAVAILABLE
 	case domain.DomainErrorCodeUpdateCheckFailed:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_UPDATE_CHECK_FAILED
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_UPDATE_CHECK_FAILED
 	case domain.DomainErrorCodeUpdateFailed:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_UPDATE_FAILED
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_UPDATE_FAILED
 	// daemon 系と address_in_use は CLI だけが返す。RPC には常駐の操作がないので、
 	// proto の enum には持たせず内部エラー相当として扱う。
 	case domain.DomainErrorCodeInternal,
@@ -564,9 +564,9 @@ func protoDomainErrorCode(value domain.DomainErrorCode) prxv1.DomainErrorCode {
 		domain.DomainErrorCodeDaemonNotInstalled,
 		domain.DomainErrorCodeDaemonNotRunning,
 		domain.DomainErrorCodeDaemonFailed:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_UNSPECIFIED
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_UNSPECIFIED
 	default:
-		return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_UNSPECIFIED
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_UNSPECIFIED
 	}
 }
 

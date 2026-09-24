@@ -8,7 +8,7 @@ import {
   TaskLabelOverridesUpdateSchema,
   type Project,
   type TaskLabelOverridesUpdate,
-} from "../gen/prx/v1/prx_pb";
+} from "../gen/nnx/v1/nnx_pb";
 import { useDomainMutation } from "../hooks";
 import { ConfirmationDialog } from "./ConfirmationDialog";
 import { IconButton } from "./IconButton";

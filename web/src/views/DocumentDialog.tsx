@@ -12,7 +12,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { mutations, selectLocalFile } from "../api";
 import type { DocumentParent } from "../document-parent";
-import { DocumentKind, type Document } from "../gen/prx/v1/prx_pb";
+import { DocumentKind, type Document } from "../gen/nnx/v1/nnx_pb";
 import { useDomainMutation } from "../hooks";
 import { IconButton } from "./IconButton";
 import { MutationError } from "./MutationError";

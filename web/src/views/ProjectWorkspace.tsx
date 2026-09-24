@@ -3,7 +3,7 @@ import { ArrowLeft, Pencil, Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeatureTabId } from "../feature-tabs";
-import type { Document, Feature, Project } from "../gen/prx/v1/prx_pb";
+import type { Document, Feature, Project } from "../gen/nnx/v1/nnx_pb";
 import { useSnapshot } from "../hooks";
 import { documentsInProject, featuresInProject } from "../project";
 import { CopyableIdentifier } from "./CopyableIdentifier";

@@ -11,7 +11,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/HappyOnigiri/PRX/internal/config"
+	"github.com/HappyOnigiri/nnx/internal/config"
 )
 
 type Candidate struct {

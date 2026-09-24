@@ -300,7 +300,7 @@ describe("domain query hooks", () => {
   it("requests the debug report only once the panel asks for it", async () => {
     const report = {
       report: { problems: [] },
-      text: "PRX diagnostic report\n",
+      text: "Next Now X diagnostic report\n",
     };
     hookMocks.getDebugReport.mockResolvedValue(report);
     const queryClient = new QueryClient({

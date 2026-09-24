@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	githubprovider "github.com/HappyOnigiri/PRX/internal/github"
+	"github.com/HappyOnigiri/nnx/internal/domain"
+	githubprovider "github.com/HappyOnigiri/nnx/internal/github"
 )
 
 type repositoryKey struct {

@@ -14,11 +14,11 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/HappyOnigiri/PRX/internal/daemon"
-	"github.com/HappyOnigiri/PRX/internal/launchd"
-	"github.com/HappyOnigiri/PRX/internal/prompt"
-	"github.com/HappyOnigiri/PRX/internal/runstate"
-	"github.com/HappyOnigiri/PRX/internal/tui"
+	"github.com/HappyOnigiri/nnx/internal/daemon"
+	"github.com/HappyOnigiri/nnx/internal/launchd"
+	"github.com/HappyOnigiri/nnx/internal/prompt"
+	"github.com/HappyOnigiri/nnx/internal/runstate"
+	"github.com/HappyOnigiri/nnx/internal/tui"
 )
 
 // TestSetupSettledMessage は分岐ごとの 1 行を両言語で確かめる。日本語の期待値を
@@ -36,14 +36,14 @@ func TestSetupSettledMessage(t *testing.T) {
 				Installed: true, PlistStatus: launchd.PlistStale,
 				Running: true, State: runstate.State{URL: "http://127.0.0.1:7331"},
 			},
-			wantEn: "Kept the existing LaunchAgent. Run prx daemon install to update it.",
-			wantJa: "既存の LaunchAgent を残した。更新するには prx daemon install を使う。",
+			wantEn: "Kept the existing LaunchAgent. Run nnx daemon install to update it.",
+			wantJa: "既存の LaunchAgent を残した。更新するには nnx daemon install を使う。",
 		},
 		{
 			name:   "left stopped",
 			status: daemon.Status{Installed: true, PlistStatus: launchd.PlistCurrent},
-			wantEn: "Left the PRX server stopped. Run prx daemon start when you need it.",
-			wantJa: "PRX のサーバーは停止したままにした。必要になったら prx daemon start を使う。",
+			wantEn: "Left the Next Now X server stopped. Run nnx daemon start when you need it.",
+			wantJa: "Next Now X のサーバーは停止したままにした。必要になったら nnx daemon start を使う。",
 		},
 		{
 			name: "already running",
@@ -51,8 +51,8 @@ func TestSetupSettledMessage(t *testing.T) {
 				Installed: true, PlistStatus: launchd.PlistCurrent,
 				Running: true, State: runstate.State{URL: "http://127.0.0.1:7331"},
 			},
-			wantEn: "PRX is already set up and listening on http://127.0.0.1:7331.",
-			wantJa: "PRX はセットアップ済みで、http://127.0.0.1:7331 で待ち受けている。",
+			wantEn: "Next Now X is already set up and listening on http://127.0.0.1:7331.",
+			wantJa: "Next Now X はセットアップ済みで、http://127.0.0.1:7331 で待ち受けている。",
 		},
 		{
 			name: "running with unknown address",
@@ -60,16 +60,16 @@ func TestSetupSettledMessage(t *testing.T) {
 				Installed: true, PlistStatus: launchd.PlistCurrent,
 				Running: true, AddressUnknown: true,
 			},
-			wantEn: "PRX is already set up and running.",
-			wantJa: "PRX はセットアップ済みで、すでに動作している。",
+			wantEn: "Next Now X is already set up and running.",
+			wantJa: "Next Now X はセットアップ済みで、すでに動作している。",
 		},
 		{
 			name: "running without recorded url",
 			status: daemon.Status{
 				Installed: true, PlistStatus: launchd.PlistCurrent, Running: true,
 			},
-			wantEn: "PRX is already set up and running.",
-			wantJa: "PRX はセットアップ済みで、すでに動作している。",
+			wantEn: "Next Now X is already set up and running.",
+			wantJa: "Next Now X はセットアップ済みで、すでに動作している。",
 		},
 	}
 	for _, test := range tests {
@@ -104,7 +104,7 @@ func (s *sampleDataService) EnsureSampleData(context.Context) (bool, error) {
 func isolateSetupConfig(t *testing.T) string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "config.yaml")
-	t.Setenv("PRX_CONFIG", path)
+	t.Setenv("NNX_CONFIG", path)
 	for _, name := range []string{"LC_ALL", "LC_MESSAGES", "LANG"} {
 		t.Setenv(name, "en_US.UTF-8")
 	}

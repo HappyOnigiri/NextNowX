@@ -8,7 +8,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DomainErrorCode, ErrorDetailSchema } from "../src/gen/prx/v1/prx_pb";
+import { DomainErrorCode, ErrorDetailSchema } from "../src/gen/nnx/v1/nnx_pb";
 import { FeatureGraph } from "../src/views/FeatureGraph";
 import { makeDependency, makeTask } from "./factories";
 import {

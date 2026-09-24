@@ -1,4 +1,4 @@
-import { TaskDisplayState, type Task } from "../gen/prx/v1/prx_pb";
+import { TaskDisplayState, type Task } from "../gen/nnx/v1/nnx_pb";
 
 export interface BatchCandidate {
   task: Task;

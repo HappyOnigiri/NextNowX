@@ -5,8 +5,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/prompt"
+	"github.com/HappyOnigiri/nnx/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/prompt"
 )
 
 func (s *Service) CreateProject(ctx context.Context, title, description string) (domain.Project, error) {

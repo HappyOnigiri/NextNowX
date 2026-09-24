@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/HappyOnigiri/PRX/internal/app"
-	githubprovider "github.com/HappyOnigiri/PRX/internal/github"
-	"github.com/HappyOnigiri/PRX/internal/store"
+	"github.com/HappyOnigiri/nnx/internal/app"
+	githubprovider "github.com/HappyOnigiri/nnx/internal/github"
+	"github.com/HappyOnigiri/nnx/internal/store"
 )
 
 func TestDataVersionChangesOnlyAfterAnotherConnectionWrites(t *testing.T) {

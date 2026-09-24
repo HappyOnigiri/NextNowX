@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import type { Project } from "../gen/prx/v1/prx_pb";
+import type { Project } from "../gen/nnx/v1/nnx_pb";
 
 interface ProjectSelectFieldProps {
   projects: Project[];

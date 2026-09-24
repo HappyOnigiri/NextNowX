@@ -2,7 +2,7 @@ import { Link, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { mutations } from "../api";
 import { formValue } from "../form";
-import type { PullRequest } from "../gen/prx/v1/prx_pb";
+import type { PullRequest } from "../gen/nnx/v1/nnx_pb";
 import { useDomainMutation } from "../hooks";
 import {
   checkStateLabel,

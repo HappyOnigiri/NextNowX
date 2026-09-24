@@ -5,8 +5,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/prompt"
+	"github.com/HappyOnigiri/nnx/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/prompt"
 )
 
 // GetTaskPrompt は global、所属 project、feature のテンプレートを種類ごとに

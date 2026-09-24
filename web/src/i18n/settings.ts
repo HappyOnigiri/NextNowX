@@ -10,7 +10,7 @@ export const themePreferences = ["system", "light", "dark"] as const;
 export type ThemePreference = (typeof themePreferences)[number];
 export type ResolvedTheme = Exclude<ThemePreference, "system">;
 
-export const webUISettingsKey = "prx.webui.settings";
+export const webUISettingsKey = "nnx.webui.settings";
 const defaultGraphZoom = 1;
 export const minGraphZoom = 0.08;
 export const maxGraphZoom = 1.7;

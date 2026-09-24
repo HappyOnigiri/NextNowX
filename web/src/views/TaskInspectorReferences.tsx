@@ -1,6 +1,6 @@
 import { Pencil, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { DocumentKind } from "../gen/prx/v1/prx_pb";
+import { DocumentKind } from "../gen/nnx/v1/nnx_pb";
 import { documentKindLabel } from "../i18n/domain";
 import { IconButton } from "./IconButton";
 import { MutationError } from "./MutationError";

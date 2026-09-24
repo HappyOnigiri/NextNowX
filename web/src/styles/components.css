@@ -1417,7 +1417,7 @@
   color: var(--status-done);
 }
 
-/* 不明は作業の状態ではなく PRX の知識が欠けている状態なので、専用色ではなく
+/* 不明は作業の状態ではなく Next Now X の知識が欠けている状態なので、専用色ではなく
    途切れた枠で表す。 */
 .status-badge.state-unknown {
   border-style: dashed;

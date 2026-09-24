@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/HappyOnigiri/PRX/internal/app"
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/app"
+	"github.com/HappyOnigiri/nnx/internal/domain"
 )
 
 type repositoryStub struct{}

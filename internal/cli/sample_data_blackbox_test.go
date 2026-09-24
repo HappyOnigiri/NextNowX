@@ -13,7 +13,7 @@ import (
 	"testing"
 )
 
-// runDetachedSetup は制御端末を持たないセッションで `prx setup` を起こす。stdin を
+// runDetachedSetup は制御端末を持たないセッションで `nnx setup` を起こす。stdin を
 // リダイレクトするだけでは制御端末が残り、setup が /dev/tty を開いて言語の問いかけで
 // 止まるためである。
 func runDetachedSetup(t *testing.T, binary string, env []string, args ...string) commandOutput {
@@ -49,16 +49,16 @@ type sampleSnapshot struct {
 	PullRequests []struct{} `json:"pull_requests"`
 }
 
-// TestSetupSeedsSampleDataIntoTheRealDatabase は、別プロセスの `prx setup` が作った
-// データベースを `prx snapshot` から読めることを確かめる。darwin では端末が無いと
+// TestSetupSeedsSampleDataIntoTheRealDatabase は、別プロセスの `nnx setup` が作った
+// データベースを `nnx snapshot` から読めることを確かめる。darwin では端末が無いと
 // 常駐の問いかけに入る前に失敗するので linux だけで走らせる。
 func TestSetupSeedsSampleDataIntoTheRealDatabase(t *testing.T) {
 	if runtime.GOOS != "linux" {
-		t.Skip("prx setup needs a terminal for its daemon questions outside linux")
+		t.Skip("nnx setup needs a terminal for its daemon questions outside linux")
 	}
 	binary := buildCLI(t)
 	root := t.TempDir()
-	dbPath := filepath.Join(root, "prx.db")
+	dbPath := filepath.Join(root, "nnx.db")
 	setup := runDetachedSetup(t, binary, sampleDataEnv(root), "--db", dbPath, "setup")
 	if setup.exit != 0 {
 		t.Fatalf("setup exit=%d stderr=%q", setup.exit, setup.stderr)
@@ -91,7 +91,7 @@ func TestSetupSeedsSampleDataIntoTheRealDatabase(t *testing.T) {
 
 func TestSetupSampleDataOptOutLeavesTheDatabaseEmpty(t *testing.T) {
 	if runtime.GOOS != "linux" {
-		t.Skip("prx setup needs a terminal for its daemon questions outside linux")
+		t.Skip("nnx setup needs a terminal for its daemon questions outside linux")
 	}
 	binary := buildCLI(t)
 	for _, test := range []struct {
@@ -100,11 +100,11 @@ func TestSetupSampleDataOptOutLeavesTheDatabaseEmpty(t *testing.T) {
 		env  []string
 	}{
 		{name: "flag", args: []string{"--no-sample-data"}},
-		{name: "environment", env: []string{"PRX_NO_SAMPLE_DATA=1"}},
+		{name: "environment", env: []string{"NNX_NO_SAMPLE_DATA=1"}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			root := t.TempDir()
-			dbPath := filepath.Join(root, "prx.db")
+			dbPath := filepath.Join(root, "nnx.db")
 			args := append([]string{"--db", dbPath, "setup"}, test.args...)
 			setup := runDetachedSetup(t, binary, append(sampleDataEnv(root), test.env...), args...)
 			if setup.exit != 0 {
@@ -124,7 +124,7 @@ func TestSetupSampleDataOptOutLeavesTheDatabaseEmpty(t *testing.T) {
 // sampleDataEnv は実効言語を英語に固定する。ロケールだけでは足りない。設定の
 // language が auto でないマシンでは、設定ファイルのほうが実効言語を決めるためである。
 func sampleDataEnv(root string) []string {
-	return append(append([]string{}, englishLocale...), "PRX_CONFIG="+filepath.Join(root, "config.yaml"))
+	return append(append([]string{}, englishLocale...), "NNX_CONFIG="+filepath.Join(root, "config.yaml"))
 }
 
 func readSampleSnapshot(t *testing.T, binary, dbPath string) sampleSnapshot {

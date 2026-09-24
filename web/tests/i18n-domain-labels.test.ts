@@ -6,7 +6,7 @@ import {
   PullRequestDisplayState,
   TaskStatus,
   type BlockedReason,
-} from "../src/gen/prx/v1/prx_pb";
+} from "../src/gen/nnx/v1/nnx_pb";
 import i18n from "../src/i18n";
 import {
   blockedReasonLabel,

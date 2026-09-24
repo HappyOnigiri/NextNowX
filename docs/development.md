@@ -44,16 +44,16 @@ CLI・RPC・ドメインの境界で同じ保証を表現できるなら、方�
 自動テストと demo は、実際のネットワーク状態ではなく決定的な GitHub fixture を使う。
 現在の fixture のスキーマと利用できる preset は、fixture provider の実装と CLI リファレンスが所有する。
 
-ブラウザのエンドツーエンドテストは `prx serve --demo` だけを起動し、その組み込みの 4 feature・120 task のデータセットを使う。
+ブラウザのエンドツーエンドテストは `nnx serve --demo` だけを起動し、その組み込みの 4 feature・120 task のデータセットを使う。
 規模に関する検証は大きな完了済み feature が担い、状態・キュー・plan・document のシナリオは active な showcase が担う。
 
 設定や credential の解決を対象とするテストは、隔離された一時設定を使わなければならない。
 実際の Keychain、環境のトークン変数、認証済みの `gh` アカウント、GitHub の可用性に依存してはならない。
 
 常駐を対象とするテストは、実際の `launchctl` と実際の `~/Library/LaunchAgents` に触れてはならない。
-stub の `launchctl` を `PATH` に置き、`HOME` と `PRX_RUN_DIR` を差し替えて隔離する。
+stub の `launchctl` を `PATH` に置き、`HOME` と `NNX_RUN_DIR` を差し替えて隔離する。
 ホームの解決には `os/user` ではなく `os.UserHomeDir` と `os.UserConfigDir` だけを使う。どちらも `$HOME` を読むので、テストは環境変数の差し替えだけで隔離できる。
-launchd に実際にサーバを起こさせる経路（`prx daemon start` と `prx daemon restart`）は自動テストで代替できないので、実機で確認する。
+launchd に実際にサーバを起こさせる経路（`nnx daemon start` と `nnx daemon restart`）は自動テストで代替できないので、実機で確認する。
 
 認証のテストは、制御下の HTTPS サーバと、明示的な偽の credential ソースを使う。
 本番サービスに接続せずに、ホストの分離、安全な fallback、秘密情報を含まない出力を検証する。
@@ -62,7 +62,7 @@ launchd に実際にサーバを起こさせる経路（`prx daemon start` と `
 
 ## バージョンとリリースの方針
 
-すべてのビルド面で使う PRX のバージョンは、ルートの `package.json` が所有する。
+すべてのビルド面で使う Next Now X のバージョンは、ルートの `package.json` が所有する。
 開発ビルドは `-dev` を付け、公式リリースを名乗らずに、診断出力からリリースの基点が分かるようにする。
 
 安定版のバージョンをリリース成果物に刻むのは、リリースパイプラインだけである。
@@ -85,7 +85,7 @@ credential、ブランチの後片付け、その他の運用上の仕組みは�
 
 インストーラーは自身が属するリリースへ取得元を固定し、チェックサムと版番号を検証してから既存バイナリを置き換える。
 更新は初回導入と同じコマンドで行う。取得や検証に失敗したときは、すでに入っているバイナリを変更しない。
-`prx update` と WebUI の更新も、この同じインストーラーを対象リリースから取得して実行する。更新の経路が検証と置換を二重に実装することはない。方針は `docs/design/updates.md` にある。
+`nnx update` と WebUI の更新も、この同じインストーラーを対象リリースから取得して実行する。更新の経路が検証と置換を二重に実装することはない。方針は `docs/design/updates.md` にある。
 
 配布対象は macOS の Apple Silicon である。
 対象を広げるときは、ビルド・チェックサム・インストーラーの対象判定をまとめて更新する。

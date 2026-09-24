@@ -2,7 +2,7 @@ import { ClipboardCopy, Square, SquareCheckBig } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getBatchPrompt } from "../api";
-import { TaskPromptKind, type Task } from "../gen/prx/v1/prx_pb";
+import { TaskPromptKind, type Task } from "../gen/nnx/v1/nnx_pb";
 import { isSelectable, type BatchPromptKind } from "./batchPromptTasks";
 import { IconButton } from "./IconButton";
 import { PromptDialogHead } from "./PromptDialogHead";

@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/HappyOnigiri/PRX/internal/app"
-	"github.com/HappyOnigiri/PRX/internal/config"
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/store"
+	"github.com/HappyOnigiri/nnx/internal/app"
+	"github.com/HappyOnigiri/nnx/internal/config"
+	"github.com/HappyOnigiri/nnx/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/store"
 )
 
 func newDebugService(t *testing.T) (*app.Service, string, string) {
@@ -256,7 +256,7 @@ func TestDebugReportsTheInjectedDaemonState(t *testing.T) {
 	service.SetDaemonInspector(func(context.Context) domain.DebugDaemonInput {
 		return domain.DebugDaemonInput{
 			Supported: true, Installed: true, PlistStatus: domain.DebugPlistStatusStale,
-			PlistPath: "/tmp/com.user.prx.plist", Running: false,
+			PlistPath: "/tmp/com.user.nnx.plist", Running: false,
 		}
 	})
 	report, err = service.Debug(ctx)

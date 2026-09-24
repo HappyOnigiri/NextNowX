@@ -37,14 +37,14 @@ func ResolvePath(override string) (string, error) {
 	if override != "" {
 		return filepath.Clean(override), nil
 	}
-	if value := os.Getenv("PRX_CONFIG"); value != "" {
+	if value := os.Getenv("NNX_CONFIG"); value != "" {
 		return filepath.Clean(value), nil
 	}
 	dir, err := os.UserConfigDir()
 	if err != nil {
 		return "", fmt.Errorf("resolve config directory: %w", err)
 	}
-	return filepath.Join(dir, "prx", "config.yaml"), nil
+	return filepath.Join(dir, "nnx", "config.yaml"), nil
 }
 
 func NewStore(path string) (*Store, error) {
@@ -128,7 +128,7 @@ func (s *Store) Validate() ([]string, error) {
 	return warnings, err
 }
 
-// decode は単一の設定ドキュメントを解析する。新しい PRX が書いたファイルも
+// decode は単一の設定ドキュメントを解析する。新しい Next Now X が書いたファイルも
 // 読み込めるよう未知のフィールドは失敗ではなく警告にするが、それ以外の
 // デコードエラーは従来どおり読み込みを失敗させる。
 func decode(body []byte, destination *Config) ([]string, error) {

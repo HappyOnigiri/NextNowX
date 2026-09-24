@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/release"
+	"github.com/HappyOnigiri/nnx/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/release"
 )
 
 type updateHarness struct {
@@ -36,7 +36,7 @@ func stubUpdate(t *testing.T, version string, provider release.Provider) *update
 	updateApplier = func() updateApplyFunc {
 		return func(_ context.Context, target string) (domain.UpdateApply, error) {
 			harness.applied = target
-			return domain.UpdateApply{Version: target, InstalledPath: "/home/example/.local/bin/prx"}, nil
+			return domain.UpdateApply{Version: target, InstalledPath: "/home/example/.local/bin/nnx"}, nil
 		}
 	}
 	t.Cleanup(func() {
@@ -77,7 +77,7 @@ func TestUpdateReportsAnUpToDateBuild(t *testing.T) {
 	if err := harness.run(t, "update"); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(harness.out.String(), "PRX 0.4.0 is up to date.") {
+	if !strings.Contains(harness.out.String(), "Next Now X 0.4.0 is up to date.") {
 		t.Fatalf("stdout=%q", harness.out.String())
 	}
 	if harness.applied != "" {
@@ -92,7 +92,7 @@ func TestUpdateWithoutATerminalOnlyReportsTheCheck(t *testing.T) {
 		t.Fatal(err)
 	}
 	output := harness.out.String()
-	if !strings.Contains(output, "PRX 0.3.0 is installed. v0.4.0 is available.") {
+	if !strings.Contains(output, "Next Now X 0.3.0 is installed. v0.4.0 is available.") {
 		t.Fatalf("stdout=%q", output)
 	}
 	if !strings.Contains(output, "Notes for v0.4.0") || !strings.Contains(output, "https://example.test/v0.4.0") {
@@ -132,7 +132,7 @@ func TestUpdateApplyInstallsTheNewestRelease(t *testing.T) {
 	if !response.Applied || response.AppliedVersion != "v0.5.0" {
 		t.Fatalf("response=%+v", response)
 	}
-	if response.InstalledPath != "/home/example/.local/bin/prx" {
+	if response.InstalledPath != "/home/example/.local/bin/nnx" {
 		t.Fatalf("response=%+v", response)
 	}
 }
@@ -142,7 +142,7 @@ func TestUpdateApplyRendersTheInstalledBinaryAsText(t *testing.T) {
 	if err := harness.run(t, "update", "--apply"); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(harness.out.String(), "Installed prx v0.4.0 to /home/example/.local/bin/prx.") {
+	if !strings.Contains(harness.out.String(), "Installed nnx v0.4.0 to /home/example/.local/bin/nnx.") {
 		t.Fatalf("stdout=%q", harness.out.String())
 	}
 }
@@ -217,7 +217,7 @@ func TestUpdateAsksBeforeInstallingOnATerminal(t *testing.T) {
 		want  string
 		shown string
 	}{
-		{name: "accepted", keys: "\r", want: "v0.4.0", shown: "Installed prx v0.4.0"},
+		{name: "accepted", keys: "\r", want: "v0.4.0", shown: "Installed nnx v0.4.0"},
 		{name: "cancelled", keys: "\x1b[B\r", want: "", shown: "v0.4.0 is available."},
 	}
 	for _, test := range tests {

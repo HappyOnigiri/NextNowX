@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/HappyOnigiri/PRX/internal/config"
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/config"
+	"github.com/HappyOnigiri/nnx/internal/domain"
 )
 
 func configDomainError(err error) error {

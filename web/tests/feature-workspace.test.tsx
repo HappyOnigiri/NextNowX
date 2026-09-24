@@ -8,7 +8,7 @@ import {
 } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { TaskDisplayState, type Snapshot } from "../src/gen/prx/v1/prx_pb";
+import { TaskDisplayState, type Snapshot } from "../src/gen/nnx/v1/nnx_pb";
 import { readHideCompletedTasks } from "../src/i18n/settings";
 import { FeatureWorkspace } from "../src/views/FeatureWorkspace";
 import {

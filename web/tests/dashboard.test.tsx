@@ -100,10 +100,10 @@ describe("Dashboard", () => {
     expect(screen.getByRole("button", { name: "Refresh" })).toBeInTheDocument();
     // pull request がある task は直接リンクするため、feature を開かずに
     // レビューへ辿り着ける。
-    const pullRequest = screen.getByRole("link", { name: /acme\/prx #42/ });
+    const pullRequest = screen.getByRole("link", { name: /acme\/nnx #42/ });
     expect(pullRequest).toHaveAttribute(
       "href",
-      "https://github.com/acme/prx/pull/42",
+      "https://github.com/acme/nnx/pull/42",
     );
     // 次の task を選ぶのは ready ボードなので、agent に渡すプロンプトは
     // 1 画面奥ではなくここでコピーする。

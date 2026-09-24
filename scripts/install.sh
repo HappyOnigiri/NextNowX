@@ -2,10 +2,10 @@
 set -euo pipefail
 
 # Release CI がこの値を埋め込み、インストーラーとバイナリを同じタグへ固定する。
-release_version='@PRX_RELEASE_VERSION@'
+release_version='@NNX_RELEASE_VERSION@'
 
 fail() {
-  echo "prx install: $*" >&2
+  echo "nnx install: $*" >&2
   exit 1
 }
 
@@ -20,21 +20,21 @@ main() {
     command -v "$tool" >/dev/null 2>&1 || fail "$tool is required"
   done
 
-  local install_dir="$HOME/.local/bin" destination="$HOME/.local/bin/prx"
-  local asset=prx-darwin-arm64
-  local base_url="https://github.com/HappyOnigiri/PRX/releases/download/$release_version"
+  local install_dir="$HOME/.local/bin" destination="$HOME/.local/bin/nnx"
+  local asset=nnx-darwin-arm64
+  local base_url="https://github.com/HappyOnigiri/nnx/releases/download/$release_version"
   local checksum checksum_name actual daemon_status='' initial_install=false
   [ ! -d "$destination" ] || fail "$destination is a directory"
   if [ ! -e "$destination" ]; then
     initial_install=true
   fi
 
-  scratch=$(mktemp -d "${TMPDIR:-/tmp}/prx-install.XXXXXX")
+  scratch=$(mktemp -d "${TMPDIR:-/tmp}/nnx-install.XXXXXX")
   staged=''
   trap 'rm -rf "$scratch"; if [ -n "$staged" ]; then rm -f "$staged"; fi' EXIT
   trap 'exit 130' INT
   trap 'exit 143' TERM
-  echo "Downloading prx $release_version..."
+  echo "Downloading nnx $release_version..."
   curl --fail --silent --show-error --location "$base_url/$asset" --output "$scratch/$asset" ||
     fail "download failed; the installed binary was not changed"
   curl --fail --silent --show-error --location "$base_url/checksums.txt" --output "$scratch/checksums.txt" ||
@@ -47,20 +47,20 @@ main() {
     fail "checksum verification failed; the installed binary was not changed"
   chmod 0755 "$scratch/$asset"
   actual=$("$scratch/$asset" --version) || fail "the downloaded binary could not run"
-  [ "$actual" = "prx version ${release_version#v}" ] || fail "unexpected binary version: $actual"
+  [ "$actual" = "nnx version ${release_version#v}" ] || fail "unexpected binary version: $actual"
 
   # 同じファイルシステム上で組み立ててから置き換え、途中で失敗しても既存バイナリを壊さない。
   install -d "$install_dir"
-  staged=$(mktemp "$install_dir/.prx-install.XXXXXX")
+  staged=$(mktemp "$install_dir/.nnx-install.XXXXXX")
   install -m 0755 "$scratch/$asset" "$staged"
   mv -f "$staged" "$destination"
   staged=''
-  echo "Installed prx $release_version to $destination"
+  echo "Installed nnx $release_version to $destination"
 
   case ":${PATH:-}:" in
     *":$install_dir:"*) ;;
     *)
-      echo 'To use prx in this terminal, run:'
+      echo 'To use nnx in this terminal, run:'
       # 利用者が実行するコマンドを展開せず表示する。
       # shellcheck disable=SC2016
       echo '  export PATH="$HOME/.local/bin:$PATH"'
@@ -72,15 +72,15 @@ main() {
   fi
   if [[ "$daemon_status" == *'"installed":false'* ]]; then
     # 初回だけ TUI を起動し、LaunchAgent の導入とブラウザを開くかを選べるようにする。
-    # curl | bash では prx 側が /dev/tty を使う。端末が無い環境では従来の案内へ戻す。
+    # curl | bash では nnx 側が /dev/tty を使う。端末が無い環境では従来の案内へ戻す。
     if ! PATH="$install_dir:$PATH" "$destination" setup; then
-      echo 'To start PRX at login, run:'
-      echo '  prx daemon install'
+      echo 'To start Next Now X at login, run:'
+      echo '  nnx daemon install'
       echo 'To open the server in your browser, run:'
-      echo '  prx open'
+      echo '  nnx open'
     fi
   else
-    echo 'Then run prx serve to start the server at http://127.0.0.1:7331.'
+    echo 'Then run nnx serve to start the server at http://127.0.0.1:7331.'
   fi
 }
 

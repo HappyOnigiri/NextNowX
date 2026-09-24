@@ -13,7 +13,7 @@ import (
 
 	gh "github.com/google/go-github/v80/github"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/domain"
 )
 
 func TestParsePullRequestURL(t *testing.T) {

@@ -10,7 +10,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/HappyOnigiri/PRX/internal/prompt"
+	"github.com/HappyOnigiri/nnx/internal/prompt"
 )
 
 func TestNormalizeDefaultsAndRejectsUnsafeValues(t *testing.T) {
@@ -215,7 +215,7 @@ func TestConfigStoreWarnsAboutUnknownFieldsAndRejectsInsecureFiles(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	// 新しい PRX が書いたファイルも読み込め続ける必要がある。このビルドが
+	// 新しい Next Now X が書いたファイルも読み込め続ける必要がある。このビルドが
 	// 知らないフィールドは拒否せず報告する。
 	newer := "version: 1\nunknown: true\ngithub:\n  hosts:\n" +
 		"    - host: ghe.example.com\n      future_url: https://ghe.example.com/future\n"
@@ -334,7 +334,7 @@ func TestConfigCRUDAndPathPrecedence(t *testing.T) {
 	}
 
 	envPath := filepath.Join(t.TempDir(), "env.yaml")
-	t.Setenv("PRX_CONFIG", envPath)
+	t.Setenv("NNX_CONFIG", envPath)
 	fromEnv, err := NewStore("")
 	if err != nil || fromEnv.Path() != envPath {
 		t.Fatalf("env path=%q err=%v", fromEnv.Path(), err)
@@ -778,7 +778,7 @@ func TestSkippedUpdateVersionRejectsValuesThatAreNotReleaseTags(t *testing.T) {
 	}
 }
 
-// 古い PRX が書き戻した設定には update セクションが無い。読み込みは壊れず、
+// 古い Next Now X が書き戻した設定には update セクションが無い。読み込みは壊れず、
 // スキップだけが消える。
 func TestConfigWithoutAnUpdateSectionLoadsWithoutASkippedVersion(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.yaml")

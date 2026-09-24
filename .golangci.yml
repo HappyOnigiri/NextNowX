@@ -56,58 +56,58 @@ linters:
         domain-is-a-leaf:
           files: ["**/internal/domain/**", "!$test"]
           deny:
-            - pkg: github.com/HappyOnigiri/PRX/internal
+            - pkg: github.com/HappyOnigiri/nnx/internal
               desc: domain must not import other internal packages
-            - pkg: github.com/HappyOnigiri/PRX/gen
+            - pkg: github.com/HappyOnigiri/nnx/gen
               desc: domain must not depend on generated RPC types
         github-is-a-leaf:
           files: ["**/internal/github/**", "!$test"]
           deny:
-            - pkg: github.com/HappyOnigiri/PRX/internal/app
+            - pkg: github.com/HappyOnigiri/nnx/internal/app
               desc: github must not import app
-            - pkg: github.com/HappyOnigiri/PRX/internal/store
+            - pkg: github.com/HappyOnigiri/nnx/internal/store
               desc: github must not import store
-            - pkg: github.com/HappyOnigiri/PRX/internal/rpc
+            - pkg: github.com/HappyOnigiri/nnx/internal/rpc
               desc: github must not import rpc
-            - pkg: github.com/HappyOnigiri/PRX/internal/cli
+            - pkg: github.com/HappyOnigiri/nnx/internal/cli
               desc: github must not import cli
         store-owns-persistence-only:
           files: ["**/internal/store/**", "!$test"]
           deny:
-            - pkg: github.com/HappyOnigiri/PRX/internal/app
+            - pkg: github.com/HappyOnigiri/nnx/internal/app
               desc: store must not import app
-            - pkg: github.com/HappyOnigiri/PRX/internal/github
+            - pkg: github.com/HappyOnigiri/nnx/internal/github
               desc: store must not import github
-            - pkg: github.com/HappyOnigiri/PRX/internal/rpc
+            - pkg: github.com/HappyOnigiri/nnx/internal/rpc
               desc: store must not import rpc
-            - pkg: github.com/HappyOnigiri/PRX/internal/cli
+            - pkg: github.com/HappyOnigiri/nnx/internal/cli
               desc: store must not import cli
         app-does-not-know-adapters:
           files: ["**/internal/app/**", "!$test"]
           deny:
-            - pkg: github.com/HappyOnigiri/PRX/internal/store
+            - pkg: github.com/HappyOnigiri/nnx/internal/store
               desc: app depends on the Repository interface, not on SQLite
-            - pkg: github.com/HappyOnigiri/PRX/internal/rpc
+            - pkg: github.com/HappyOnigiri/nnx/internal/rpc
               desc: app must not import rpc
-            - pkg: github.com/HappyOnigiri/PRX/internal/cli
+            - pkg: github.com/HappyOnigiri/nnx/internal/cli
               desc: app must not import cli
         rpc-is-translation-only:
           files: ["**/internal/rpc/**", "!$test"]
           deny:
-            - pkg: github.com/HappyOnigiri/PRX/internal/store
+            - pkg: github.com/HappyOnigiri/nnx/internal/store
               desc: rpc must go through the Service interface
-            - pkg: github.com/HappyOnigiri/PRX/internal/github
+            - pkg: github.com/HappyOnigiri/nnx/internal/github
               desc: rpc must not import github
-            - pkg: github.com/HappyOnigiri/PRX/internal/cli
+            - pkg: github.com/HappyOnigiri/nnx/internal/cli
               desc: rpc must not import cli
         cli-uses-the-service-interface:
           files: ["**/internal/cli/**", "!$test"]
           deny:
-            - pkg: github.com/HappyOnigiri/PRX/internal/store
-              desc: cmd/prx wires the store; cli talks to Service
-            - pkg: github.com/HappyOnigiri/PRX/internal/app
+            - pkg: github.com/HappyOnigiri/nnx/internal/store
+              desc: cmd/nnx wires the store; cli talks to Service
+            - pkg: github.com/HappyOnigiri/nnx/internal/app
               desc: cli must not import app
-            - pkg: github.com/HappyOnigiri/PRX/internal/github
+            - pkg: github.com/HappyOnigiri/nnx/internal/github
               desc: cli must not import github
 
   exclusions:

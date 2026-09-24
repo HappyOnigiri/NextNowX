@@ -2,7 +2,7 @@ import { ClipboardCopy } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getTaskPrompt } from "../api";
-import { TaskPromptKind } from "../gen/prx/v1/prx_pb";
+import { TaskPromptKind } from "../gen/nnx/v1/nnx_pb";
 import { IconButton } from "./IconButton";
 import { PromptDialogHead } from "./PromptDialogHead";
 import { PromptPreview } from "./PromptPreview";

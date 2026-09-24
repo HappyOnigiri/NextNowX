@@ -7,21 +7,21 @@ import (
 
 	"connectrpc.com/connect"
 
-	prxv1 "github.com/HappyOnigiri/PRX/gen/prx/v1"
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	nnxv1 "github.com/HappyOnigiri/nnx/gen/nnx/v1"
+	"github.com/HappyOnigiri/nnx/internal/domain"
 )
 
 func TestProtoFeatureStatusMapsEveryKnownValue(t *testing.T) {
 	tests := []struct {
 		name  string
 		value domain.FeatureStatus
-		want  prxv1.FeatureStatus
+		want  nnxv1.FeatureStatus
 	}{
-		{"auto", domain.FeatureStatusAuto, prxv1.FeatureStatus_FEATURE_STATUS_AUTO},
-		{"active", domain.FeatureStatusActive, prxv1.FeatureStatus_FEATURE_STATUS_ACTIVE},
-		{"paused", domain.FeatureStatusPaused, prxv1.FeatureStatus_FEATURE_STATUS_PAUSED},
-		{"completed", domain.FeatureStatusCompleted, prxv1.FeatureStatus_FEATURE_STATUS_COMPLETED},
-		{"cancelled", domain.FeatureStatusCancelled, prxv1.FeatureStatus_FEATURE_STATUS_CANCELLED},
+		{"auto", domain.FeatureStatusAuto, nnxv1.FeatureStatus_FEATURE_STATUS_AUTO},
+		{"active", domain.FeatureStatusActive, nnxv1.FeatureStatus_FEATURE_STATUS_ACTIVE},
+		{"paused", domain.FeatureStatusPaused, nnxv1.FeatureStatus_FEATURE_STATUS_PAUSED},
+		{"completed", domain.FeatureStatusCompleted, nnxv1.FeatureStatus_FEATURE_STATUS_COMPLETED},
+		{"cancelled", domain.FeatureStatusCancelled, nnxv1.FeatureStatus_FEATURE_STATUS_CANCELLED},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -42,20 +42,20 @@ func TestProtoFeatureCarriesTheDerivedStatusAndFinishedCount(t *testing.T) {
 		TaskCount:     3,
 		FinishedCount: 3,
 	})
-	if got.GetStatus() != prxv1.FeatureStatus_FEATURE_STATUS_AUTO ||
-		got.GetDisplayStatus() != prxv1.FeatureStatus_FEATURE_STATUS_COMPLETED ||
+	if got.GetStatus() != nnxv1.FeatureStatus_FEATURE_STATUS_AUTO ||
+		got.GetDisplayStatus() != nnxv1.FeatureStatus_FEATURE_STATUS_COMPLETED ||
 		got.GetFinishedCount() != 3 {
 		t.Fatalf("converted feature=%+v", got)
 	}
 }
 
 func TestDomainFeatureStatusAcceptsAutoAndRejectsUnknownValues(t *testing.T) {
-	auto := prxv1.FeatureStatus_FEATURE_STATUS_AUTO
+	auto := nnxv1.FeatureStatus_FEATURE_STATUS_AUTO
 	got, err := domainFeatureStatus(&auto)
 	if err != nil || got == nil || *got != domain.FeatureStatusAuto {
 		t.Fatalf("domainFeatureStatus(auto)=%v err=%v", got, err)
 	}
-	unknown := prxv1.FeatureStatus(999)
+	unknown := nnxv1.FeatureStatus(999)
 	if _, err := domainFeatureStatus(&unknown); domain.ErrorCode(err) != domain.DomainErrorCodeInvalidStatus {
 		t.Fatalf("domainFeatureStatus(unknown) err=%v", err)
 	}
@@ -65,13 +65,13 @@ func TestProtoTaskStatusMapsEveryKnownValue(t *testing.T) {
 	tests := []struct {
 		name  string
 		value domain.TaskStatus
-		want  prxv1.TaskStatus
+		want  nnxv1.TaskStatus
 	}{
-		{"not started", domain.TaskStatusNotStarted, prxv1.TaskStatus_TASK_STATUS_NOT_STARTED},
-		{"designing", domain.TaskStatusDesigning, prxv1.TaskStatus_TASK_STATUS_DESIGNING},
-		{"in progress", domain.TaskStatusInProgress, prxv1.TaskStatus_TASK_STATUS_IN_PROGRESS},
-		{"completed", domain.TaskStatusCompleted, prxv1.TaskStatus_TASK_STATUS_COMPLETED},
-		{"closed", domain.TaskStatusClosed, prxv1.TaskStatus_TASK_STATUS_CLOSED},
+		{"not started", domain.TaskStatusNotStarted, nnxv1.TaskStatus_TASK_STATUS_NOT_STARTED},
+		{"designing", domain.TaskStatusDesigning, nnxv1.TaskStatus_TASK_STATUS_DESIGNING},
+		{"in progress", domain.TaskStatusInProgress, nnxv1.TaskStatus_TASK_STATUS_IN_PROGRESS},
+		{"completed", domain.TaskStatusCompleted, nnxv1.TaskStatus_TASK_STATUS_COMPLETED},
+		{"closed", domain.TaskStatusClosed, nnxv1.TaskStatus_TASK_STATUS_CLOSED},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -86,23 +86,23 @@ func TestProtoTaskDisplayStateMapsEveryKnownValue(t *testing.T) {
 	tests := []struct {
 		name  string
 		value domain.TaskDisplayState
-		want  prxv1.TaskDisplayState
+		want  nnxv1.TaskDisplayState
 	}{
-		{"not started", domain.TaskDisplayStateNotStarted, prxv1.TaskDisplayState_TASK_DISPLAY_STATE_NOT_STARTED},
-		{"designing", domain.TaskDisplayStateDesigning, prxv1.TaskDisplayState_TASK_DISPLAY_STATE_DESIGNING},
-		{"designed", domain.TaskDisplayStateDesigned, prxv1.TaskDisplayState_TASK_DISPLAY_STATE_DESIGNED},
-		{"in progress", domain.TaskDisplayStateInProgress, prxv1.TaskDisplayState_TASK_DISPLAY_STATE_IN_PROGRESS},
-		{"completed", domain.TaskDisplayStateCompleted, prxv1.TaskDisplayState_TASK_DISPLAY_STATE_COMPLETED},
-		{"closed", domain.TaskDisplayStateClosed, prxv1.TaskDisplayState_TASK_DISPLAY_STATE_CLOSED},
-		{"merged", domain.TaskDisplayStateMerged, prxv1.TaskDisplayState_TASK_DISPLAY_STATE_MERGED},
+		{"not started", domain.TaskDisplayStateNotStarted, nnxv1.TaskDisplayState_TASK_DISPLAY_STATE_NOT_STARTED},
+		{"designing", domain.TaskDisplayStateDesigning, nnxv1.TaskDisplayState_TASK_DISPLAY_STATE_DESIGNING},
+		{"designed", domain.TaskDisplayStateDesigned, nnxv1.TaskDisplayState_TASK_DISPLAY_STATE_DESIGNED},
+		{"in progress", domain.TaskDisplayStateInProgress, nnxv1.TaskDisplayState_TASK_DISPLAY_STATE_IN_PROGRESS},
+		{"completed", domain.TaskDisplayStateCompleted, nnxv1.TaskDisplayState_TASK_DISPLAY_STATE_COMPLETED},
+		{"closed", domain.TaskDisplayStateClosed, nnxv1.TaskDisplayState_TASK_DISPLAY_STATE_CLOSED},
+		{"merged", domain.TaskDisplayStateMerged, nnxv1.TaskDisplayState_TASK_DISPLAY_STATE_MERGED},
 		{
 			"implemented",
 			domain.TaskDisplayStateImplemented,
-			prxv1.TaskDisplayState_TASK_DISPLAY_STATE_IMPLEMENTED,
+			nnxv1.TaskDisplayState_TASK_DISPLAY_STATE_IMPLEMENTED,
 		},
-		{"in review", domain.TaskDisplayStateInReview, prxv1.TaskDisplayState_TASK_DISPLAY_STATE_IN_REVIEW},
-		{"approved", domain.TaskDisplayStateApproved, prxv1.TaskDisplayState_TASK_DISPLAY_STATE_APPROVED},
-		{"unknown", domain.TaskDisplayStateUnknown, prxv1.TaskDisplayState_TASK_DISPLAY_STATE_UNKNOWN},
+		{"in review", domain.TaskDisplayStateInReview, nnxv1.TaskDisplayState_TASK_DISPLAY_STATE_IN_REVIEW},
+		{"approved", domain.TaskDisplayStateApproved, nnxv1.TaskDisplayState_TASK_DISPLAY_STATE_APPROVED},
+		{"unknown", domain.TaskDisplayStateUnknown, nnxv1.TaskDisplayState_TASK_DISPLAY_STATE_UNKNOWN},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -117,12 +117,12 @@ func TestProtoPullRequestStateMapsEveryKnownValue(t *testing.T) {
 	tests := []struct {
 		name  string
 		value domain.PullRequestState
-		want  prxv1.PullRequestState
+		want  nnxv1.PullRequestState
 	}{
-		{"open", domain.PullRequestStateOpen, prxv1.PullRequestState_PULL_REQUEST_STATE_OPEN},
-		{"closed", domain.PullRequestStateClosed, prxv1.PullRequestState_PULL_REQUEST_STATE_CLOSED},
-		{"merged", domain.PullRequestStateMerged, prxv1.PullRequestState_PULL_REQUEST_STATE_MERGED},
-		{"unknown", domain.PullRequestStateUnknown, prxv1.PullRequestState_PULL_REQUEST_STATE_UNKNOWN},
+		{"open", domain.PullRequestStateOpen, nnxv1.PullRequestState_PULL_REQUEST_STATE_OPEN},
+		{"closed", domain.PullRequestStateClosed, nnxv1.PullRequestState_PULL_REQUEST_STATE_CLOSED},
+		{"merged", domain.PullRequestStateMerged, nnxv1.PullRequestState_PULL_REQUEST_STATE_MERGED},
+		{"unknown", domain.PullRequestStateUnknown, nnxv1.PullRequestState_PULL_REQUEST_STATE_UNKNOWN},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -137,13 +137,13 @@ func TestProtoReviewStateMapsEveryKnownValue(t *testing.T) {
 	tests := []struct {
 		name  string
 		value domain.ReviewState
-		want  prxv1.ReviewState
+		want  nnxv1.ReviewState
 	}{
-		{"none", domain.ReviewStateNone, prxv1.ReviewState_REVIEW_STATE_NONE},
-		{"required", domain.ReviewStateRequired, prxv1.ReviewState_REVIEW_STATE_REQUIRED},
-		{"approved", domain.ReviewStateApproved, prxv1.ReviewState_REVIEW_STATE_APPROVED},
-		{"changes requested", domain.ReviewStateChangesRequested, prxv1.ReviewState_REVIEW_STATE_CHANGES_REQUESTED},
-		{"unknown", domain.ReviewStateUnknown, prxv1.ReviewState_REVIEW_STATE_UNKNOWN},
+		{"none", domain.ReviewStateNone, nnxv1.ReviewState_REVIEW_STATE_NONE},
+		{"required", domain.ReviewStateRequired, nnxv1.ReviewState_REVIEW_STATE_REQUIRED},
+		{"approved", domain.ReviewStateApproved, nnxv1.ReviewState_REVIEW_STATE_APPROVED},
+		{"changes requested", domain.ReviewStateChangesRequested, nnxv1.ReviewState_REVIEW_STATE_CHANGES_REQUESTED},
+		{"unknown", domain.ReviewStateUnknown, nnxv1.ReviewState_REVIEW_STATE_UNKNOWN},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -158,11 +158,11 @@ func TestProtoMergeabilityMapsEveryKnownValue(t *testing.T) {
 	tests := []struct {
 		name  string
 		value domain.Mergeability
-		want  prxv1.Mergeability
+		want  nnxv1.Mergeability
 	}{
-		{"mergeable", domain.MergeabilityMergeable, prxv1.Mergeability_MERGEABILITY_MERGEABLE},
-		{"conflicting", domain.MergeabilityConflicting, prxv1.Mergeability_MERGEABILITY_CONFLICTING},
-		{"unknown", domain.MergeabilityUnknown, prxv1.Mergeability_MERGEABILITY_UNKNOWN},
+		{"mergeable", domain.MergeabilityMergeable, nnxv1.Mergeability_MERGEABILITY_MERGEABLE},
+		{"conflicting", domain.MergeabilityConflicting, nnxv1.Mergeability_MERGEABILITY_CONFLICTING},
+		{"unknown", domain.MergeabilityUnknown, nnxv1.Mergeability_MERGEABILITY_UNKNOWN},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -177,14 +177,14 @@ func TestProtoCheckStateMapsEveryKnownValue(t *testing.T) {
 	tests := []struct {
 		name  string
 		value domain.CheckState
-		want  prxv1.CheckState
+		want  nnxv1.CheckState
 	}{
-		{"unknown", domain.CheckStateUnknown, prxv1.CheckState_CHECK_STATE_UNKNOWN},
-		{"none", domain.CheckStateNone, prxv1.CheckState_CHECK_STATE_NONE},
-		{"pending", domain.CheckStatePending, prxv1.CheckState_CHECK_STATE_PENDING},
-		{"success", domain.CheckStateSuccess, prxv1.CheckState_CHECK_STATE_SUCCESS},
-		{"failure", domain.CheckStateFailure, prxv1.CheckState_CHECK_STATE_FAILURE},
-		{"unset", domain.CheckState(""), prxv1.CheckState_CHECK_STATE_UNSPECIFIED},
+		{"unknown", domain.CheckStateUnknown, nnxv1.CheckState_CHECK_STATE_UNKNOWN},
+		{"none", domain.CheckStateNone, nnxv1.CheckState_CHECK_STATE_NONE},
+		{"pending", domain.CheckStatePending, nnxv1.CheckState_CHECK_STATE_PENDING},
+		{"success", domain.CheckStateSuccess, nnxv1.CheckState_CHECK_STATE_SUCCESS},
+		{"failure", domain.CheckStateFailure, nnxv1.CheckState_CHECK_STATE_FAILURE},
+		{"unset", domain.CheckState(""), nnxv1.CheckState_CHECK_STATE_UNSPECIFIED},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -202,11 +202,11 @@ func TestProtoTaskBlockLabelsKeepsDomainOrder(t *testing.T) {
 		domain.TaskBlockLabelChangesRequested, domain.TaskBlockLabelCIFailed,
 		domain.TaskBlockLabel("mystery"),
 	})
-	want := []prxv1.TaskBlockLabel{
-		prxv1.TaskBlockLabel_TASK_BLOCK_LABEL_DEPENDENCY_UNRESOLVED,
-		prxv1.TaskBlockLabel_TASK_BLOCK_LABEL_CONFLICT,
-		prxv1.TaskBlockLabel_TASK_BLOCK_LABEL_CHANGES_REQUESTED,
-		prxv1.TaskBlockLabel_TASK_BLOCK_LABEL_CI_FAILED,
+	want := []nnxv1.TaskBlockLabel{
+		nnxv1.TaskBlockLabel_TASK_BLOCK_LABEL_DEPENDENCY_UNRESOLVED,
+		nnxv1.TaskBlockLabel_TASK_BLOCK_LABEL_CONFLICT,
+		nnxv1.TaskBlockLabel_TASK_BLOCK_LABEL_CHANGES_REQUESTED,
+		nnxv1.TaskBlockLabel_TASK_BLOCK_LABEL_CI_FAILED,
 	}
 	if !slices.Equal(got, want) {
 		t.Fatalf("block labels=%v want %v", got, want)
@@ -217,44 +217,44 @@ func TestProtoPullRequestDisplayStateMapsEveryKnownValue(t *testing.T) {
 	tests := []struct {
 		name  string
 		value domain.PullRequestDisplayState
-		want  prxv1.PullRequestDisplayState
+		want  nnxv1.PullRequestDisplayState
 	}{
 		{
 			"merged",
 			domain.PullRequestDisplayStateMerged,
-			prxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_MERGED,
+			nnxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_MERGED,
 		},
 		{
 			"closed",
 			domain.PullRequestDisplayStateClosed,
-			prxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_CLOSED,
+			nnxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_CLOSED,
 		},
-		{"draft", domain.PullRequestDisplayStateDraft, prxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_DRAFT},
+		{"draft", domain.PullRequestDisplayStateDraft, nnxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_DRAFT},
 		{
 			"conflict",
 			domain.PullRequestDisplayStateConflict,
-			prxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_CONFLICT,
+			nnxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_CONFLICT,
 		},
 		{
 			"changes requested",
 			domain.PullRequestDisplayStateChangesRequested,
-			prxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_CHANGES_REQUESTED,
+			nnxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_CHANGES_REQUESTED,
 		},
 		{
 			"approved",
 			domain.PullRequestDisplayStateApproved,
-			prxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_APPROVED,
+			nnxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_APPROVED,
 		},
 		{
 			"review waiting",
 			domain.PullRequestDisplayStateReviewWaiting,
-			prxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_REVIEW_WAITING,
+			nnxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_REVIEW_WAITING,
 		},
-		{"open", domain.PullRequestDisplayStateOpen, prxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_OPEN},
+		{"open", domain.PullRequestDisplayStateOpen, nnxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_OPEN},
 		{
 			"unknown",
 			domain.PullRequestDisplayStateUnknown,
-			prxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_UNKNOWN,
+			nnxv1.PullRequestDisplayState_PULL_REQUEST_DISPLAY_STATE_UNKNOWN,
 		},
 	}
 	for _, test := range tests {
@@ -270,11 +270,11 @@ func TestProtoDocumentKindMapsEveryKnownValue(t *testing.T) {
 	tests := []struct {
 		name  string
 		value domain.DocumentKind
-		want  prxv1.DocumentKind
+		want  nnxv1.DocumentKind
 	}{
-		{"URL", domain.DocumentKindURL, prxv1.DocumentKind_DOCUMENT_KIND_URL},
-		{"local file", domain.DocumentKindLocalFile, prxv1.DocumentKind_DOCUMENT_KIND_LOCAL_FILE},
-		{"Markdown", domain.DocumentKindMarkdown, prxv1.DocumentKind_DOCUMENT_KIND_MARKDOWN},
+		{"URL", domain.DocumentKindURL, nnxv1.DocumentKind_DOCUMENT_KIND_URL},
+		{"local file", domain.DocumentKindLocalFile, nnxv1.DocumentKind_DOCUMENT_KIND_LOCAL_FILE},
+		{"Markdown", domain.DocumentKindMarkdown, nnxv1.DocumentKind_DOCUMENT_KIND_MARKDOWN},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -289,17 +289,17 @@ func TestProtoBlockedReasonMapsEveryKnownValue(t *testing.T) {
 	tests := []struct {
 		name  string
 		value domain.BlockedReasonCode
-		want  prxv1.BlockedReasonCode
+		want  nnxv1.BlockedReasonCode
 	}{
 		{
 			"dependency data incomplete",
 			domain.BlockedReasonCodeDependencyDataIncomplete,
-			prxv1.BlockedReasonCode_BLOCKED_REASON_CODE_DEPENDENCY_DATA_INCOMPLETE,
+			nnxv1.BlockedReasonCode_BLOCKED_REASON_CODE_DEPENDENCY_DATA_INCOMPLETE,
 		},
 		{
 			"waiting for blocker",
 			domain.BlockedReasonCodeWaitingForBlocker,
-			prxv1.BlockedReasonCode_BLOCKED_REASON_CODE_WAITING_FOR_BLOCKER,
+			nnxv1.BlockedReasonCode_BLOCKED_REASON_CODE_WAITING_FOR_BLOCKER,
 		},
 	}
 	for _, test := range tests {
@@ -316,88 +316,88 @@ func TestRPCErrorDetailsMapEveryKnownDomainErrorCode(t *testing.T) {
 	tests := []struct {
 		name  string
 		value domain.DomainErrorCode
-		want  prxv1.DomainErrorCode
+		want  nnxv1.DomainErrorCode
 	}{
 		{
 			"cross feature dependency",
 			domain.DomainErrorCodeCrossFeatureDependency,
-			prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_CROSS_FEATURE_DEPENDENCY,
+			nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_CROSS_FEATURE_DEPENDENCY,
 		},
-		{"cycle", domain.DomainErrorCodeCycle, prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_CYCLE},
+		{"cycle", domain.DomainErrorCodeCycle, nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_CYCLE},
 		{
 			"duplicate dependency",
 			domain.DomainErrorCodeDuplicateDependency,
-			prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DUPLICATE_DEPENDENCY,
+			nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DUPLICATE_DEPENDENCY,
 		},
 		{
 			"duplicate pull request",
 			domain.DomainErrorCodeDuplicatePullRequest,
-			prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DUPLICATE_PULL_REQUEST,
+			nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DUPLICATE_PULL_REQUEST,
 		},
-		{"GitHub auth", domain.DomainErrorCodeGitHubAuth, prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_GITHUB_AUTH},
+		{"GitHub auth", domain.DomainErrorCodeGitHubAuth, nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_GITHUB_AUTH},
 		{
 			"invalid database",
 			domain.DomainErrorCodeInvalidDatabase,
-			prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_DATABASE,
+			nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_DATABASE,
 		},
 		{
 			"invalid document",
 			domain.DomainErrorCodeInvalidDocument,
-			prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_DOCUMENT,
+			nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_DOCUMENT,
 		},
 		{
 			"invalid document kind",
 			domain.DomainErrorCodeInvalidDocumentKind,
-			prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_DOCUMENT_KIND,
+			nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_DOCUMENT_KIND,
 		},
-		{"invalid parent", domain.DomainErrorCodeInvalidParent, prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_PARENT},
+		{"invalid parent", domain.DomainErrorCodeInvalidParent, nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_PARENT},
 		{
 			"invalid pull request URL",
 			domain.DomainErrorCodeInvalidPullRequestURL,
-			prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_PULL_REQUEST_URL,
+			nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_PULL_REQUEST_URL,
 		},
-		{"invalid status", domain.DomainErrorCodeInvalidStatus, prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_STATUS},
-		{"invalid title", domain.DomainErrorCodeInvalidTitle, prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_TITLE},
-		{"not found", domain.DomainErrorCodeNotFound, prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_NOT_FOUND},
+		{"invalid status", domain.DomainErrorCodeInvalidStatus, nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_STATUS},
+		{"invalid title", domain.DomainErrorCodeInvalidTitle, nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_TITLE},
+		{"not found", domain.DomainErrorCodeNotFound, nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_NOT_FOUND},
 		{
 			"references exist",
 			domain.DomainErrorCodeReferencesExist,
-			prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_REFERENCES_EXIST,
+			nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_REFERENCES_EXIST,
 		},
 		{
 			"invalid document URL",
 			domain.DomainErrorCodeInvalidDocumentURL,
-			prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_DOCUMENT_URL,
+			nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_DOCUMENT_URL,
 		},
 		{
 			"document read failed",
 			domain.DomainErrorCodeDocumentReadFailed,
-			prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DOCUMENT_READ_FAILED,
+			nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DOCUMENT_READ_FAILED,
 		},
 		{
 			"document too large",
 			domain.DomainErrorCodeDocumentTooLarge,
-			prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DOCUMENT_TOO_LARGE,
+			nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DOCUMENT_TOO_LARGE,
 		},
 		{
 			"invalid implementation plan",
 			domain.DomainErrorCodeInvalidImplementationPlan,
-			prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_IMPLEMENTATION_PLAN,
+			nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_IMPLEMENTATION_PLAN,
 		},
 		{
 			"implementation plan too large",
 			domain.DomainErrorCodeImplementationPlanTooLarge,
-			prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_IMPLEMENTATION_PLAN_TOO_LARGE,
+			nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_IMPLEMENTATION_PLAN_TOO_LARGE,
 		},
 		{
 			"document not text",
 			domain.DomainErrorCodeDocumentNotText,
-			prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DOCUMENT_NOT_TEXT,
+			nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DOCUMENT_NOT_TEXT,
 		},
 		{
 			"duplicate implementation plan",
 			domain.DomainErrorCodeDuplicateImplementationPlan,
-			prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DUPLICATE_IMPLEMENTATION_PLAN,
+			nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DUPLICATE_IMPLEMENTATION_PLAN,
 		},
 	}
 	for _, test := range tests {
@@ -410,7 +410,7 @@ func TestRPCErrorDetailsMapEveryKnownDomainErrorCode(t *testing.T) {
 	}
 }
 
-func errorDetailCode(t *testing.T, err error) prxv1.DomainErrorCode {
+func errorDetailCode(t *testing.T, err error) nnxv1.DomainErrorCode {
 	t.Helper()
 	var connectErr *connect.Error
 	if !errors.As(err, &connectErr) {
@@ -421,9 +421,9 @@ func errorDetailCode(t *testing.T, err error) prxv1.DomainErrorCode {
 		if detailErr != nil {
 			t.Fatal(detailErr)
 		}
-		if errorDetail, ok := value.(*prxv1.ErrorDetail); ok {
+		if errorDetail, ok := value.(*nnxv1.ErrorDetail); ok {
 			return errorDetail.GetCode()
 		}
 	}
-	return prxv1.DomainErrorCode_DOMAIN_ERROR_CODE_UNSPECIFIED
+	return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_UNSPECIFIED
 }

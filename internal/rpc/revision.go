@@ -7,15 +7,15 @@ import (
 
 	"connectrpc.com/connect"
 
-	prxv1 "github.com/HappyOnigiri/PRX/gen/prx/v1"
+	nnxv1 "github.com/HappyOnigiri/nnx/gen/nnx/v1"
 )
 
 // WatchRevision は現在のリビジョンを即座に 1 通目として送り、以後は変化と heartbeat を
 // 流す。切断中の変更は再接続時の再取得へ畳まれるので、取りこぼしという概念がない。
 func (h *Handler) WatchRevision(
 	ctx context.Context,
-	_ *connect.Request[prxv1.WatchRevisionRequest],
-	stream *connect.ServerStream[prxv1.WatchRevisionResponse],
+	_ *connect.Request[nnxv1.WatchRevisionRequest],
+	stream *connect.ServerStream[nnxv1.WatchRevisionResponse],
 ) error {
 	if h.openStreams.Add(1) > maxRevisionStreams {
 		h.openStreams.Add(-1)
@@ -56,7 +56,7 @@ func errNotWatching() error {
 
 func (h *Handler) streamRevisions(
 	ctx context.Context,
-	stream *connect.ServerStream[prxv1.WatchRevisionResponse],
+	stream *connect.ServerStream[nnxv1.WatchRevisionResponse],
 	current uint64,
 	updates <-chan uint64,
 ) error {
@@ -85,6 +85,6 @@ func (h *Handler) streamRevisions(
 
 // sendRevision は送信失敗をそのまま返す。無視して回し続けると、切断済みクライアント
 // 向けの goroutine が heartbeat 間隔で永久に残る。
-func sendRevision(stream *connect.ServerStream[prxv1.WatchRevisionResponse], revision uint64) error {
-	return stream.Send(&prxv1.WatchRevisionResponse{Revision: revision})
+func sendRevision(stream *connect.ServerStream[nnxv1.WatchRevisionResponse], revision uint64) error {
+	return stream.Send(&nnxv1.WatchRevisionResponse{Revision: revision})
 }

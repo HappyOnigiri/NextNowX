@@ -1,4 +1,4 @@
-import { TaskStatus } from "../gen/prx/v1/prx_pb";
+import { TaskStatus } from "../gen/nnx/v1/nnx_pb";
 
 export function taskStatusLabelKey(status: TaskStatus): string {
   switch (status) {

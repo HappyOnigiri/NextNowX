@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import type { Feature } from "../gen/prx/v1/prx_pb";
+import type { Feature } from "../gen/nnx/v1/nnx_pb";
 import { featureStatusLabel, featureStatusToken } from "../i18n/domain";
 import { EntityIcon } from "./EntityIcon";
 import { StatusBadge } from "./StatusBadge";

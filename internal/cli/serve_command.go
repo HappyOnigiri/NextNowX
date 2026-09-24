@@ -15,14 +15,14 @@ import (
 
 	"github.com/spf13/cobra"
 
-	prx "github.com/HappyOnigiri/PRX"
-	"github.com/HappyOnigiri/PRX/internal/config"
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/launchd"
-	"github.com/HappyOnigiri/PRX/internal/revision"
-	"github.com/HappyOnigiri/PRX/internal/rpc"
-	"github.com/HappyOnigiri/PRX/internal/runstate"
-	"github.com/HappyOnigiri/PRX/internal/webui"
+	nnx "github.com/HappyOnigiri/nnx"
+	"github.com/HappyOnigiri/nnx/internal/config"
+	"github.com/HappyOnigiri/nnx/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/launchd"
+	"github.com/HappyOnigiri/nnx/internal/revision"
+	"github.com/HappyOnigiri/nnx/internal/rpc"
+	"github.com/HappyOnigiri/nnx/internal/runstate"
+	"github.com/HappyOnigiri/nnx/internal/webui"
 )
 
 const (
@@ -59,12 +59,16 @@ type launchdDetector interface{ Managed() bool }
 func (s *state) delayFailedServeExit(
 	ctx context.Context, failed *cobra.Command, detector launchdDetector, delay time.Duration,
 ) {
-	// 前景で使う `prx serve` は待たせない。待たせる理由は launchd の再起動だけで、
+	// 前景で使う `nnx serve` は待たせない。待たせる理由は launchd の再起動だけで、
 	// 手で起動した利用者にとってはエラー表示後の無言の待機になる。
 	if failed == nil || failed.Name() != "serve" || delay <= 0 || !detector.Managed() {
 		return
 	}
-	_, _ = fmt.Fprintf(s.errOut, "PRX waits %s before exiting so launchd does not restart it immediately\n", delay)
+	_, _ = fmt.Fprintf(
+		s.errOut,
+		"Next Now X waits %s before exiting so launchd does not restart it immediately\n",
+		delay,
+	)
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -111,13 +115,13 @@ func (s *state) serveCommand() *cobra.Command {
 				"the running one.",
 			defaultServePort,
 		),
-		Example: "prx serve --demo",
+		Example: "nnx serve --demo",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if s.serveLockRefused {
 				// 望んだ状態（サーバーが 1 つ稼働）は満たされている。非 0 で終わると
 				// KeepAlive{SuccessfulExit:false} の下で launchd が再起動ループに入る。
-				_, _ = fmt.Fprintln(s.errOut, "another PRX server is already running; not starting a second one")
+				_, _ = fmt.Fprintln(s.errOut, "another Next Now X server is already running; not starting a second one")
 				return nil
 			}
 			return s.runServe(cmd, address)
@@ -156,7 +160,7 @@ func (s *state) runServe(cmd *cobra.Command, address string) error {
 	rpcPath, rpcHandler := rpc.NewWithOptions(s.service, rpc.Options{Revisions: revisionSubscriber(watcher)})
 	mux := http.NewServeMux()
 	mux.Handle(rpcPath, rpcHandler)
-	mux.Handle("/", webui.Handler(prx.Version(), s.demo))
+	mux.Handle("/", webui.Handler(nnx.Version(), s.demo))
 	// WriteTimeout と IdleTimeout は設定しない。設定すると WatchRevision の全ストリームが
 	// その間隔で無言に切れる。docs/design/webui.md を参照。
 	server := &http.Server{
@@ -165,9 +169,9 @@ func (s *state) runServe(cmd *cobra.Command, address string) error {
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	if s.demo {
-		_, _ = fmt.Fprintln(s.errOut, "PRX demo mode uses temporary data that resets on restart.")
+		_, _ = fmt.Fprintln(s.errOut, "Next Now X demo mode uses temporary data that resets on restart.")
 	}
-	_, _ = fmt.Fprintf(s.errOut, "PRX listening on http://%s\n", listener.Addr())
+	_, _ = fmt.Fprintf(s.errOut, "Next Now X listening on http://%s\n", listener.Addr())
 	shutdownDone := make(chan struct{})
 	go func() {
 		defer close(shutdownDone)
@@ -217,7 +221,7 @@ func (s *state) startRevisionWatcher(ctx context.Context) (*revision.Watcher, <-
 		warned = true
 		_, _ = fmt.Fprintf(
 			s.errOut,
-			"PRX cannot watch the database for changes, so the WebUI will not refresh by itself: %v\n",
+			"Next Now X cannot watch the database for changes, so the WebUI will not refresh by itself: %v\n",
 			err,
 		)
 	})
@@ -302,7 +306,7 @@ func (s *state) recordRunState(address string, startedAt time.Time) error {
 		Address:        address,
 		URL:            "http://" + address,
 		StartedAt:      startedAt,
-		Version:        prx.Version(),
+		Version:        nnx.Version(),
 		Executable:     executable,
 		DatabasePath:   databasePath,
 		LaunchdManaged: launchd.New().Managed(),
@@ -366,7 +370,7 @@ func (s *state) watchExecutablePath(
 			// 手動で起動したプロセスだけが残る。
 			_, _ = fmt.Fprintf(
 				s.errOut,
-				"PRX executable %s was replaced but this server is not managed by launchd; restart it manually\n",
+				"Next Now X executable %s was replaced but this server is not managed by launchd; restart it manually\n",
 				path,
 			)
 			return
@@ -374,7 +378,7 @@ func (s *state) watchExecutablePath(
 		if err := s.restartAfterReplacement(manager, path); err != nil {
 			// 依頼の失敗で監視を終えると、以降の置換も検査されないまま古いサーバーが
 			// 残る。基準はそのままなので、次の周期で同じ置換を再依頼できる。
-			_, _ = fmt.Fprintf(s.errOut, "PRX could not restart itself after the replacement: %v\n", err)
+			_, _ = fmt.Fprintf(s.errOut, "Next Now X could not restart itself after the replacement: %v\n", err)
 			continue
 		}
 		return
@@ -386,14 +390,14 @@ func (s *state) watchExecutablePath(
 func (s *state) restartAfterReplacement(manager executableRestarter, path string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	_, _ = fmt.Fprintf(s.errOut, "PRX executable %s was replaced; asking launchd to restart the server\n", path)
+	_, _ = fmt.Fprintf(s.errOut, "Next Now X executable %s was replaced; asking launchd to restart the server\n", path)
 	return manager.Kickstart(ctx)
 }
 
 func (s *state) warnExecutableWatchDisabled(err error) {
 	_, _ = fmt.Fprintf(
 		s.errOut,
-		"PRX cannot identify its own executable, so automatic restart after a replacement is disabled: %v\n",
+		"Next Now X cannot identify its own executable, so automatic restart after a replacement is disabled: %v\n",
 		err,
 	)
 }

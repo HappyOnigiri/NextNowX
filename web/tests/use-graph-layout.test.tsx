@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { TaskBlockLabel, TaskDisplayState } from "../src/gen/prx/v1/prx_pb";
+import { TaskBlockLabel, TaskDisplayState } from "../src/gen/nnx/v1/nnx_pb";
 import { useGraphLayout } from "../src/views/useGraphLayout";
 import {
   makeDependency,
@@ -101,8 +101,8 @@ describe("useGraphLayout", () => {
         stale: true,
         // フィーチャーの pull request が 1 つの owner に揃うので名前から落ちる。
         pullRequest: {
-          label: "prx #42",
-          url: "https://github.com/acme/prx/pull/42",
+          label: "nnx #42",
+          url: "https://github.com/acme/nnx/pull/42",
         },
         documents: [document],
       },
@@ -155,10 +155,10 @@ describe("useGraphLayout", () => {
       expect(result.current.nodes).toHaveLength(2);
     });
     expect(result.current.nodes[0]?.data.pullRequest?.label).toBe(
-      "acme/prx #42",
+      "acme/nnx #42",
     );
     expect(result.current.nodes[1]?.data.pullRequest?.label).toBe(
-      "other/prx #7",
+      "other/nnx #7",
     );
   });
 

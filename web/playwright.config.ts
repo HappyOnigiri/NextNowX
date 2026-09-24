@@ -27,7 +27,7 @@ export default defineConfig({
       command: "../scripts/run-e2e-server.sh",
       wait: {
         stderr: new RegExp(
-          "PRX listening on http://127\\.0\\.0\\.1:(?<PRX_E2E_PORT>\\d+)",
+          "Next Now X listening on http://127\\.0\\.0\\.1:(?<NNX_E2E_PORT>\\d+)",
         ),
       },
       timeout: 120_000,
@@ -36,7 +36,7 @@ export default defineConfig({
       command: "../scripts/run-e2e-server.sh",
       wait: {
         stderr: new RegExp(
-          "PRX listening on http://127\\.0\\.0\\.1:(?<PRX_E2E_LANGUAGE_PORT>\\d+)",
+          "Next Now X listening on http://127\\.0\\.0\\.1:(?<NNX_E2E_LANGUAGE_PORT>\\d+)",
         ),
       },
       timeout: 120_000,

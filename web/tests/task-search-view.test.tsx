@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { TaskDisplayState, type Snapshot } from "../src/gen/prx/v1/prx_pb";
+import { TaskDisplayState, type Snapshot } from "../src/gen/nnx/v1/nnx_pb";
 import { TaskSearch } from "../src/views/TaskSearch";
 import {
   makeFeature,
@@ -102,10 +102,10 @@ describe("TaskSearch view", () => {
       name: "Copy Task ID",
     })[0];
     expect(identifier).toHaveTextContent("ready-task");
-    const pullRequest = screen.getByRole("link", { name: /acme\/prx #42/ });
+    const pullRequest = screen.getByRole("link", { name: /acme\/nnx #42/ });
     expect(pullRequest).toHaveAttribute(
       "href",
-      "https://github.com/acme/prx/pull/42",
+      "https://github.com/acme/nnx/pull/42",
     );
     expect(screen.getByText("open")).toBeInTheDocument();
     // pull request 自身の異常はアイコンで示し、理由は tooltip と名前が持つ。

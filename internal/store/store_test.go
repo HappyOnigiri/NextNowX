@@ -12,11 +12,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/HappyOnigiri/PRX/internal/app"
-	"github.com/HappyOnigiri/PRX/internal/config"
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	githubprovider "github.com/HappyOnigiri/PRX/internal/github"
-	"github.com/HappyOnigiri/PRX/internal/store"
+	"github.com/HappyOnigiri/nnx/internal/app"
+	"github.com/HappyOnigiri/nnx/internal/config"
+	"github.com/HappyOnigiri/nnx/internal/domain"
+	githubprovider "github.com/HappyOnigiri/nnx/internal/github"
+	"github.com/HappyOnigiri/nnx/internal/store"
 )
 
 func openTestService(t *testing.T) (*store.Store, *app.Service) {
@@ -1376,7 +1376,7 @@ func TestInitializeDemoCreatesCompleteShowcase(t *testing.T) {
 			continue
 		}
 		body, readErr := service.ReadDocumentContent(ctx, document.ID)
-		if readErr != nil || !strings.Contains(body, "PRX demo walkthrough") {
+		if readErr != nil || !strings.Contains(body, "Next Now X demo walkthrough") {
 			t.Errorf("Markdown preview=%q, err=%v", body, readErr)
 		}
 	}
@@ -1985,7 +1985,7 @@ func TestDefaultPathUsesUserConfigDirectory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := filepath.Join(configDir, "prx", "prx.db")
+	want := filepath.Join(configDir, "nnx", "nnx.db")
 	if got != want {
 		t.Fatalf("DefaultPath()=%q, want %q", got, want)
 	}

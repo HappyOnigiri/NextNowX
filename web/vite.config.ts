@@ -28,9 +28,9 @@ const devOrigins = new Set([
   "http://localhost:7331",
   "http://[::1]:7331",
 ]);
-const demoPlaceholder = /__PRX_DEMO__/g;
-const demoSessionPlaceholder = /__PRX_DEMO_SESSION__/g;
-const demoMode = process.env["PRX_DEMO"] === "true";
+const demoPlaceholder = /__NNX_DEMO__/g;
+const demoSessionPlaceholder = /__NNX_DEMO_SESSION__/g;
+const demoMode = process.env["NNX_DEMO"] === "true";
 // 開発サーバのプロセスを表す ID である。閉じた警告は読み込み直しても戻らないが、
 // 開発サーバを起動し直すと ID が変わって戻る。
 const demoSession = randomUUID();
@@ -83,7 +83,7 @@ export default defineConfig({
     port: 7331,
     strictPort: true,
     proxy: {
-      "/prx.v1": {
+      "/nnx.v1": {
         target: apiOrigin,
         changeOrigin: true,
         configure(proxy) {

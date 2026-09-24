@@ -18,8 +18,8 @@ import (
 
 	"connectrpc.com/connect"
 
-	prxv1 "github.com/HappyOnigiri/PRX/gen/prx/v1"
-	"github.com/HappyOnigiri/PRX/gen/prx/v1/prxv1connect"
+	nnxv1 "github.com/HappyOnigiri/nnx/gen/nnx/v1"
+	"github.com/HappyOnigiri/nnx/gen/nnx/v1/nnxv1connect"
 )
 
 type resultEnvelope struct {
@@ -43,8 +43,8 @@ var englishLocale = []string{"LC_ALL=en_US.UTF-8", "LC_MESSAGES=en_US.UTF-8", "L
 
 func buildCLI(t *testing.T) string {
 	t.Helper()
-	binary := filepath.Join(t.TempDir(), "prx")
-	command := exec.CommandContext(context.Background(), "go", "build", "-o", binary, "../../cmd/prx")
+	binary := filepath.Join(t.TempDir(), "nnx")
+	command := exec.CommandContext(context.Background(), "go", "build", "-o", binary, "../../cmd/nnx")
 	if output, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("build CLI: %v\n%s", err, output)
 	}
@@ -361,7 +361,7 @@ func TestBlackBoxCRUDAndCycle(t *testing.T) {
 
 func TestBlackBoxTargetedSyncByID(t *testing.T) {
 	binary := buildCLI(t)
-	t.Setenv("PRX_CONFIG", filepath.Join(t.TempDir(), "missing-config.yaml"))
+	t.Setenv("NNX_CONFIG", filepath.Join(t.TempDir(), "missing-config.yaml"))
 	dbPath := filepath.Join(t.TempDir(), "targeted-sync.db")
 	project := decodeID(t, runCLIData(t, binary, dbPath, "project", "create", "Sync"))
 	feature, _, exit := runCLI(t, binary, dbPath, "feature", "create", "Targeted", "--project", project)
@@ -661,8 +661,8 @@ func TestBlackBoxServerAndCLIShareDatabase(t *testing.T) {
 			t.Fatalf("%s: status = %d, want %d", guarded.name, response.StatusCode, http.StatusForbidden)
 		}
 	}
-	rpcClient := prxv1connect.NewPRXServiceClient(http.DefaultClient, "http://"+address)
-	snapshot, err := rpcClient.GetSnapshot(context.Background(), connect.NewRequest(&prxv1.GetSnapshotRequest{}))
+	rpcClient := nnxv1connect.NewNNXServiceClient(http.DefaultClient, "http://"+address)
+	snapshot, err := rpcClient.GetSnapshot(context.Background(), connect.NewRequest(&nnxv1.GetSnapshotRequest{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -794,7 +794,7 @@ func TestBlackBoxHelpAndErrorShareCanonicalHint(t *testing.T) {
 	if err := json.Unmarshal([]byte(help.stdout), &helpValue); err != nil {
 		t.Fatal(err)
 	}
-	for _, text := range []string{"Usage:\n  prx feature", "Examples:\nprx feature", "Global Flags:"} {
+	for _, text := range []string{"Usage:\n  nnx feature", "Examples:\nnnx feature", "Global Flags:"} {
 		if !strings.Contains(helpValue.Hint, text) {
 			t.Fatalf("help omitted %q: %q", text, helpValue.Hint)
 		}
@@ -851,17 +851,17 @@ func TestBlackBoxResolvedCommandErrorsIncludeCompleteHelp(t *testing.T) {
 	}{
 		{
 			name: "unknown command with trailing JSON flag", args: []string{"unknown", "--json"},
-			usage: "Usage:\n  prx [command]", wantError: "unknown command",
+			usage: "Usage:\n  nnx [command]", wantError: "unknown command",
 		},
 		{
 			name: "deep unknown command", args: []string{"config", "host", "unknown", "--json"},
-			usage: "Usage:\n  prx config host", example: "Examples:\nprx config host", wantError: "unknown command",
+			usage: "Usage:\n  nnx config host", example: "Examples:\nnnx config host", wantError: "unknown command",
 		},
 		{
 			name:      "missing positional arguments",
 			args:      []string{"feature", "create", "--json"},
-			usage:     "Usage:\n  prx feature create TITLE",
-			example:   "Examples:\nprx feature create",
+			usage:     "Usage:\n  nnx feature create TITLE",
+			example:   "Examples:\nnnx feature create",
 			wantError: "accepts 1 arg(s)",
 		},
 	} {
@@ -1029,7 +1029,7 @@ func TestBlackBoxUnknownHelpTopicUsesTheErrorPath(t *testing.T) {
 		t.Fatalf("result=%+v", result)
 	}
 	failure := decodeFailure(t, []byte(result.stderr), result.stderr)
-	if !strings.Contains(failure.Error, "unknown command") || !strings.Contains(failure.Hint, "Usage:\n  prx help") {
+	if !strings.Contains(failure.Error, "unknown command") || !strings.Contains(failure.Hint, "Usage:\n  nnx help") {
 		t.Fatalf("failure=%+v", failure)
 	}
 	assertCompactJSON(t, result.stderr)
@@ -1044,8 +1044,8 @@ func TestBlackBoxErrorHintDoesNotVaryWithAmbientEnvironment(t *testing.T) {
 	hints := make([]string, 0, 2)
 	for _, ambient := range []string{"/first/ambient", "/second/ambient"} {
 		result := executeCLIWithEnv(t, binary, "", []string{
-			"PRX_DB=" + filepath.Join(ambient, "prx.db"),
-			"PRX_CONFIG=" + filepath.Join(ambient, "prx.yaml"),
+			"NNX_DB=" + filepath.Join(ambient, "nnx.db"),
+			"NNX_CONFIG=" + filepath.Join(ambient, "nnx.yaml"),
 		}, "--db", dbPath, "--json", "feature", "missing")
 		if result.exit == 0 || result.stdout != "" {
 			t.Fatalf("result=%+v", result)
@@ -1065,13 +1065,13 @@ func TestBlackBoxEnvironmentSuppliesStoragePathWithoutFlag(t *testing.T) {
 	binary := buildCLI(t)
 	dbPath := filepath.Join(t.TempDir(), "env.db")
 	project := decodeID(t, runCLIData(t, binary, dbPath, "project", "create", "From environment"))
-	result := executeCLIWithEnv(t, binary, "", []string{"PRX_DB=" + dbPath},
+	result := executeCLIWithEnv(t, binary, "", []string{"NNX_DB=" + dbPath},
 		"--json", "feature", "create", "From environment", "--project", project)
 	if result.exit != 0 || result.stderr != "" {
 		t.Fatalf("result=%+v", result)
 	}
 	if _, err := os.Stat(dbPath); err != nil {
-		t.Fatalf("PRX_DB was not used as the storage path: %v", err)
+		t.Fatalf("NNX_DB was not used as the storage path: %v", err)
 	}
 }
 
@@ -1312,7 +1312,7 @@ func TestBlackBoxDefaultTextOutputCoversResourcesAndSummaries(t *testing.T) {
 	}
 	debugReport := run("debug")
 	for _, value := range []string{
-		"PRX diagnostic report", "problems:", "build:", "runtime:", "paths:", "config:", "storage:",
+		"Next Now X diagnostic report", "problems:", "build:", "runtime:", "paths:", "config:", "storage:",
 		"records:", "github_sync:", "cli_schema_version: 2",
 	} {
 		if !strings.Contains(debugReport.stdout, value) {
@@ -1810,12 +1810,12 @@ func TestBlackBoxJSONResponsesCoverEveryResponseCommand(t *testing.T) {
 	assertDirectObjectKeys(t, runDB("project", "delete", projectID, "--cascade"), "deleted")
 }
 
-// 開発ビルドの `prx update` は確認も更新も行わず、ストレージにも触れない。
+// 開発ビルドの `nnx update` は確認も更新も行わず、ストレージにも触れない。
 // 実配布物でないビルドが配布元へ出ないことを、実バイナリで押さえる。
 func TestBlackBoxUpdateIsDisabledForDevelopmentBuildsAndOpensNoStorage(t *testing.T) {
 	binary := buildCLI(t)
 	root := t.TempDir()
-	missingDB := filepath.Join(root, "missing", "prx.db")
+	missingDB := filepath.Join(root, "missing", "nnx.db")
 	missingConfig := filepath.Join(root, "missing", "config.yaml")
 
 	text := executeCLI(t, binary, "", "--db", missingDB, "--config", missingConfig, "update")
@@ -1841,7 +1841,7 @@ func TestBlackBoxUpdateIsDisabledForDevelopmentBuildsAndOpensNoStorage(t *testin
 		t.Fatalf("releases=%s", response["releases"])
 	}
 	if _, err := os.Stat(missingDB); !os.IsNotExist(err) {
-		t.Fatalf("prx update created a database: %v", err)
+		t.Fatalf("nnx update created a database: %v", err)
 	}
 
 	// 実行の依頼は、できないことが終了ステータスでも分かる必要がある。
@@ -1928,7 +1928,7 @@ func TestBlackBoxExplicitJSONErrorsUseJSONOnStderr(t *testing.T) {
 func TestBlackBoxConfigUsesSecureSecretFreeOutput(t *testing.T) {
 	binary := buildCLI(t)
 	root := t.TempDir()
-	configPath := filepath.Join(root, "prx", "config.yaml")
+	configPath := filepath.Join(root, "nnx", "config.yaml")
 	dbPath := filepath.Join(root, "unused.db")
 	show, stderr, exit := runConfigCLI(t, binary, dbPath, configPath, "", "config")
 	if exit != 0 || stderr != "" || !show.OK {
@@ -2082,13 +2082,13 @@ func runConfigCLI(
 	return decodeResult(t, []byte(result.stdout), result.stdout), result.stderr, result.exit
 }
 
-// TestConfigUnknownFieldsWarnWithoutFailing は、新しい PRX が書いた設定ファイルでも動作が
+// TestConfigUnknownFieldsWarnWithoutFailing は、新しい Next Now X が書いた設定ファイルでも動作が
 // 続くことを示す。コマンドは成功し、このビルドが表現できないフィールドは stderr に
 // 名前が出て、検証はそれらをデータとして報告する。
 func TestConfigUnknownFieldsWarnWithoutFailing(t *testing.T) {
 	binary := buildCLI(t)
 	root := t.TempDir()
-	dbPath := filepath.Join(root, "prx.db")
+	dbPath := filepath.Join(root, "nnx.db")
 	configPath := filepath.Join(root, "config.yaml")
 	body := "version: 1\ngithub:\n  hosts:\n    - host: github.com\n" +
 		"      future_url: https://github.com/future\n  future_setting: 42\n"
@@ -2143,7 +2143,7 @@ func TestBlackBoxDebugRunsWithoutStorageAndWithoutRefreshing(t *testing.T) {
 	root := t.TempDir()
 	configPath := filepath.Join(root, "config.yaml")
 
-	brokenPath := filepath.Join(root, "not-a-directory", "prx.db")
+	brokenPath := filepath.Join(root, "not-a-directory", "nnx.db")
 	if err := os.WriteFile(filepath.Join(root, "not-a-directory"), []byte("x"), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -2377,10 +2377,10 @@ func TestBlackBoxPromptFollowsThePlanAndTheConfiguredTemplates(t *testing.T) {
 		t.Fatalf("prompt failed: stdout=%q stderr=%q exit=%d", design.stdout, design.stderr, design.exit)
 	}
 	// テキスト出力はプロンプトそのものだけなので、編集せずに別のエージェントへ渡せる。
-	if !strings.HasPrefix(design.stdout, "Design PRX task T-1 of feature F-1.\n") {
+	if !strings.HasPrefix(design.stdout, "Design Next Now X task T-1 of feature F-1.\n") {
 		t.Fatalf("design prompt=%q", design.stdout)
 	}
-	for _, expected := range []string{"Add the checkout API", "Server only", "prx plan set T-1 --file PATH"} {
+	for _, expected := range []string{"Add the checkout API", "Server only", "nnx plan set T-1 --file PATH"} {
 		if !strings.Contains(design.stdout, expected) {
 			t.Fatalf("design prompt does not contain %q: %q", expected, design.stdout)
 		}
@@ -2397,12 +2397,12 @@ func TestBlackBoxPromptFollowsThePlanAndTheConfiguredTemplates(t *testing.T) {
 		t.Fatalf("set plan: stderr=%q", result.stderr)
 	}
 	implementation := run("prompt", "T-1")
-	if !strings.HasPrefix(implementation.stdout, "Implement PRX task T-1 of feature F-1.\n") {
+	if !strings.HasPrefix(implementation.stdout, "Implement Next Now X task T-1 of feature F-1.\n") {
 		t.Fatalf("implementation prompt=%q", implementation.stdout)
 	}
 	// プラン本文はプロンプトに含めず、エージェントには読むよう指示する。
 	if strings.Contains(implementation.stdout, "# Checkout plan") ||
-		!strings.Contains(implementation.stdout, "prx plan T-1") {
+		!strings.Contains(implementation.stdout, "nnx plan T-1") {
 		t.Fatalf("implementation prompt=%q", implementation.stdout)
 	}
 
@@ -2428,7 +2428,8 @@ func TestBlackBoxPromptFollowsThePlanAndTheConfiguredTemplates(t *testing.T) {
 	// --kind は導出を上書きする。計画があっても設計プロンプトを取り出せないと、
 	// 一括設計の SubAgent が指示を受け取れない。
 	forcedDesign := run("prompt", "T-1", "--kind", "design")
-	if forcedDesign.exit != 0 || !strings.HasPrefix(forcedDesign.stdout, "Design PRX task T-1 of feature F-1.\n") {
+	if forcedDesign.exit != 0 ||
+		!strings.HasPrefix(forcedDesign.stdout, "Design Next Now X task T-1 of feature F-1.\n") {
 		t.Fatalf("forced design prompt=%q stderr=%q", forcedDesign.stdout, forcedDesign.stderr)
 	}
 	forcedKind := run("--json", "prompt", "T-1", "--kind", "design")
@@ -2486,7 +2487,7 @@ func TestBlackBoxConfigLanguageSwitchesThePromptLanguage(t *testing.T) {
 		t.Fatalf("config language output=%q stderr=%q", automatic.stdout, automatic.stderr)
 	}
 	japanese := run(japaneseLocale, "prompt", "T-1")
-	if japanese.exit != 0 || !strings.HasPrefix(japanese.stdout, "feature F-1 の PRX task T-1 を設計する。\n") {
+	if japanese.exit != 0 || !strings.HasPrefix(japanese.stdout, "feature F-1 の Next Now X task T-1 を設計する。\n") {
 		t.Fatalf("design prompt=%q stderr=%q", japanese.stdout, japanese.stderr)
 	}
 
@@ -2497,7 +2498,7 @@ func TestBlackBoxConfigLanguageSwitchesThePromptLanguage(t *testing.T) {
 		t.Fatalf("config language update output=%q stderr=%q", result.stdout, result.stderr)
 	}
 	pinned := run(englishLocale, "prompt", "T-1")
-	if !strings.HasPrefix(pinned.stdout, "feature F-1 の PRX task T-1 を設計する。\n") {
+	if !strings.HasPrefix(pinned.stdout, "feature F-1 の Next Now X task T-1 を設計する。\n") {
 		t.Fatalf("design prompt=%q", pinned.stdout)
 	}
 	settings, err := os.ReadFile(configPath)

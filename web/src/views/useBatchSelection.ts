@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { type Task } from "../gen/prx/v1/prx_pb";
+import { type Task } from "../gen/nnx/v1/nnx_pb";
 import {
   batchCandidates,
   prunedSelection,

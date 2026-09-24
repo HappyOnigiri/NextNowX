@@ -1,8 +1,8 @@
 package config
 
 import (
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/prompt"
+	"github.com/HappyOnigiri/nnx/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/prompt"
 )
 
 // DebugInput は診断レポートが提示する設定情報を集める。他の呼び出し元と

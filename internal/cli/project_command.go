@@ -3,7 +3,7 @@ package cli
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/domain"
 )
 
 func (s *state) projectCommand() *cobra.Command {
@@ -12,11 +12,11 @@ func (s *state) projectCommand() *cobra.Command {
 		Aliases: []string{"proj"},
 		Short:   "List projects or show one by ID",
 		Long:    "List projects or show one by ID.\n\nAlias: proj.",
-		Example: "prx project\nprx project P-1\nprx proj P-1",
+		Example: "nnx project\nnnx project P-1\nnnx proj P-1",
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// どちらの形でもスナップショットを読むので、project とともに並ぶ feature は
-			// サーバーが報告したものになり、prx feature と一致する。
+			// サーバーが報告したものになり、nnx feature と一致する。
 			value, err := s.service.Snapshot(cmd.Context())
 			if err != nil {
 				return err
@@ -70,7 +70,7 @@ func (s *state) projectCreateCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:     "create TITLE",
 		Short:   "Create a project",
-		Example: "prx project create \"Payments platform\"",
+		Example: "nnx project create \"Payments platform\"",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			value, err := s.service.CreateProject(cmd.Context(), args[0], description)
@@ -90,7 +90,7 @@ func (s *state) projectUpdateCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:     "update PROJECT_ID",
 		Short:   "Update a project by ID",
-		Example: "prx project update P-1 --title \"Payments platform\"",
+		Example: "nnx project update P-1 --title \"Payments platform\"",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			value, err := s.service.UpdateProject(cmd.Context(), args[0], domain.ProjectUpdate{
@@ -120,7 +120,7 @@ func (s *state) projectArchiveCommand(archived bool) *cobra.Command {
 	return &cobra.Command{
 		Use:     verb + " PROJECT_ID",
 		Short:   short,
-		Example: "prx project " + verb + " P-1",
+		Example: "nnx project " + verb + " P-1",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			value, err := s.service.UpdateProject(
@@ -150,7 +150,7 @@ func (s *state) projectDeleteCommand() *cobra.Command {
 			"With --cascade it deletes the project's own documents and every feature inside it,\n" +
 			"together with the tasks, dependencies, pull-request attachments, and documents those\n" +
 			"features own. A feature cannot outlive its project, because it belongs to one.",
-		Example: "prx project delete P-1 --cascade",
+		Example: "nnx project delete P-1 --cascade",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := s.service.DeleteProject(cmd.Context(), args[0], cascade); err != nil {

@@ -5,15 +5,15 @@ import (
 
 	"connectrpc.com/connect"
 
-	prxv1 "github.com/HappyOnigiri/PRX/gen/prx/v1"
-	"github.com/HappyOnigiri/PRX/internal/config"
-	"github.com/HappyOnigiri/PRX/internal/prompt"
+	nnxv1 "github.com/HappyOnigiri/nnx/gen/nnx/v1"
+	"github.com/HappyOnigiri/nnx/internal/config"
+	"github.com/HappyOnigiri/nnx/internal/prompt"
 )
 
 func (h *Handler) GetPromptTemplates(
 	_ context.Context,
-	_ *connect.Request[prxv1.GetPromptTemplatesRequest],
-) (*connect.Response[prxv1.GetPromptTemplatesResponse], error) {
+	_ *connect.Request[nnxv1.GetPromptTemplatesRequest],
+) (*connect.Response[nnxv1.GetPromptTemplatesResponse], error) {
 	store, err := h.requireConfig()
 	if err != nil {
 		return nil, err
@@ -22,7 +22,7 @@ func (h *Handler) GetPromptTemplates(
 	if err != nil {
 		return nil, configRPCError(err)
 	}
-	return connect.NewResponse(&prxv1.GetPromptTemplatesResponse{
+	return connect.NewResponse(&nnxv1.GetPromptTemplatesResponse{
 		Templates:             protoPromptTemplates(settings.Prompts),
 		SupportedPlaceholders: prompt.SupportedPlaceholders(),
 		RequiredPlaceholder:   prompt.RequiredPlaceholder(),
@@ -35,8 +35,8 @@ func (h *Handler) GetPromptTemplates(
 
 func (h *Handler) UpdatePromptTemplates(
 	_ context.Context,
-	req *connect.Request[prxv1.UpdatePromptTemplatesRequest],
-) (*connect.Response[prxv1.UpdatePromptTemplatesResponse], error) {
+	req *connect.Request[nnxv1.UpdatePromptTemplatesRequest],
+) (*connect.Response[nnxv1.UpdatePromptTemplatesResponse], error) {
 	store, err := h.requireConfig()
 	if err != nil {
 		return nil, err
@@ -52,7 +52,7 @@ func (h *Handler) UpdatePromptTemplates(
 	if err != nil {
 		return nil, configRPCError(err)
 	}
-	return connect.NewResponse(&prxv1.UpdatePromptTemplatesResponse{
+	return connect.NewResponse(&nnxv1.UpdatePromptTemplatesResponse{
 		Templates: protoPromptTemplates(settings.Prompts),
 	}), nil
 }
@@ -62,8 +62,8 @@ func (h *Handler) UpdatePromptTemplates(
 // 時点のものかもしれないため。
 func (h *Handler) GetTaskPrompt(
 	ctx context.Context,
-	req *connect.Request[prxv1.GetTaskPromptRequest],
-) (*connect.Response[prxv1.GetTaskPromptResponse], error) {
+	req *connect.Request[nnxv1.GetTaskPromptRequest],
+) (*connect.Response[nnxv1.GetTaskPromptResponse], error) {
 	if _, err := h.requireConfig(); err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func (h *Handler) GetTaskPrompt(
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&prxv1.GetTaskPromptResponse{
+	return connect.NewResponse(&nnxv1.GetTaskPromptResponse{
 		TaskId: req.Msg.GetTaskId(), Kind: protoTaskPromptKind(kind), Prompt: body,
 	}), nil
 }
@@ -81,8 +81,8 @@ func (h *Handler) GetTaskPrompt(
 // docs/design/agent-prompts.md を参照。
 func (h *Handler) GetBatchPrompt(
 	ctx context.Context,
-	req *connect.Request[prxv1.GetBatchPromptRequest],
-) (*connect.Response[prxv1.GetBatchPromptResponse], error) {
+	req *connect.Request[nnxv1.GetBatchPromptRequest],
+) (*connect.Response[nnxv1.GetBatchPromptResponse], error) {
 	if _, err := h.requireConfig(); err != nil {
 		return nil, err
 	}
@@ -92,13 +92,13 @@ func (h *Handler) GetBatchPrompt(
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&prxv1.GetBatchPromptResponse{
+	return connect.NewResponse(&nnxv1.GetBatchPromptResponse{
 		FeatureId: featureID, TaskIds: taskIDs, Prompt: body, Kind: protoBatchPromptKind(kind),
 	}), nil
 }
 
-func protoPromptTemplates(value prompt.Templates) *prxv1.PromptTemplates {
-	return &prxv1.PromptTemplates{
+func protoPromptTemplates(value prompt.Templates) *nnxv1.PromptTemplates {
+	return &nnxv1.PromptTemplates{
 		Design:         value.Design,
 		Implementation: value.Implementation,
 		Batch:          value.Batch,
@@ -106,31 +106,31 @@ func protoPromptTemplates(value prompt.Templates) *prxv1.PromptTemplates {
 	}
 }
 
-func protoTaskPromptKind(value prompt.Kind) prxv1.TaskPromptKind {
+func protoTaskPromptKind(value prompt.Kind) nnxv1.TaskPromptKind {
 	if value == prompt.KindImplementation {
-		return prxv1.TaskPromptKind_TASK_PROMPT_KIND_IMPLEMENTATION
+		return nnxv1.TaskPromptKind_TASK_PROMPT_KIND_IMPLEMENTATION
 	}
-	return prxv1.TaskPromptKind_TASK_PROMPT_KIND_DESIGN
+	return nnxv1.TaskPromptKind_TASK_PROMPT_KIND_DESIGN
 }
 
 // protoBatchPromptKind は batch 種別を 2 値の enum へ戻す。batch と batch_design の
 // 違いは設計か実装かだけなので、単一 task と同じ語彙で足りる。
-func protoBatchPromptKind(value prompt.Kind) prxv1.TaskPromptKind {
+func protoBatchPromptKind(value prompt.Kind) nnxv1.TaskPromptKind {
 	if value == prompt.KindBatchDesign {
-		return prxv1.TaskPromptKind_TASK_PROMPT_KIND_DESIGN
+		return nnxv1.TaskPromptKind_TASK_PROMPT_KIND_DESIGN
 	}
-	return prxv1.TaskPromptKind_TASK_PROMPT_KIND_IMPLEMENTATION
+	return nnxv1.TaskPromptKind_TASK_PROMPT_KIND_IMPLEMENTATION
 }
 
 // taskPromptKind は要求の enum を単一 task のテンプレート種別へ写す。
 // UNSPECIFIED は空の Kind にして、実装計画からの導出をサービス層へ残す。
-func taskPromptKind(value prxv1.TaskPromptKind) prompt.Kind {
+func taskPromptKind(value nnxv1.TaskPromptKind) prompt.Kind {
 	switch value {
-	case prxv1.TaskPromptKind_TASK_PROMPT_KIND_DESIGN:
+	case nnxv1.TaskPromptKind_TASK_PROMPT_KIND_DESIGN:
 		return prompt.KindDesign
-	case prxv1.TaskPromptKind_TASK_PROMPT_KIND_IMPLEMENTATION:
+	case nnxv1.TaskPromptKind_TASK_PROMPT_KIND_IMPLEMENTATION:
 		return prompt.KindImplementation
-	case prxv1.TaskPromptKind_TASK_PROMPT_KIND_UNSPECIFIED:
+	case nnxv1.TaskPromptKind_TASK_PROMPT_KIND_UNSPECIFIED:
 		return ""
 	}
 	return ""
@@ -138,8 +138,8 @@ func taskPromptKind(value prxv1.TaskPromptKind) prompt.Kind {
 
 // batchPromptKind は要求の enum を batch のテンプレート種別へ写す。
 // UNSPECIFIED は従来どおりの一括実装を意味する。
-func batchPromptKind(value prxv1.TaskPromptKind) prompt.Kind {
-	if value == prxv1.TaskPromptKind_TASK_PROMPT_KIND_DESIGN {
+func batchPromptKind(value nnxv1.TaskPromptKind) prompt.Kind {
+	if value == nnxv1.TaskPromptKind_TASK_PROMPT_KIND_DESIGN {
 		return prompt.KindBatchDesign
 	}
 	return prompt.KindBatch

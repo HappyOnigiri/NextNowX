@@ -1,13 +1,13 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
-const e2ePort = process.env["PRX_E2E_PORT"];
+const e2ePort = process.env["NNX_E2E_PORT"];
 if (!e2ePort) throw new Error("Playwright did not capture the E2E server port");
 
 export const e2eBaseURL = `http://127.0.0.1:${e2ePort}`;
 
 // 表示言語はサーバーの共有設定なので、切り替えると同じサーバーを見ている他の
 // spec の画面まで変わる。言語を書き換える spec は専用のサーバーを使う。
-const languagePort = process.env["PRX_E2E_LANGUAGE_PORT"];
+const languagePort = process.env["NNX_E2E_LANGUAGE_PORT"];
 if (!languagePort)
   throw new Error("Playwright did not capture the language E2E server port");
 

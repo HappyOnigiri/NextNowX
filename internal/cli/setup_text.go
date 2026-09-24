@@ -1,6 +1,6 @@
 package cli
 
-import "github.com/HappyOnigiri/PRX/internal/prompt"
+import "github.com/HappyOnigiri/nnx/internal/prompt"
 
 // setupOptionText は選択肢 1 つ分の文言。
 type setupOptionText struct {
@@ -72,25 +72,25 @@ func setupLanguageQuestion() setupLanguageText {
 func englishSetupText() setupText {
 	return setupText{
 		sampleDataAdded:   sampleDataAddedMessage,
-		daemonUnsupported: "The PRX daemon requires macOS. Run prx serve directly instead.",
+		daemonUnsupported: "The Next Now X daemon requires macOS. Run nnx serve directly instead.",
 		install: setupQuestionText{
-			title:       "Install PRX as a background service?",
-			description: "The LaunchAgent starts PRX automatically when you log in.",
+			title:       "Install Next Now X as a background service?",
+			description: "The LaunchAgent starts Next Now X automatically when you log in.",
 			accept: setupOptionText{
 				label:       "Install daemon",
-				description: "start PRX at login and wait until it is ready",
+				description: "start Next Now X at login and wait until it is ready",
 			},
 			decline: setupOptionText{
 				label:       "Run manually",
-				description: "do not install a LaunchAgent; use prx serve when needed",
+				description: "do not install a LaunchAgent; use nnx serve when needed",
 			},
 		},
 		update: setupQuestionText{
-			title:       "Update the PRX background service?",
-			description: "The LaunchAgent does not match this PRX binary.",
+			title:       "Update the Next Now X background service?",
+			description: "The LaunchAgent does not match this Next Now X binary.",
 			accept: setupOptionText{
 				label:       "Update daemon",
-				description: "rewrite the LaunchAgent and start the current PRX",
+				description: "rewrite the LaunchAgent and start the current Next Now X",
 			},
 			decline: setupOptionText{
 				label:       "Keep current",
@@ -98,11 +98,11 @@ func englishSetupText() setupText {
 			},
 		},
 		start: setupQuestionText{
-			title:       "Start the PRX background service?",
+			title:       "Start the Next Now X background service?",
 			description: "The LaunchAgent is installed but the server is not running.",
 			accept: setupOptionText{
 				label:       "Start daemon",
-				description: "start PRX now and wait until it is ready",
+				description: "start Next Now X now and wait until it is ready",
 			},
 			decline: setupOptionText{
 				label:       "Leave stopped",
@@ -110,24 +110,24 @@ func englishSetupText() setupText {
 			},
 		},
 		open: setupQuestionText{
-			title:       "Open PRX in your browser?",
+			title:       "Open Next Now X in your browser?",
 			description: "The WebUI is ready at %s.",
 			accept: setupOptionText{
 				label:       "Open browser",
-				description: "open the PRX WebUI now",
+				description: "open the Next Now X WebUI now",
 			},
 			decline: setupOptionText{
 				label:       "Keep terminal",
 				description: "leave the browser closed",
 			},
 		},
-		skippedInstall:   "Skipped daemon installation. Run prx serve to start PRX manually.",
-		keptStalePlist:   "Kept the existing LaunchAgent. Run prx daemon install to update it.",
-		leftStopped:      "Left the PRX server stopped. Run prx daemon start when you need it.",
-		alreadyRunning:   "PRX is already set up and running.",
-		alreadyListening: "PRX is already set up and listening on %s.",
-		installedDaemon:  "Installed %s at %s. PRX is listening on %s.",
-		listening:        "PRX is listening on %s.",
+		skippedInstall:   "Skipped daemon installation. Run nnx serve to start Next Now X manually.",
+		keptStalePlist:   "Kept the existing LaunchAgent. Run nnx daemon install to update it.",
+		leftStopped:      "Left the Next Now X server stopped. Run nnx daemon start when you need it.",
+		alreadyRunning:   "Next Now X is already set up and running.",
+		alreadyListening: "Next Now X is already set up and listening on %s.",
+		installedDaemon:  "Installed %s at %s. Next Now X is listening on %s.",
+		listening:        "Next Now X is listening on %s.",
 		openedBrowser:    "Opened %s.",
 	}
 }

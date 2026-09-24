@@ -9,10 +9,10 @@ import (
 
 	"connectrpc.com/connect"
 
-	prxv1 "github.com/HappyOnigiri/PRX/gen/prx/v1"
-	"github.com/HappyOnigiri/PRX/gen/prx/v1/prxv1connect"
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/rpc"
+	nnxv1 "github.com/HappyOnigiri/nnx/gen/nnx/v1"
+	"github.com/HappyOnigiri/nnx/gen/nnx/v1/nnxv1connect"
+	"github.com/HappyOnigiri/nnx/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/rpc"
 )
 
 func TestRPCReturnsTheDiagnosticReportAndItsText(t *testing.T) {
@@ -20,7 +20,7 @@ func TestRPCReturnsTheDiagnosticReportAndItsText(t *testing.T) {
 	client := newTestClient(t)
 	feature, err := client.CreateFeature(
 		ctx,
-		connect.NewRequest(&prxv1.CreateFeatureRequest{
+		connect.NewRequest(&nnxv1.CreateFeatureRequest{
 			Title:     "Diagnostics",
 			ProjectId: newRPCProject(t, ctx, client, "Diagnostics"),
 		}),
@@ -28,21 +28,21 @@ func TestRPCReturnsTheDiagnosticReportAndItsText(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	task, err := client.CreateTask(ctx, connect.NewRequest(&prxv1.CreateTaskRequest{
+	task, err := client.CreateTask(ctx, connect.NewRequest(&nnxv1.CreateTaskRequest{
 		FeatureId: feature.Msg.GetFeature().GetId(),
 		Title:     "Refresh",
 	}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := client.AttachPullRequest(ctx, connect.NewRequest(&prxv1.AttachPullRequestRequest{
+	if _, err := client.AttachPullRequest(ctx, connect.NewRequest(&nnxv1.AttachPullRequestRequest{
 		TaskId: task.Msg.GetTask().GetId(),
 		Url:    "https://github.com/acme/web/pull/12",
 	})); err != nil {
 		t.Fatal(err)
 	}
 
-	response, err := client.GetDebugReport(ctx, connect.NewRequest(&prxv1.GetDebugReportRequest{}))
+	response, err := client.GetDebugReport(ctx, connect.NewRequest(&nnxv1.GetDebugReportRequest{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func TestRPCReturnsTheDiagnosticReportAndItsText(t *testing.T) {
 		t.Fatalf("a pull request that was never refreshed must be reported: %+v", report.GetProblems())
 	}
 	for _, problem := range report.GetProblems() {
-		if problem.GetCode() == prxv1.DebugProblemCode_DEBUG_PROBLEM_CODE_UNSPECIFIED {
+		if problem.GetCode() == nnxv1.DebugProblemCode_DEBUG_PROBLEM_CODE_UNSPECIFIED {
 			t.Fatalf("problem %+v was not mapped to an enum member", problem)
 		}
 	}
@@ -82,7 +82,7 @@ func TestRPCMapsEveryDebugProblemCode(t *testing.T) {
 	client := newTestClientForService(t, allProblemsService{})
 	response, err := client.GetDebugReport(
 		context.Background(),
-		connect.NewRequest(&prxv1.GetDebugReportRequest{}),
+		connect.NewRequest(&nnxv1.GetDebugReportRequest{}),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -92,9 +92,9 @@ func TestRPCMapsEveryDebugProblemCode(t *testing.T) {
 	if len(problems) != len(codes) {
 		t.Fatalf("problems=%d codes=%d", len(problems), len(codes))
 	}
-	seen := map[prxv1.DebugProblemCode]bool{}
+	seen := map[nnxv1.DebugProblemCode]bool{}
 	for index, problem := range problems {
-		if problem.GetCode() == prxv1.DebugProblemCode_DEBUG_PROBLEM_CODE_UNSPECIFIED {
+		if problem.GetCode() == nnxv1.DebugProblemCode_DEBUG_PROBLEM_CODE_UNSPECIFIED {
 			t.Fatalf("problem code %q has no enum member", codes[index])
 		}
 		if seen[problem.GetCode()] {
@@ -104,14 +104,14 @@ func TestRPCMapsEveryDebugProblemCode(t *testing.T) {
 	}
 }
 
-func newTestClientForService(t *testing.T, service rpc.Service) prxv1connect.PRXServiceClient {
+func newTestClientForService(t *testing.T, service rpc.Service) nnxv1connect.NNXServiceClient {
 	t.Helper()
 	path, handler := rpc.New(service)
 	mux := http.NewServeMux()
 	mux.Handle(path, handler)
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
-	return prxv1connect.NewPRXServiceClient(server.Client(), server.URL)
+	return nnxv1connect.NewNNXServiceClient(server.Client(), server.URL)
 }
 
 type allProblemsService struct {
@@ -129,7 +129,7 @@ func (allProblemsService) Debug(context.Context) (domain.DebugReport, error) {
 // レポートは資格情報を秘密の値抜きで提示する。今後追加されるフィールドでも
 // それが保たれるのはスキーマのおかげ。
 func TestDebugConfigAuthMethodSchemaCarriesNoSecretFields(t *testing.T) {
-	fields := (&prxv1.DebugConfigAuthMethod{}).ProtoReflect().Descriptor().Fields()
+	fields := (&nnxv1.DebugConfigAuthMethod{}).ProtoReflect().Descriptor().Fields()
 	for index := range fields.Len() {
 		name := string(fields.Get(index).Name())
 		if strings.Contains(name, "token") || strings.Contains(name, "secret_hint") {

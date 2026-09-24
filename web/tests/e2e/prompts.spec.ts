@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 const browserErrors: string[] = [];
-const e2ePort = process.env["PRX_E2E_PORT"];
+const e2ePort = process.env["NNX_E2E_PORT"];
 if (!e2ePort) throw new Error("Playwright did not capture the E2E server port");
 
 test.use({
@@ -103,7 +103,7 @@ test("copies a task prompt built from the configured template", async ({
     taskPromptDialog.getByText(/This task has no implementation plan yet/),
   ).toBeVisible();
   await expect(taskPromptDialog.getByLabel("Prompt preview")).toContainText(
-    "Implement PRX task",
+    "Implement Next Now X task",
   );
   await taskPromptDialog.getByRole("button", { name: "Close" }).click();
 
@@ -115,12 +115,12 @@ test("copies a task prompt built from the configured template", async ({
   // 復元すると組み込みのテキストがすぐ表示されるので、空欄ではなく保存で
   // 書き込まれる内容が見える。
   await expect(promptPanel.getByLabel(/^Design prompt/)).toContainText(
-    "Design PRX task {{task_id}}",
+    "Design Next Now X task {{task_id}}",
   );
   await settings.getByRole("button", { name: "Save" }).click();
   await expect(settings.getByText("Saved")).toBeVisible();
   await expect(promptPanel.getByLabel(/^Design prompt/)).toContainText(
-    "Design PRX task {{task_id}}",
+    "Design Next Now X task {{task_id}}",
   );
   await settings.getByRole("button", { name: "Close" }).click();
 });
@@ -187,7 +187,7 @@ test("copies one batch prompt for the tasks selected on a feature", async ({
   await expect(batchDialog.getByText("0 of 2 selected")).toBeVisible();
   await batchDialog.getByRole("button", { name: "Select all" }).click();
   await expect(batchDialog.getByLabel("Prompt preview")).toContainText(
-    "prx prompt TASK_ID",
+    "nnx prompt TASK_ID",
   );
   await batchDialog.getByRole("button", { name: "Copy prompt" }).click();
   await expect(
@@ -195,11 +195,11 @@ test("copies one batch prompt for the tasks selected on a feature", async ({
   ).toBeVisible();
 
   // コピーされるのは保存済みバッチテンプレートからサーバーが生成した文面で、
-  // 選択した全タスクを列挙し、各タスクでエージェントを PRX に戻す。
+  // 選択した全タスクを列挙し、各タスクでエージェントを Next Now X に戻す。
   const copied = await page.evaluate(() => navigator.clipboard.readText());
   expect(copied).toContain(`- ${taskIds[0]}: ${taskTitles[0]}`);
   expect(copied).toContain(`- ${taskIds[1]}: ${taskTitles[1]}`);
-  expect(copied).toContain("prx prompt TASK_ID");
+  expect(copied).toContain("nnx prompt TASK_ID");
   expect(copied).toContain("SubAgent");
   await batchDialog.getByRole("button", { name: "Close" }).click();
 });
@@ -245,7 +245,7 @@ test("copies one batch design prompt for the undesigned tasks", async ({
   await expect(batchDialog.getByText("0 of 2 selected")).toBeVisible();
   await batchDialog.getByRole("button", { name: "Select all" }).click();
   await expect(batchDialog.getByLabel("Prompt preview")).toContainText(
-    "prx prompt TASK_ID --kind design",
+    "nnx prompt TASK_ID --kind design",
   );
   await batchDialog.getByRole("button", { name: "Copy prompt" }).click();
   await expect(
@@ -255,7 +255,7 @@ test("copies one batch design prompt for the undesigned tasks", async ({
   const copied = await page.evaluate(() => navigator.clipboard.readText());
   expect(copied).toContain(`- ${taskIds[0]}: ${taskTitles[0]}`);
   expect(copied).toContain(`- ${taskIds[1]}: ${taskTitles[1]}`);
-  expect(copied).toContain("prx plan set TASK_ID --file PATH");
+  expect(copied).toContain("nnx plan set TASK_ID --file PATH");
   await batchDialog.getByRole("button", { name: "Close" }).click();
 });
 
@@ -292,7 +292,7 @@ test("keeps the batch prompt list and preview apart at small viewports", async (
   await batchDialog.getByLabel("Include tasks with no plan").check();
   await batchDialog.getByRole("button", { name: "Select all" }).click();
   await expect(batchDialog.getByLabel("Prompt preview")).toContainText(
-    "prx prompt TASK_ID --kind implementation",
+    "nnx prompt TASK_ID --kind implementation",
   );
 
   const panel = batchDialog.locator(".batch-prompt-panel");

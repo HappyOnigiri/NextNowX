@@ -67,10 +67,10 @@ func TestNewDebugRuntimeReportsServerUptime(t *testing.T) {
 func TestNewDebugPathsReportsFilesAndEnvironment(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	t.Setenv("PRX_DB", "somewhere.db")
+	t.Setenv("NNX_DB", "somewhere.db")
 	t.Setenv("GITHUB_TOKEN", "")
-	databasePath := filepath.Join(home, "prx", "prx.db")
-	configPath := filepath.Join(home, "prx", "config.yaml")
+	databasePath := filepath.Join(home, "nnx", "nnx.db")
+	configPath := filepath.Join(home, "nnx", "config.yaml")
 	if err := os.MkdirAll(filepath.Dir(databasePath), 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +87,7 @@ func TestNewDebugPathsReportsFilesAndEnvironment(t *testing.T) {
 		ConfigPath:         configPath,
 		ConfigPathSource:   "default",
 	})
-	if paths.DatabasePath != "~/prx/prx.db" || paths.ConfigPath != "~/prx/config.yaml" {
+	if paths.DatabasePath != "~/nnx/nnx.db" || paths.ConfigPath != "~/nnx/config.yaml" {
 		t.Fatalf("paths were not shortened: %+v", paths)
 	}
 	if !paths.DatabaseFileExists || !paths.ConfigFileExists || paths.ConfigPermissions != "0644" {
@@ -97,16 +97,16 @@ func TestNewDebugPathsReportsFilesAndEnvironment(t *testing.T) {
 	for _, variable := range paths.EnvironmentVariables {
 		variables[variable.Name] = variable.Set
 	}
-	if len(variables) != len(DebugEnvironmentNames) || !variables["PRX_DB"] || variables["GITHUB_TOKEN"] {
+	if len(variables) != len(DebugEnvironmentNames) || !variables["NNX_DB"] || variables["GITHUB_TOKEN"] {
 		t.Fatalf("environment=%+v", paths.EnvironmentVariables)
 	}
 }
 
 func TestNewDebugPathsReportsDemoInsteadOfTemporaryLocations(t *testing.T) {
 	paths := NewDebugPaths(DebugPathsInput{
-		DatabasePath:       "/var/folders/T/prx-demo-123/prx.db",
+		DatabasePath:       "/var/folders/T/nnx-demo-123/nnx.db",
 		DatabasePathSource: "demo",
-		ConfigPath:         "/var/folders/T/prx-demo-123/config.yaml",
+		ConfigPath:         "/var/folders/T/nnx-demo-123/config.yaml",
 		ConfigPathSource:   "demo",
 		Demo:               true,
 	})
@@ -123,17 +123,17 @@ func TestDebugPathShortenerOnlyShortensTheHomeDirectory(t *testing.T) {
 	shortener := NewDebugPathShortener()
 	for _, test := range []struct{ value, want string }{
 		{value: "/home/user", want: "~"},
-		{value: "/home/user/prx/prx.db", want: "~/prx/prx.db"},
-		{value: "/home/user2/prx.db", want: "/home/user2/prx.db"},
-		{value: "/etc/prx.db", want: "/etc/prx.db"},
+		{value: "/home/user/nnx/nnx.db", want: "~/nnx/nnx.db"},
+		{value: "/home/user2/nnx.db", want: "/home/user2/nnx.db"},
+		{value: "/etc/nnx.db", want: "/etc/nnx.db"},
 		{value: "", want: ""},
 	} {
 		if got := shortener.Path(test.value); got != test.want {
 			t.Errorf("Path(%q)=%q, want %q", test.value, got, test.want)
 		}
 	}
-	message := "create database directory: mkdir /home/user/prx: permission denied"
-	want := "create database directory: mkdir ~/prx: permission denied"
+	message := "create database directory: mkdir /home/user/nnx: permission denied"
+	want := "create database directory: mkdir ~/nnx: permission denied"
 	if got := shortener.Text(message); got != want {
 		t.Errorf("Text=%q, want %q", got, want)
 	}
@@ -148,13 +148,13 @@ func TestDebugPathShortenerOnlyShortensTheHomeDirectory(t *testing.T) {
 func TestNewDebugConfigReportsLoadFailureAsAnError(t *testing.T) {
 	t.Setenv("HOME", "/home/user")
 	value := NewDebugConfig(DebugConfigInput{
-		LoadError: "config file \"/home/user/prx/config.yaml\" must have permissions 0600",
+		LoadError: "config file \"/home/user/nnx/config.yaml\" must have permissions 0600",
 		Warnings:  []string{"unknown field \"extra\" on line 3 is ignored"},
 	})
 	if value.Valid || len(value.Errors) != 1 {
 		t.Fatalf("config=%+v", value)
 	}
-	if !strings.Contains(value.Errors[0], "~/prx/config.yaml") {
+	if !strings.Contains(value.Errors[0], "~/nnx/config.yaml") {
 		t.Fatalf("the load failure disclosed the home directory: %q", value.Errors[0])
 	}
 	if value.Hosts == nil || value.AuthMethods == nil {
@@ -355,12 +355,12 @@ func TestDetectDebugProblems(t *testing.T) {
 		{
 			name: "storage unavailable",
 			report: DebugReport{
-				Paths:   DebugPaths{DatabasePath: "~/prx.db"},
+				Paths:   DebugPaths{DatabasePath: "~/nnx.db"},
 				Config:  DebugConfig{Valid: true},
 				Storage: DebugStorage{Error: "open sqlite: unable to open database file"},
 			},
 			want: DebugProblemCodeStorageUnavailable,
-			next: "prx debug --json",
+			next: "nnx debug --json",
 		},
 		{
 			name: "schema ahead of binary",
@@ -373,14 +373,14 @@ func TestDetectDebugProblems(t *testing.T) {
 		{
 			name: "database not writable",
 			report: DebugReport{
-				Paths:  DebugPaths{DatabasePath: "~/prx.db"},
+				Paths:  DebugPaths{DatabasePath: "~/nnx.db"},
 				Config: DebugConfig{Valid: true},
 				Storage: DebugStorage{
 					DatabaseFile: DebugDatabaseFile{Applicable: true, WriteError: "permission denied"},
 				},
 			},
 			want: DebugProblemCodeDatabaseNotWritable,
-			next: "ls -l ~/prx.db",
+			next: "ls -l ~/nnx.db",
 		},
 		{
 			name: "integrity errors",
@@ -389,22 +389,22 @@ func TestDetectDebugProblems(t *testing.T) {
 				Storage: DebugStorage{IntegrityErrors: []string{"task T-1 references a missing feature"}},
 			},
 			want: DebugProblemCodeDatabaseIntegrityErrors,
-			next: "prx validate",
+			next: "nnx validate",
 		},
 		{
 			name:   "config unreadable",
 			report: DebugReport{Config: DebugConfig{Errors: []string{"decode config: bad yaml"}}},
 			want:   DebugProblemCodeConfigUnreadable,
-			next:   "prx config validate",
+			next:   "nnx config validate",
 		},
 		{
 			name: "config permissions too open",
 			report: DebugReport{
-				Paths:  DebugPaths{ConfigPath: "~/prx/config.yaml", ConfigPermissions: "0644"},
+				Paths:  DebugPaths{ConfigPath: "~/nnx/config.yaml", ConfigPermissions: "0644"},
 				Config: DebugConfig{Valid: true},
 			},
 			want: DebugProblemCodeConfigPermissionsTooOpen,
-			next: "chmod 600 ~/prx/config.yaml",
+			next: "chmod 600 ~/nnx/config.yaml",
 		},
 		{
 			name: "config unknown fields",
@@ -427,7 +427,7 @@ func TestDetectDebugProblems(t *testing.T) {
 				GitHubSync: DebugGitHubSync{Status: GitHubSyncStatus{LastUpdatedAt: timePointer(reportTime())}},
 			},
 			want: DebugProblemCodeNoAuthMethodForHost,
-			next: "prx config auth",
+			next: "nnx config auth",
 		},
 		{
 			name: "run error",
@@ -436,7 +436,7 @@ func TestDetectDebugProblems(t *testing.T) {
 				GitHubSync: DebugGitHubSync{Status: GitHubSyncStatus{Error: "credentials were rejected"}},
 			},
 			want: DebugProblemCodeGitHubSyncRunError,
-			next: "prx sync status --json",
+			next: "nnx sync status --json",
 		},
 		{
 			name: "never completed",
@@ -445,7 +445,7 @@ func TestDetectDebugProblems(t *testing.T) {
 				Records: DebugData{PullRequests: 2},
 			},
 			want: DebugProblemCodeGitHubSyncNeverCompleted,
-			next: "prx sync",
+			next: "nnx sync",
 		},
 		{
 			name: "overdue",
@@ -461,7 +461,7 @@ func TestDetectDebugProblems(t *testing.T) {
 				},
 			},
 			want: DebugProblemCodeGitHubSyncOverdue,
-			next: "prx sync",
+			next: "nnx sync",
 		},
 		{
 			name: "stale pull requests",
@@ -474,7 +474,7 @@ func TestDetectDebugProblems(t *testing.T) {
 				},
 			},
 			want: DebugProblemCodePullRequestsStale,
-			next: "prx stale",
+			next: "nnx stale",
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -544,9 +544,9 @@ func TestFormatDebugReportRendersEverySection(t *testing.T) {
 	report := DebugReport{
 		Problems: []DebugProblem{{
 			Code:        DebugProblemCodeDatabaseIntegrityErrors,
-			Target:      "~/prx/prx.db",
+			Target:      "~/nnx/nnx.db",
 			Evidence:    "1 integrity errors",
-			NextCommand: "prx validate",
+			NextCommand: "nnx validate",
 		}},
 		Build: DebugBuild{Version: "1.2.3-dev", Development: true, GoVersion: "go1.25.1", OS: "darwin", Arch: "arm64"},
 		Runtime: DebugRuntime{
@@ -561,8 +561,8 @@ func TestFormatDebugReportRendersEverySection(t *testing.T) {
 			Supported:     true,
 			Installed:     true,
 			PlistStatus:   "current",
-			PlistPath:     "~/Library/LaunchAgents/com.user.prx.plist",
-			LogPath:       "~/Library/Logs/prx/serve.log",
+			PlistPath:     "~/Library/LaunchAgents/com.user.nnx.plist",
+			LogPath:       "~/Library/Logs/nnx/serve.log",
 			Running:       true,
 			Address:       "127.0.0.1:7331",
 			PID:           4242,
@@ -570,15 +570,15 @@ func TestFormatDebugReportRendersEverySection(t *testing.T) {
 			BinaryMatches: true,
 		},
 		Paths: DebugPaths{
-			DatabasePath:       "~/prx/prx.db",
+			DatabasePath:       "~/nnx/nnx.db",
 			DatabasePathSource: "default",
 			DatabaseFileExists: true,
-			ConfigPath:         "~/prx/config.yaml",
+			ConfigPath:         "~/nnx/config.yaml",
 			ConfigPathSource:   "default",
 			ConfigFileExists:   true,
 			ConfigPermissions:  "0600",
 			EnvironmentVariables: []DebugEnvironmentVariable{
-				{Name: "PRX_DB", Set: false},
+				{Name: "NNX_DB", Set: false},
 				{Name: "GITHUB_TOKEN", Set: true},
 			},
 		},
@@ -648,13 +648,13 @@ func TestFormatDebugReportRendersEverySection(t *testing.T) {
 		},
 	}
 
-	want := `PRX diagnostic report
+	want := `Next Now X diagnostic report
 
 problems:
   - database_integrity_errors: stored dependency data failed validation
-    target: ~/prx/prx.db
+    target: ~/nnx/nnx.db
     evidence: 1 integrity errors
-    next: prx validate
+    next: nnx validate
 
 build:
   version: 1.2.3-dev
@@ -676,8 +676,8 @@ daemon:
   supported: yes
   installed: yes
   plist_status: current
-  plist_path: ~/Library/LaunchAgents/com.user.prx.plist
-  log_path: ~/Library/Logs/prx/serve.log
+  plist_path: ~/Library/LaunchAgents/com.user.nnx.plist
+  log_path: ~/Library/Logs/nnx/serve.log
   running: yes
   address: 127.0.0.1:7331
   pid: 4242
@@ -685,15 +685,15 @@ daemon:
   binary_matches: yes
 
 paths:
-  database_path: ~/prx/prx.db
+  database_path: ~/nnx/nnx.db
   database_path_source: default
   database_file_exists: yes
-  config_path: ~/prx/config.yaml
+  config_path: ~/nnx/config.yaml
   config_path_source: default
   config_file_exists: yes
   config_permissions: 0600
   environment:
-    PRX_DB: unset
+    NNX_DB: unset
     GITHUB_TOKEN: set
 
 config:
@@ -813,8 +813,8 @@ func TestNewDebugDaemonShortensTheHomeDirectoryInTheError(t *testing.T) {
 	t.Setenv("HOME", "/home/user")
 	daemon := NewDebugDaemon(DebugDaemonInput{
 		Supported: true,
-		PlistPath: "/home/user/Library/LaunchAgents/com.user.prx.plist",
-		Error:     "open /home/user/Library/LaunchAgents/com.user.prx.plist: permission denied",
+		PlistPath: "/home/user/Library/LaunchAgents/com.user.nnx.plist",
+		Error:     "open /home/user/Library/LaunchAgents/com.user.nnx.plist: permission denied",
 	})
 	if strings.Contains(daemon.Error, "/home/user") {
 		t.Fatalf("daemon error=%q", daemon.Error)

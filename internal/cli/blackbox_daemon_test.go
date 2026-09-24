@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/HappyOnigiri/PRX/internal/runstate"
+	"github.com/HappyOnigiri/nnx/internal/runstate"
 )
 
 // serverLog は子プロセスの stderr を安全に読める形で集める。exec は非 *os.File の
@@ -53,7 +53,7 @@ func newDaemonEnvironment(t *testing.T) daemonEnvironment {
 	environment := daemonEnvironment{
 		home:          filepath.Join(root, "home"),
 		runDirectory:  filepath.Join(root, "run"),
-		databasePath:  filepath.Join(root, "prx.db"),
+		databasePath:  filepath.Join(root, "nnx.db"),
 		configPath:    filepath.Join(root, "config.yaml"),
 		launchctlLog:  filepath.Join(root, "launchctl.log"),
 		pathDirectory: filepath.Join(root, "bin"),
@@ -72,7 +72,7 @@ func newDaemonEnvironment(t *testing.T) daemonEnvironment {
 	}
 	environment.variables = []string{
 		"HOME=" + environment.home,
-		"PRX_RUN_DIR=" + environment.runDirectory,
+		"NNX_RUN_DIR=" + environment.runDirectory,
 		"PATH=" + environment.pathDirectory,
 	}
 	return environment
@@ -110,7 +110,7 @@ func TestBlackBoxDaemonCommandsStayInsideTheInjectedEnvironment(t *testing.T) {
 	lock := holdManagedRunState(t, environment)
 	defer func() { _ = lock.Release() }()
 	assertDirectObjectKeys(t, run("daemon", "install"), "installed", "label", "plist_path", "address", "url")
-	plist := filepath.Join(environment.home, "Library", "LaunchAgents", "com.user.prx.plist")
+	plist := filepath.Join(environment.home, "Library", "LaunchAgents", "com.user.nnx.plist")
 	info, err := os.Stat(plist)
 	if err != nil || info.Mode().Perm() != 0o600 {
 		t.Fatalf("plist info=%v err=%v", info, err)
@@ -181,7 +181,7 @@ func daemonSupported(t *testing.T, status map[string]json.RawMessage) bool {
 	return supported
 }
 
-// TestBlackBoxOpenRefusesToGuessAnAddress は稼働記録がないときに `prx open` が失敗し、
+// TestBlackBoxOpenRefusesToGuessAnAddress は稼働記録がないときに `nnx open` が失敗し、
 // 稼働中でないサーバーのポートを開かないことを確かめる。
 func TestBlackBoxOpenRefusesToGuessAnAddress(t *testing.T) {
 	binary := buildCLI(t)
@@ -330,7 +330,7 @@ func startManagedServe(t *testing.T, binary string, environment daemonEnvironmen
 func waitForListening(t *testing.T, log *serverLog) {
 	t.Helper()
 	deadline := time.Now().Add(15 * time.Second)
-	for !strings.Contains(log.String(), "PRX listening on") {
+	for !strings.Contains(log.String(), "Next Now X listening on") {
 		if time.Now().After(deadline) {
 			t.Fatalf("serve did not start: %s", log.String())
 		}

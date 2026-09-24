@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/HappyOnigiri/PRX/internal/db"
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/db"
+	"github.com/HappyOnigiri/nnx/internal/domain"
 )
 
 // migrationFile は埋め込みマイグレーション 1 件と、その名前が示すバージョン。
@@ -61,7 +61,7 @@ func (s *Store) AppliedSchemaVersion(ctx context.Context) (int, error) {
 }
 
 // EmbeddedSchemaVersion はこのバイナリが持つ最大のマイグレーションを返す。
-// これより進んだデータベースは、より新しい PRX が書いたものである。
+// これより進んだデータベースは、より新しい Next Now X が書いたものである。
 func (s *Store) EmbeddedSchemaVersion() (int, error) {
 	files, err := migrationFiles()
 	if err != nil {

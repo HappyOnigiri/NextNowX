@@ -1,4 +1,4 @@
-import { TaskBlockLabel, TaskDisplayState } from "./gen/prx/v1/prx_pb";
+import { TaskBlockLabel, TaskDisplayState } from "./gen/nnx/v1/nnx_pb";
 
 // 決着済みのステータス。この task で起きることはもう残っていない。
 const settledStates = new Set<TaskDisplayState>([

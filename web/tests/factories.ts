@@ -19,7 +19,7 @@ import {
   type PullRequest,
   type Snapshot,
   type Task,
-} from "../src/gen/prx/v1/prx_pb";
+} from "../src/gen/nnx/v1/nnx_pb";
 
 const featureDefaults = {
   id: "feature-1",
@@ -55,9 +55,9 @@ const dependencyDefaults = {
 const pullRequestDefaults = {
   taskId: "task-1",
   owner: "acme",
-  repository: "prx",
+  repository: "nnx",
   number: 42n,
-  url: "https://github.com/acme/prx/pull/42",
+  url: "https://github.com/acme/nnx/pull/42",
   displayState: PullRequestDisplayState.OPEN,
 } satisfies MessageInitShape<typeof PullRequestSchema>;
 

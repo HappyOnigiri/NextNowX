@@ -1,8 +1,8 @@
-# PRX
+# Next Now X
 
 [English](README.md) | 日本語 | [简体中文](README.zh-CN.md)
 
-**PRX** は、多数の GitHub プルリクエストに分かれた施策の進行を、手元で見通せるようにするツールです。
+**Next Now X** は、多数の GitHub プルリクエストに分かれた施策の進行を、手元で見通せるようにするツールです。
 タスクどうしの依存関係を登録しておくだけで、いま着手できるタスクと、何かを待っているタスクを自動で切り分けます。
 
 ## 特長
@@ -20,51 +20,51 @@
 Apple Silicon 向けのバイナリを配布しています。
 
 ```sh
-curl -fsSL https://github.com/HappyOnigiri/PRX/releases/latest/download/install.sh | bash
+curl -fsSL https://github.com/HappyOnigiri/nnx/releases/latest/download/install.sh | bash
 ```
 
-更新も同じコマンドで行えます。`prx update` でも新しいリリースを確認して更新できます。新しいリリースがあるときは WebUI からも更新できます。
+更新も同じコマンドで行えます。`nnx update` でも新しいリリースを確認して更新できます。新しいリリースがあるときは WebUI からも更新できます。
 
 ### Linux / WSL2
 
 ソースからビルドします。macOS でも同じ手順が使えます。Windows ネイティブには対応していません。
 
 ```sh
-git clone https://github.com/HappyOnigiri/PRX.git
-cd PRX
+git clone https://github.com/HappyOnigiri/nnx.git
+cd nnx
 make install
 ```
 
-`make install` は WebUI を含めてビルドし、`~/.local/bin/prx` に配置します。別の場所に入れる場合は `INSTALL_DIR` を指定してください。
-常駐を扱う `prx daemon` と `prx open` は macOS だけの機能なので、サーバーは `prx serve` で起動します。
+`make install` は WebUI を含めてビルドし、`~/.local/bin/nnx` に配置します。別の場所に入れる場合は `INSTALL_DIR` を指定してください。
+常駐を扱う `nnx daemon` と `nnx open` は macOS だけの機能なので、サーバーは `nnx serve` で起動します。
 
 ## 使い方
 
-ブラウザからは http://localhost:7331/ を開きます。ポートが使用中で別のポートに移っていても、`prx open` なら実際に待ち受けているアドレスを開きます。
+ブラウザからは http://localhost:7331/ を開きます。ポートが使用中で別のポートに移っていても、`nnx open` なら実際に待ち受けているアドレスを開きます。
 
-同じデータは `prx` コマンドからも取得・登録できます。AI エージェントに現在の状況を読ませたり、タスクや依存関係を登録させたりできます。
+同じデータは `nnx` コマンドからも取得・登録できます。AI エージェントに現在の状況を読ませたり、タスクや依存関係を登録させたりできます。
 
 ```sh
-prx ready      # 着手できるタスクを取り出す
-prx graph F-1  # 施策全体をタスクと依存関係ごと見る
-prx prompt T-1 # タスクに渡す指示文を組み立てる
+nnx ready      # 着手できるタスクを取り出す
+nnx graph F-1  # 施策全体をタスクと依存関係ごと見る
+nnx prompt T-1 # タスクに渡す指示文を組み立てる
 ```
 
-コマンドやオプションの詳細は、`prx -h` と `prx <command> -h` を参照してください。
+コマンドやオプションの詳細は、`nnx -h` と `nnx <command> -h` を参照してください。
 
 ## その他の機能
 
-- **GitHub と同期:** `prx config`、`GITHUB_TOKEN`、`GH_TOKEN`、認証済みの `gh` CLI のいずれかで認証情報を用意します。同期しない場合でも、タスクと依存関係の管理はそのまま使えます。
-- **ポートの固定:** `prx config server update PORT`。稼働中のサーバーを新しいポートへ移すには、続けて `prx daemon restart` を実行します。
-- **前景での起動:** `prx serve` は、どの OS でも前景でサーバーを起動します。
-- **言語:** `prx setup` は英語と日本語のどちらを使うかを尋ね、その選択を保存します。後から変えるには `prx config language update auto|en|ja` を使います。
-- **サンプルデータ:** 初回の `prx setup` は、データベースを作成したときに小さなサンプル project を選んだ言語で追加します。不要な場合は `prx setup --no-sample-data` を使います。
-- **デモ:** `prx serve --demo` は、サンプルデータの入ったデモを起動します。自分のデータには影響しないので、まず触ってみたいときに使えます。
+- **GitHub と同期:** `nnx config`、`GITHUB_TOKEN`、`GH_TOKEN`、認証済みの `gh` CLI のいずれかで認証情報を用意します。同期しない場合でも、タスクと依存関係の管理はそのまま使えます。
+- **ポートの固定:** `nnx config server update PORT`。稼働中のサーバーを新しいポートへ移すには、続けて `nnx daemon restart` を実行します。
+- **前景での起動:** `nnx serve` は、どの OS でも前景でサーバーを起動します。
+- **言語:** `nnx setup` は英語と日本語のどちらを使うかを尋ね、その選択を保存します。後から変えるには `nnx config language update auto|en|ja` を使います。
+- **サンプルデータ:** 初回の `nnx setup` は、データベースを作成したときに小さなサンプル project を選んだ言語で追加します。不要な場合は `nnx setup --no-sample-data` を使います。
+- **デモ:** `nnx serve --demo` は、サンプルデータの入ったデモを起動します。自分のデータには影響しないので、まず触ってみたいときに使えます。
 
 ## アンインストール
 
 ```sh
-curl -fsSL https://github.com/HappyOnigiri/PRX/releases/latest/download/uninstall.sh | bash
+curl -fsSL https://github.com/HappyOnigiri/nnx/releases/latest/download/uninstall.sh | bash
 ```
 
 ## 開発
@@ -79,12 +79,12 @@ make ci   # 変更を引き渡す前のチェック一式を実行する
 
 ## ドキュメント
 
-- [docs/cli/prx.md](docs/cli/prx.md): CLI リファレンスの Markdown 版です。
+- [docs/cli/nnx.md](docs/cli/nnx.md): CLI リファレンスの Markdown 版です。
 - [docs/design/](docs/design/README.md): 設計上の判断と、その理由をまとめています。
 - [docs/development.md](docs/development.md): 検証とリリースのルールをまとめています。
 
 ## コントリビュート
 
 コントリビュートを歓迎します！
-不具合報告やアイデアは [Issues](https://github.com/HappyOnigiri/PRX/issues) へ、改善は [Pull Request](https://github.com/HappyOnigiri/PRX/pulls) でお寄せください。
+不具合報告やアイデアは [Issues](https://github.com/HappyOnigiri/nnx/issues) へ、改善は [Pull Request](https://github.com/HappyOnigiri/nnx/pulls) でお寄せください。
 ドキュメントの改善や翻訳も歓迎です。

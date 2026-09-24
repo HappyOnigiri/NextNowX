@@ -3,7 +3,7 @@ package cli
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/domain"
 )
 
 func (s *state) featureCommand() *cobra.Command {
@@ -12,11 +12,11 @@ func (s *state) featureCommand() *cobra.Command {
 		Aliases: []string{"f"},
 		Short:   "List features or show one by ID",
 		Long:    "List features or show one by ID.\n\nAlias: f.",
-		Example: "prx feature\nprx feature F-1\nprx f F-1",
+		Example: "nnx feature\nnnx feature F-1\nnnx f F-1",
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// どちらの形でもスナップショットを読むので、導出ステータスと task 数は
-			// サーバーが計算したものになり、prx task と一致する。
+			// サーバーが計算したものになり、nnx task と一致する。
 			value, err := s.service.Snapshot(cmd.Context())
 			if err != nil {
 				return err
@@ -50,8 +50,8 @@ func (s *state) featureCreateCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:   "create TITLE --project PROJECT_ID",
 		Short: "Create a feature in a project",
-		Example: "prx feature create \"Checkout rollout\" --project P-1\n" +
-			"prx feature create -- \"-fix checkout\" --project P-1",
+		Example: "nnx feature create \"Checkout rollout\" --project P-1\n" +
+			"nnx feature create -- \"-fix checkout\" --project P-1",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			value, err := s.service.CreateFeature(cmd.Context(), args[0], description, project)
@@ -72,7 +72,7 @@ func (s *state) featureUpdateCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:     "update FEATURE_ID",
 		Short:   "Update a feature by ID",
-		Example: "prx feature update F-1 --archived=false\nprx feature update F-1 --project P-2",
+		Example: "nnx feature update F-1 --archived=false\nnnx feature update F-1 --project P-2",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			value, err := s.service.UpdateFeature(cmd.Context(), args[0], domain.FeatureUpdate{
@@ -106,7 +106,7 @@ func (s *state) featureArchiveCommand(archived bool) *cobra.Command {
 	return &cobra.Command{
 		Use:     verb + " FEATURE_ID",
 		Short:   short,
-		Example: "prx feature " + verb + " F-1",
+		Example: "nnx feature " + verb + " F-1",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			value, err := s.service.UpdateFeature(
@@ -131,7 +131,7 @@ func (s *state) featureDeleteCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:     "delete FEATURE_ID",
 		Short:   "Delete a feature and optionally its contained data",
-		Example: "prx feature delete F-1 --cascade",
+		Example: "nnx feature delete F-1 --cascade",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := s.service.DeleteFeature(cmd.Context(), args[0], cascade); err != nil {

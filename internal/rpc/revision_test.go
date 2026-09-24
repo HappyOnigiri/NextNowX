@@ -11,20 +11,20 @@ import (
 
 	"connectrpc.com/connect"
 
-	prxv1 "github.com/HappyOnigiri/PRX/gen/prx/v1"
-	"github.com/HappyOnigiri/PRX/gen/prx/v1/prxv1connect"
-	"github.com/HappyOnigiri/PRX/internal/app"
-	githubprovider "github.com/HappyOnigiri/PRX/internal/github"
-	"github.com/HappyOnigiri/PRX/internal/revision"
-	"github.com/HappyOnigiri/PRX/internal/rpc"
-	"github.com/HappyOnigiri/PRX/internal/store"
+	nnxv1 "github.com/HappyOnigiri/nnx/gen/nnx/v1"
+	"github.com/HappyOnigiri/nnx/gen/nnx/v1/nnxv1connect"
+	"github.com/HappyOnigiri/nnx/internal/app"
+	githubprovider "github.com/HappyOnigiri/nnx/internal/github"
+	"github.com/HappyOnigiri/nnx/internal/revision"
+	"github.com/HappyOnigiri/nnx/internal/rpc"
+	"github.com/HappyOnigiri/nnx/internal/store"
 )
 
 // newRevisionClient は WatchRevision だけを差し替えた構成を作る。newTestClient を
 // 壊さずに購読元と heartbeat 間隔を注入するための補助。
 func newRevisionClient(
 	t *testing.T, subscriber rpc.RevisionSubscriber, heartbeat time.Duration,
-) prxv1connect.PRXServiceClient {
+) nnxv1connect.NNXServiceClient {
 	t.Helper()
 	path, handler := rpc.NewWithOptions(internalErrorService{}, rpc.Options{
 		Revisions:         subscriber,
@@ -34,7 +34,7 @@ func newRevisionClient(
 	mux.Handle(path, handler)
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
-	return prxv1connect.NewPRXServiceClient(server.Client(), server.URL)
+	return nnxv1connect.NewNNXServiceClient(server.Client(), server.URL)
 }
 
 // stubSubscriber は購読 1 件分のチャネルを試験から直接動かす。
@@ -62,7 +62,7 @@ func (s *stubSubscriber) Subscribe() (uint64, <-chan uint64, func()) {
 	}
 }
 
-func receiveRevision(t *testing.T, stream *connect.ServerStreamForClient[prxv1.WatchRevisionResponse]) uint64 {
+func receiveRevision(t *testing.T, stream *connect.ServerStreamForClient[nnxv1.WatchRevisionResponse]) uint64 {
 	t.Helper()
 	if !stream.Receive() {
 		t.Fatalf("the stream ended: %v", stream.Err())
@@ -71,10 +71,10 @@ func receiveRevision(t *testing.T, stream *connect.ServerStreamForClient[prxv1.W
 }
 
 func openRevisionStream(
-	t *testing.T, ctx context.Context, client prxv1connect.PRXServiceClient,
-) *connect.ServerStreamForClient[prxv1.WatchRevisionResponse] {
+	t *testing.T, ctx context.Context, client nnxv1connect.NNXServiceClient,
+) *connect.ServerStreamForClient[nnxv1.WatchRevisionResponse] {
 	t.Helper()
-	stream, err := client.WatchRevision(ctx, connect.NewRequest(&prxv1.WatchRevisionRequest{}))
+	stream, err := client.WatchRevision(ctx, connect.NewRequest(&nnxv1.WatchRevisionRequest{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,13 +123,13 @@ func TestWatchRevisionFansOutToEverySubscriber(t *testing.T) {
 	defer cancel()
 	first := openRevisionStream(t, ctx, client)
 	second := openRevisionStream(t, ctx, client)
-	for _, stream := range []*connect.ServerStreamForClient[prxv1.WatchRevisionResponse]{first, second} {
+	for _, stream := range []*connect.ServerStreamForClient[nnxv1.WatchRevisionResponse]{first, second} {
 		if got := receiveRevision(t, stream); got != 1 {
 			t.Fatalf("the first revision is %d, want 1", got)
 		}
 	}
 	watcher.Revisions().Close()
-	for _, stream := range []*connect.ServerStreamForClient[prxv1.WatchRevisionResponse]{first, second} {
+	for _, stream := range []*connect.ServerStreamForClient[nnxv1.WatchRevisionResponse]{first, second} {
 		if stream.Receive() {
 			t.Fatalf("the stream continued after Close with %d", stream.Msg().GetRevision())
 		}
@@ -177,7 +177,7 @@ func TestWatchRevisionFailsWhileTheDatabaseIsNotWatched(t *testing.T) {
 	client := newRevisionClient(t, subscriber, 10*time.Millisecond)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	stream, err := client.WatchRevision(ctx, connect.NewRequest(&prxv1.WatchRevisionRequest{}))
+	stream, err := client.WatchRevision(ctx, connect.NewRequest(&nnxv1.WatchRevisionRequest{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -236,10 +236,10 @@ func TestWatchRevisionFollowsWritesMadeThroughTheServer(t *testing.T) {
 	mux.Handle(path, handler)
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
-	client := prxv1connect.NewPRXServiceClient(server.Client(), server.URL)
+	client := nnxv1connect.NewNNXServiceClient(server.Client(), server.URL)
 	stream := openRevisionStream(t, ctx, client)
 	first := receiveRevision(t, stream)
-	if _, err := client.CreateProject(ctx, connect.NewRequest(&prxv1.CreateProjectRequest{
+	if _, err := client.CreateProject(ctx, connect.NewRequest(&nnxv1.CreateProjectRequest{
 		Title: "Realtime",
 	})); err != nil {
 		t.Fatal(err)

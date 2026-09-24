@@ -1,4 +1,4 @@
-# PRX の設計方針
+# Next Now X の設計方針
 
 このディレクトリの各文書は、それぞれ独立した読み単位である。
 どの文書を読むべきかは、リポジトリ直下の `AGENTS.md` が変更内容ごとに示す。
@@ -9,14 +9,14 @@
 |---|---|
 | [architecture.md](architecture.md) | レイヤ構成、アダプタの責務、RPC 境界 |
 | [cli-contract.md](cli-contract.md) | CLI コマンドの形、出力モード、JSON スキーマ、識別子、変更操作のルール |
-| [daemon.md](daemon.md) | LaunchAgent での常駐、多重起動防止と稼働発見、`prx daemon` と `prx open` |
-| [diagnostics.md](diagnostics.md) | `prx debug` とその RPC |
+| [daemon.md](daemon.md) | LaunchAgent での常駐、多重起動防止と稼働発見、`nnx daemon` と `nnx open` |
+| [diagnostics.md](diagnostics.md) | `nnx debug` とその RPC |
 | [agent-prompts.md](agent-prompts.md) | エージェントのプロンプトテンプレート、その語彙、テンプレートの選択 |
 | [domain.md](domain.md) | 表示状態の導出、ステータスの意味、依存関係、プロジェクトの所属 |
 | [task-labels.md](task-labels.md) | task ラベルの階層設定、表示文字列・色の解決、CLI/RPC 契約 |
 | [archive.md](archive.md) | アーカイブ済みのプロジェクトやフィーチャー、およびそれらが禁止する書き込み |
 | [persistence.md](persistence.md) | ストレージ、設定ファイルと設定の置き場所、デモモード、ドキュメント、実装計画 |
-| [updates.md](updates.md) | 新しいリリースの確認、`prx update`、WebUI の案内、更新の実行 |
+| [updates.md](updates.md) | 新しいリリースの確認、`nnx update`、WebUI の案内、更新の実行 |
 | [github-sync.md](github-sync.md) | プルリクエストの同一性、同期の範囲、スケジューリング、失敗時の扱い |
 | [github-credentials.md](github-credentials.md) | 認証情報の解決、フォールバック、シークレットの扱い |
 | [security.md](security.md) | ローカルの信頼境界、サーバーの公開範囲、ローカルファイルへのアクセス |

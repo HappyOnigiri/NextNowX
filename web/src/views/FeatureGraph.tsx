@@ -27,7 +27,7 @@ import type {
   PullRequest,
   Task,
   TaskLabelAppearances,
-} from "../gen/prx/v1/prx_pb";
+} from "../gen/nnx/v1/nnx_pb";
 import { useDomainMutation } from "../hooks";
 import {
   maxGraphZoom,

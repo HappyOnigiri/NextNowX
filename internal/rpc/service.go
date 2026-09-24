@@ -3,8 +3,8 @@ package rpc
 import (
 	"context"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/prompt"
+	"github.com/HappyOnigiri/nnx/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/prompt"
 )
 
 // Service は ConnectRPC API をドメイン操作へ変換するために必要な、

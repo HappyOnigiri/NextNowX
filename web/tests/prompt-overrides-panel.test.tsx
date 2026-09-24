@@ -11,7 +11,7 @@ import type { PromptTemplateSettings } from "../src/api";
 import {
   PromptTemplateOverridesSchema,
   PromptTemplatesSchema,
-} from "../src/gen/prx/v1/prx_pb";
+} from "../src/gen/nnx/v1/nnx_pb";
 import { PromptOverridesPanel } from "../src/views/PromptOverridesPanel";
 
 const apiMocks = vi.hoisted(() => ({

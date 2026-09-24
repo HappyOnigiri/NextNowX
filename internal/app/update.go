@@ -5,9 +5,9 @@ import (
 	"errors"
 	"time"
 
-	prx "github.com/HappyOnigiri/PRX"
-	"github.com/HappyOnigiri/PRX/internal/config"
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	nnx "github.com/HappyOnigiri/nnx"
+	"github.com/HappyOnigiri/nnx/internal/config"
+	"github.com/HappyOnigiri/nnx/internal/domain"
 )
 
 const (
@@ -20,7 +20,7 @@ const (
 
 // updateBuildVersion は差し替えられるよう変数にする。go test は常に -dev のビルドで
 // 動くので、有効な経路を検証するにはリリースビルドを名乗る必要がある。
-var updateBuildVersion = prx.Version
+var updateBuildVersion = nnx.Version
 
 // GetUpdateStatus は保存済みの確認結果を返し、間引きが切れていればその場で確認する。
 // 確認の失敗は記録するだけで、応答自体は成功させる。

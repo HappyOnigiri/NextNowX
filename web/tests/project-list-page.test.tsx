@@ -7,7 +7,7 @@ import {
 } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Snapshot } from "../src/gen/prx/v1/prx_pb";
+import type { Snapshot } from "../src/gen/nnx/v1/nnx_pb";
 import { ProjectListPage } from "../src/views/ProjectListPage";
 import { makeProject, makeSnapshot } from "./factories";
 

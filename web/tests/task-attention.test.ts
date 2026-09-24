@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TaskBlockLabel, TaskDisplayState } from "../src/gen/prx/v1/prx_pb";
+import { TaskBlockLabel, TaskDisplayState } from "../src/gen/nnx/v1/nnx_pb";
 import { isDependencyBlockedTask, isDormantTask } from "../src/task-attention";
 
 describe("task attention", () => {

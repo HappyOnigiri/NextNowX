@@ -14,8 +14,8 @@ func TestHandlerInjectsVersionIntoIndexAndRouteFallback(t *testing.T) {
 	root := fstest.MapFS{
 		"index.html": &fstest.MapFile{
 			Data: []byte(
-				`<meta name="prx-version" content="__PRX_VERSION__"><meta name="prx-demo" content="__PRX_DEMO__">` +
-					`<meta name="prx-demo-session" content="__PRX_DEMO_SESSION__">`,
+				`<meta name="nnx-version" content="__NNX_VERSION__"><meta name="nnx-demo" content="__NNX_DEMO__">` +
+					`<meta name="nnx-demo-session" content="__NNX_DEMO_SESSION__">`,
 			),
 		},
 		"app.js": &fstest.MapFile{Data: []byte("application")},
@@ -32,7 +32,7 @@ func TestHandlerInjectsVersionIntoIndexAndRouteFallback(t *testing.T) {
 		if got := response.Body.String(); !strings.Contains(got, `content="1.2.3&amp;test"`) {
 			t.Fatalf("GET %s body = %q", requestPath, got)
 		}
-		if got := response.Body.String(); !strings.Contains(got, `name="prx-demo" content="true"`) {
+		if got := response.Body.String(); !strings.Contains(got, `name="nnx-demo" content="true"`) {
 			t.Fatalf("GET %s body = %q", requestPath, got)
 		}
 		if got := response.Body.String(); strings.Contains(got, demoSessionPlaceholder) {
@@ -48,7 +48,7 @@ func TestHandlerInjectsVersionIntoIndexAndRouteFallback(t *testing.T) {
 func TestHandlerInjectsFreshDemoSessionPerStart(t *testing.T) {
 	root := fstest.MapFS{
 		"index.html": &fstest.MapFile{
-			Data: []byte(`<meta name="prx-demo-session" content="__PRX_DEMO_SESSION__">`),
+			Data: []byte(`<meta name="nnx-demo-session" content="__NNX_DEMO_SESSION__">`),
 		},
 	}
 

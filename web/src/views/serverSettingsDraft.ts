@@ -1,4 +1,4 @@
-import { GithubAuthMethodType, type GitHubConfig } from "../gen/prx/v1/prx_pb";
+import { GithubAuthMethodType, type GitHubConfig } from "../gen/nnx/v1/nnx_pb";
 
 // 設定ダイアログの保存は 1 つなので、ホストと認証の一覧はまず下書きとして持ち、
 // フッタの保存で下書きとサーバーの差分だけを送る。

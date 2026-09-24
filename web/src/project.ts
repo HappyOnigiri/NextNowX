@@ -1,4 +1,4 @@
-import type { Document, Feature, Project } from "./gen/prx/v1/prx_pb";
+import type { Document, Feature, Project } from "./gen/nnx/v1/nnx_pb";
 
 export function projectsByArchive(
   projects: Project[],

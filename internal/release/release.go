@@ -1,4 +1,4 @@
-// Package release は PRX の配布元である GitHub Release を読む。取得は未認証で行い、
+// Package release は Next Now X の配布元である GitHub Release を読む。取得は未認証で行い、
 // 同期対象のリポジトリ向けに設定された資格情報を配布元へ送らない。
 // 方針は docs/design/updates.md にある。
 package release
@@ -6,7 +6,7 @@ package release
 import (
 	"context"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/domain"
 )
 
 // Provider は配布元のリリース一覧を読む境界。

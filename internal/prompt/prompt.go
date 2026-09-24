@@ -10,7 +10,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/domain"
 )
 
 // MaximumTemplateBytes は保存されるテンプレート 1 件の上限。テンプレートは YAML・
@@ -56,7 +56,7 @@ const requiredPlaceholder = "task_id"
 
 // supportedPlaceholders は置換語彙の全体。計画の本文は意図的に含めない。計画は
 // 最大 1 MiB になり得るしロケータの先にある場合もあるため、プロンプトでは
-// 代わりに `prx plan TASK_ID` で読むようエージェントに指示する。
+// 代わりに `nnx plan TASK_ID` で読むようエージェントに指示する。
 var supportedPlaceholders = []string{
 	requiredPlaceholder,
 	"feature_id",
@@ -77,16 +77,16 @@ var batchSupportedPlaceholders = []string{
 	"feature_id",
 }
 
-const defaultDesignTemplate = `Design PRX task {{task_id}} of feature {{feature_id}}.
+const defaultDesignTemplate = `Design Next Now X task {{task_id}} of feature {{feature_id}}.
 
 Title: {{task_title}}
 Scope: {{task_scope}}
 
-PRX is a local CLI that tracks tasks and the dependencies between them.
-Run ` + "`prx --help`" + ` and ` + "`prx <command> --help`" + ` for its exact surface.
-PRX runs on this machine only, so nobody reading the repository can see it.
+Next Now X is a local CLI that tracks tasks and the dependencies between them.
+Run ` + "`nnx --help`" + ` and ` + "`nnx <command> --help`" + ` for its exact surface.
+Next Now X runs on this machine only, so nobody reading the repository can see it.
 Keep it out of what the repository carries: no code comment, commit message, or pull request
-may mention PRX, its identifiers, or its commands.
+may mention Next Now X, its identifiers, or its commands.
 Resolve what you can on your own: investigate whatever the repository, its conventions, or the
 attached material can answer, and ask the user only about the decisions that would change the shape
 of the design and that no investigation settles. Wait for that answer before you build the plan
@@ -94,78 +94,78 @@ around it. Leave local implementation choices to the implementation step, and wr
 into the plan as a stated assumption.
 
 1. Mark the task as being designed before anything else.
-   - ` + "`prx task update {{task_id}} --status designing`" + `
+   - ` + "`nnx task update {{task_id}} --status designing`" + `
 2. Read the task and the work it depends on.
-   - ` + "`prx task {{task_id}}`" + `
-   - ` + "`prx graph {{feature_id}}`" + `
+   - ` + "`nnx task {{task_id}}`" + `
+   - ` + "`nnx graph {{feature_id}}`" + `
    The other tasks in that graph carry their own scope: rely on their result, do not design it here.
-   A dependency the graph does not show yet goes in as ` + "`prx dependency add BLOCKER_TASK_ID {{task_id}}`" + `.
-3. Read the reference material attached in PRX before you decide anything.
+   A dependency the graph does not show yet goes in as ` + "`nnx dependency add BLOCKER_TASK_ID {{task_id}}`" + `.
+3. Read the reference material attached in Next Now X before you decide anything.
    Documents hang off the task, off its feature, and off the project that feature belongs to,
    and any of them may carry the requirements this scope has to meet.
-   - ` + "`prx document --task {{task_id}}`" + ` and ` + "`prx document --feature {{feature_id}}`" + `
-   - ` + "`prx feature {{feature_id}}`" + ` names the project, then ` + "`prx document --project PROJECT_ID`" + `
-   - ` + "`prx document get DOCUMENT_ID`" + ` prints a stored document; one that points at a URL or a
+   - ` + "`nnx document --task {{task_id}}`" + ` and ` + "`nnx document --feature {{feature_id}}`" + `
+   - ` + "`nnx feature {{feature_id}}`" + ` names the project, then ` + "`nnx document --project PROJECT_ID`" + `
+   - ` + "`nnx document get DOCUMENT_ID`" + ` prints a stored document; one that points at a URL or a
      local file prints that locator instead, so open it yourself.
 4. Investigate the repository and decide how the scope above should be built.
 5. Register the resulting plan on the task.
    Write the plan to a file in a temporary directory outside the repository, register that file,
    and delete it afterwards. A plan left inside the repository ends up committed by the next step.
-   - ` + "`prx plan set {{task_id}} --file PATH`" + `
+   - ` + "`nnx plan set {{task_id}} --file PATH`" + `
    Write the plan in the language the repository's own documents and agent instructions use.
    Registering the plan is what presents the task as designed, so leave the status alone afterwards.
 
 Design only: leave the implementation and the pull request to the next step.
 `
 
-const defaultImplementationTemplate = `Implement PRX task {{task_id}} of feature {{feature_id}}.
+const defaultImplementationTemplate = `Implement Next Now X task {{task_id}} of feature {{feature_id}}.
 
 Title: {{task_title}}
 Scope: {{task_scope}}
 
-PRX is a local CLI that tracks tasks and the dependencies between them.
-Run ` + "`prx --help`" + ` and ` + "`prx <command> --help`" + ` for its exact surface.
-PRX runs on this machine only, so nobody reading the repository can see it.
+Next Now X is a local CLI that tracks tasks and the dependencies between them.
+Run ` + "`nnx --help`" + ` and ` + "`nnx <command> --help`" + ` for its exact surface.
+Next Now X runs on this machine only, so nobody reading the repository can see it.
 Keep it out of what the repository carries: no code comment, commit message, or pull request
-may mention PRX, its identifiers, or its commands.
+may mention Next Now X, its identifiers, or its commands.
 Nobody is watching this run, so do not ask questions. Where the plan leaves something undecided,
 take the option you can defend and report it as a stated assumption.
 
 1. Read the task, the work it depends on, and its registered plan.
-   - ` + "`prx task {{task_id}}`" + `
-   - ` + "`prx graph {{feature_id}}`" + `
-   - ` + "`prx plan {{task_id}}`" + `
+   - ` + "`nnx task {{task_id}}`" + `
+   - ` + "`nnx graph {{feature_id}}`" + `
+   - ` + "`nnx plan {{task_id}}`" + `
    That last command fails when no plan was registered. That is not an error to fix: settle the
    approach yourself from the title, the scope, and the material below, and report it as a stated
    assumption. Do not register a plan.
-2. Read the reference material attached in PRX before you write any code.
+2. Read the reference material attached in Next Now X before you write any code.
    Documents hang off the task, off its feature, and off the project that feature belongs to,
    and any of them may carry the requirements this scope has to meet.
-   - ` + "`prx document --task {{task_id}}`" + ` and ` + "`prx document --feature {{feature_id}}`" + `
-   - ` + "`prx feature {{feature_id}}`" + ` names the project, then ` + "`prx document --project PROJECT_ID`" + `
-   - ` + "`prx document get DOCUMENT_ID`" + ` prints a stored document; one that points at a URL or a
+   - ` + "`nnx document --task {{task_id}}`" + ` and ` + "`nnx document --feature {{feature_id}}`" + `
+   - ` + "`nnx feature {{feature_id}}`" + ` names the project, then ` + "`nnx document --project PROJECT_ID`" + `
+   - ` + "`nnx document get DOCUMENT_ID`" + ` prints a stored document; one that points at a URL or a
      local file prints that locator instead, so open it yourself.
 3. Mark the task as being worked on before you change anything.
-   - ` + "`prx task update {{task_id}} --status in_progress`" + `
+   - ` + "`nnx task update {{task_id}} --status in_progress`" + `
 4. Implement the plan, or the approach you settled on, staying inside the scope above.
    Branch from the base the work actually belongs on rather than from main or master by default.
    A task whose blocker is still open belongs on that blocker's branch, so the two pull requests stack.
-5. Record the result in PRX.
+5. Record the result in Next Now X.
    - Work that lands as a pull request: open it against the base you branched from,
-     then run ` + "`prx pr attach {{task_id}} PULL_REQUEST_URL`" + `.
+     then run ` + "`nnx pr attach {{task_id}} PULL_REQUEST_URL`" + `.
      Its state then follows the pull request, so do not set the status by hand.
-   - Work without a pull request: run ` + "`prx task update {{task_id}} --status completed`" + ` once it is done.
+   - Work without a pull request: run ` + "`nnx task update {{task_id}} --status completed`" + ` once it is done.
 
 Report what you changed and anything the plan did not cover.
 `
 
-const defaultBatchTemplate = `Implement the PRX tasks of feature {{feature_id}} listed below.
+const defaultBatchTemplate = `Implement the Next Now X tasks of feature {{feature_id}} listed below.
 
-PRX is a local CLI that tracks tasks and the dependencies between them.
-Run ` + "`prx --help`" + ` and ` + "`prx <command> --help`" + ` for its exact surface.
-PRX runs on this machine only, so nobody reading the repository can see it.
+Next Now X is a local CLI that tracks tasks and the dependencies between them.
+Run ` + "`nnx --help`" + ` and ` + "`nnx <command> --help`" + ` for its exact surface.
+Next Now X runs on this machine only, so nobody reading the repository can see it.
 Keep it out of what the repository carries, in your work and in every SubAgent's: no code comment,
-commit message, or pull request may mention PRX, its identifiers, or its commands.
+commit message, or pull request may mention Next Now X, its identifiers, or its commands.
 Nobody is watching this run, so neither you nor any SubAgent asks questions. Where the material
 leaves something undecided, take the option you can defend and report it as a stated assumption.
 
@@ -173,12 +173,12 @@ Tasks:
 {{task_list}}
 
 1. Read the feature graph so you know how the listed tasks relate to the rest of the work.
-   - ` + "`prx graph {{feature_id}}`" + `
+   - ` + "`nnx graph {{feature_id}}`" + `
 2. Hand every task to its own SubAgent: one task per SubAgent, and never two tasks to the same one.
    Each SubAgent works in a fresh git worktree of its own: SubAgents sharing a checkout
    commit each other's half-finished edits.
-   Each SubAgent takes its instructions from PRX rather than from you.
-   - It runs ` + "`prx prompt TASK_ID --kind implementation`" + ` for the task it was given and follows
+   Each SubAgent takes its instructions from Next Now X rather than from you.
+   - It runs ` + "`nnx prompt TASK_ID --kind implementation`" + ` for the task it was given and follows
      the prompt that prints. The flag matters: without it a task that has no registered plan is
      handed the design prompt and the task is designed instead of implemented.
    - It reports what it changed and anything the prompt did not cover.
@@ -193,13 +193,13 @@ Tasks:
 Report each task's outcome separately, including the ones that failed.
 `
 
-const defaultBatchDesignTemplate = `Design the PRX tasks of feature {{feature_id}} listed below.
+const defaultBatchDesignTemplate = `Design the Next Now X tasks of feature {{feature_id}} listed below.
 
-PRX is a local CLI that tracks tasks and the dependencies between them.
-Run ` + "`prx --help`" + ` and ` + "`prx <command> --help`" + ` for its exact surface.
-PRX runs on this machine only, so nobody reading the repository can see it.
+Next Now X is a local CLI that tracks tasks and the dependencies between them.
+Run ` + "`nnx --help`" + ` and ` + "`nnx <command> --help`" + ` for its exact surface.
+Next Now X runs on this machine only, so nobody reading the repository can see it.
 Keep it out of what the repository carries, in your work and in every SubAgent's: no code comment,
-commit message, or pull request may mention PRX, its identifiers, or its commands.
+commit message, or pull request may mention Next Now X, its identifiers, or its commands.
 Nobody is watching this run, so neither you nor any SubAgent asks questions. Where the material
 leaves something undecided, take the option you can defend and report it as a stated assumption.
 
@@ -207,16 +207,16 @@ Tasks:
 {{task_list}}
 
 1. Read the feature graph so you know how the listed tasks relate to the rest of the work.
-   - ` + "`prx graph {{feature_id}}`" + `
+   - ` + "`nnx graph {{feature_id}}`" + `
 2. Hand every task to its own SubAgent: one task per SubAgent, and never two tasks to the same one.
    Each SubAgent works in a fresh git worktree of its own: SubAgents sharing a checkout
    commit each other's half-finished edits.
-   Each SubAgent takes its instructions from PRX rather than from you.
-   - It runs ` + "`prx prompt TASK_ID --kind design`" + ` for the task it was given and follows the
+   Each SubAgent takes its instructions from Next Now X rather than from you.
+   - It runs ` + "`nnx prompt TASK_ID --kind design`" + ` for the task it was given and follows the
      prompt that prints.
    - That prompt tells it to ask the user about decisions that shape the design. Nobody is here to
      answer, so it writes those into the plan as stated assumptions instead.
-   - It ends by registering the plan with ` + "`prx plan set TASK_ID --file PATH`" + `.
+   - It ends by registering the plan with ` + "`nnx plan set TASK_ID --file PATH`" + `.
      It writes no production code and opens no pull request.
    - It reports what it decided and anything the prompt did not cover.
    Tasks the graph shows as independent may run in parallel.
@@ -454,7 +454,7 @@ func RenderBatch(
 	return kind, body, nil
 }
 
-// batchTaskList は各タスクを、エージェントが `prx prompt` に渡し返す識別子で列挙する。
+// batchTaskList は各タスクを、エージェントが `nnx prompt` に渡し返す識別子で列挙する。
 // プロンプトを読む人がタスクを見分けられるよう、後ろにタイトルを添える。
 func batchTaskList(tasks []domain.Task) string {
 	lines := make([]string, 0, len(tasks))
@@ -465,7 +465,7 @@ func batchTaskList(tasks []domain.Task) string {
 }
 
 // unspecifiedScope はスコープなしで作られたタスクの代わりに置く値。テンプレートは
-// 「上記のスコープ」を参照させるが、PRX を知らないエージェントは空行と読み込みに
+// 「上記のスコープ」を参照させるが、Next Now X を知らないエージェントは空行と読み込みに
 // 失敗した値を区別できない。
 const unspecifiedScope = "(not specified)"
 

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/HappyOnigiri/PRX/internal/store"
+	"github.com/HappyOnigiri/nnx/internal/store"
 )
 
 func TestStoreReportsResolvedPathAndSchemaVersions(t *testing.T) {
@@ -30,7 +30,7 @@ func TestStoreReportsResolvedPathAndSchemaVersions(t *testing.T) {
 		t.Fatal(err)
 	}
 	// 新規に開いたデータベースは埋め込みマイグレーションが全て適用済みなので、
-	// 2 つのバージョンは一致するはず。差があれば、別の PRX ビルドが書いた
+	// 2 つのバージョンは一致するはず。差があれば、別の Next Now X ビルドが書いた
 	// データベースだと分かる。
 	if applied != embedded || embedded != 20 {
 		t.Fatalf("applied=%d embedded=%d, want 20", applied, embedded)

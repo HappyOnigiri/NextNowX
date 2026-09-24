@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TaskDisplayState } from "../src/gen/prx/v1/prx_pb";
+import { TaskDisplayState } from "../src/gen/nnx/v1/nnx_pb";
 import {
   emptyHiddenDependencies,
   hideTasks,

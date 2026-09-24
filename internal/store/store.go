@@ -15,8 +15,8 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"github.com/HappyOnigiri/PRX/internal/db"
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/db"
+	"github.com/HappyOnigiri/nnx/internal/domain"
 )
 
 //go:embed migrations/*.sql
@@ -55,7 +55,7 @@ func DefaultPath() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(dir, "prx", "prx.db"), nil
+	return filepath.Join(dir, "nnx", "nnx.db"), nil
 }
 
 func Open(ctx context.Context, path string) (*Store, error) {

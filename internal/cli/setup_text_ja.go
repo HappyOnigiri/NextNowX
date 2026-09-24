@@ -7,26 +7,26 @@ package cli
 func japaneseSetupText() setupText {
 	return setupText{
 		sampleDataAdded: "サンプルデータを追加した: 小さな feature graph を持つ project 1 件。" +
-			"入れずに始めるには prx setup --no-sample-data を使う。",
-		daemonUnsupported: "PRX の daemon は macOS が必要。代わりに prx serve を直接実行する。",
+			"入れずに始めるには nnx setup --no-sample-data を使う。",
+		daemonUnsupported: "Next Now X の daemon は macOS が必要。代わりに nnx serve を直接実行する。",
 		install: setupQuestionText{
-			title:       "PRX を常駐サービスとして登録する？",
-			description: "LaunchAgent はログイン時に PRX を自動で起動する。",
+			title:       "Next Now X を常駐サービスとして登録する？",
+			description: "LaunchAgent はログイン時に Next Now X を自動で起動する。",
 			accept: setupOptionText{
 				label:       "daemon を登録",
-				description: "ログイン時に PRX を起動し、応答するまで待つ",
+				description: "ログイン時に Next Now X を起動し、応答するまで待つ",
 			},
 			decline: setupOptionText{
 				label:       "手動で起動",
-				description: "LaunchAgent を登録せず、必要なときに prx serve を使う",
+				description: "LaunchAgent を登録せず、必要なときに nnx serve を使う",
 			},
 		},
 		update: setupQuestionText{
-			title:       "PRX の常駐サービスを更新する？",
-			description: "LaunchAgent がこの PRX バイナリと一致していない。",
+			title:       "Next Now X の常駐サービスを更新する？",
+			description: "LaunchAgent がこの Next Now X バイナリと一致していない。",
 			accept: setupOptionText{
 				label:       "daemon を更新",
-				description: "LaunchAgent を書き直し、現在の PRX を起動する",
+				description: "LaunchAgent を書き直し、現在の Next Now X を起動する",
 			},
 			decline: setupOptionText{
 				label:       "現状を維持",
@@ -34,11 +34,11 @@ func japaneseSetupText() setupText {
 			},
 		},
 		start: setupQuestionText{
-			title:       "PRX の常駐サービスを起動する？",
+			title:       "Next Now X の常駐サービスを起動する？",
 			description: "LaunchAgent は登録済みだが、サーバーが動いていない。",
 			accept: setupOptionText{
 				label:       "daemon を起動",
-				description: "今すぐ PRX を起動し、応答するまで待つ",
+				description: "今すぐ Next Now X を起動し、応答するまで待つ",
 			},
 			decline: setupOptionText{
 				label:       "停止のまま",
@@ -46,24 +46,24 @@ func japaneseSetupText() setupText {
 			},
 		},
 		open: setupQuestionText{
-			title:       "PRX をブラウザで開く？",
+			title:       "Next Now X をブラウザで開く？",
 			description: "WebUI は %s で待ち受けている。",
 			accept: setupOptionText{
 				label:       "ブラウザで開く",
-				description: "PRX の WebUI を今すぐ開く",
+				description: "Next Now X の WebUI を今すぐ開く",
 			},
 			decline: setupOptionText{
 				label:       "端末のまま",
 				description: "ブラウザは開かない",
 			},
 		},
-		skippedInstall:   "daemon の登録を省略した。PRX を手動で起動するには prx serve を使う。",
-		keptStalePlist:   "既存の LaunchAgent を残した。更新するには prx daemon install を使う。",
-		leftStopped:      "PRX のサーバーは停止したままにした。必要になったら prx daemon start を使う。",
-		alreadyRunning:   "PRX はセットアップ済みで、すでに動作している。",
-		alreadyListening: "PRX はセットアップ済みで、%s で待ち受けている。",
-		installedDaemon:  "%s を %s に登録した。PRX は %s で待ち受けている。",
-		listening:        "PRX は %s で待ち受けている。",
+		skippedInstall:   "daemon の登録を省略した。Next Now X を手動で起動するには nnx serve を使う。",
+		keptStalePlist:   "既存の LaunchAgent を残した。更新するには nnx daemon install を使う。",
+		leftStopped:      "Next Now X のサーバーは停止したままにした。必要になったら nnx daemon start を使う。",
+		alreadyRunning:   "Next Now X はセットアップ済みで、すでに動作している。",
+		alreadyListening: "Next Now X はセットアップ済みで、%s で待ち受けている。",
+		installedDaemon:  "%s を %s に登録した。Next Now X は %s で待ち受けている。",
+		listening:        "Next Now X は %s で待ち受けている。",
 		openedBrowser:    "%s を開いた。",
 	}
 }

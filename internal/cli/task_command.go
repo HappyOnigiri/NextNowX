@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/domain"
 )
 
 func (s *state) taskCommand() *cobra.Command {
@@ -16,7 +16,7 @@ func (s *state) taskCommand() *cobra.Command {
 		Aliases: []string{"t"},
 		Short:   "List tasks or show one by ID",
 		Long:    "List tasks or show one by ID.\n\nAlias: t.",
-		Example: "prx task\nprx task --feature checkout\nprx task T-1\nprx t T-1",
+		Example: "nnx task\nnnx task --feature checkout\nnnx task T-1\nnnx t T-1",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.MaximumNArgs(1)(cmd, args); err != nil {
 				return err
@@ -64,8 +64,8 @@ func (s *state) taskCreateCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:   "create FEATURE_ID TITLE",
 		Short: "Create a task",
-		Example: "prx task create F-1 \"Add payment intent API\" --assignee Bob\n" +
-			"prx task create F-1 -- \"-fix login redirect\"",
+		Example: "nnx task create F-1 \"Add payment intent API\" --assignee Bob\n" +
+			"nnx task create F-1 -- \"-fix login redirect\"",
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			value, err := s.service.CreateTask(cmd.Context(), args[0], args[1], scope, assignee)
@@ -85,7 +85,7 @@ func (s *state) taskUpdateCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:     "update TASK_ID",
 		Short:   "Update a task by ID",
-		Example: "prx task update TASK_ID --status completed",
+		Example: "nnx task update TASK_ID --status completed",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var statusValue *domain.TaskStatus
@@ -178,7 +178,7 @@ func (s *state) taskDeleteCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:     "delete TASK_ID",
 		Short:   "Delete a task and optionally its dependencies and references",
-		Example: "prx task delete TASK_ID --cascade",
+		Example: "nnx task delete TASK_ID --cascade",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := s.service.DeleteTask(cmd.Context(), args[0], cascade); err != nil {

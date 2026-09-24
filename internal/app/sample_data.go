@@ -3,9 +3,9 @@ package app
 import (
 	"context"
 
-	"github.com/HappyOnigiri/PRX/internal/config"
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/prompt"
+	"github.com/HappyOnigiri/nnx/internal/config"
+	"github.com/HappyOnigiri/nnx/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/prompt"
 )
 
 // DatabaseFileCreator は、その Open がデータベースファイルを新規作成したかを
@@ -137,7 +137,7 @@ func sampleTextFor(language prompt.Language) sampleDataText {
 func englishSampleText() sampleDataText {
 	return sampleDataText{
 		projectTitle:       "Sample project",
-		projectDescription: "A first look at how PRX groups features and their work.",
+		projectDescription: "A first look at how Next Now X groups features and their work.",
 		featureTitle:       "Sample feature",
 		featureDescription: "Six tasks and the dependencies between them.",
 		documentTitle:      "Getting started",
@@ -156,7 +156,7 @@ func englishSampleText() sampleDataText {
 
 const englishSampleDocument = `# Getting started
 
-PRX was just installed, so this sample project shows what it tracks.
+Next Now X was just installed, so this sample project shows what it tracks.
 
 - A task carries a status, and its display state also follows its plan and its pull request.
 - A dependency says which task has to land first; the task that waits stays blocked.
@@ -165,7 +165,7 @@ PRX was just installed, so this sample project shows what it tracks.
 - Ship the release waits on everything else, so it stays blocked.
 
 Delete this project once you no longer need it, or start the next setup with
-prx setup --no-sample-data to skip it.
+nnx setup --no-sample-data to skip it.
 `
 
 const englishSamplePlan = `1. List the steps the feature needs.

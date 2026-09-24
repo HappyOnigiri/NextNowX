@@ -1,5 +1,5 @@
 // Package config は CLI・サーバー・GitHub 認証リゾルバが共有するバージョン付き
-// YAML 設定を管理する。新しい PRX が書いたファイルも読み込める。未知のフィールドは
+// YAML 設定を管理する。新しい Next Now X が書いたファイルも読み込める。未知のフィールドは
 // 警告になるが、それ以外のデコード失敗は警告にならない。
 package config
 
@@ -14,8 +14,8 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/HappyOnigiri/PRX/internal/domain"
-	"github.com/HappyOnigiri/PRX/internal/prompt"
+	"github.com/HappyOnigiri/nnx/internal/domain"
+	"github.com/HappyOnigiri/nnx/internal/prompt"
 )
 
 const (
@@ -29,7 +29,7 @@ const ServerPortAutoValue = "auto"
 
 // ServerPort は通常起動の待ち受けポート。0 は auto で、7331 を試してから OS の
 // エファメラルポートへ逃げることを意味する。host は loopback 固定なので設定に持たない。
-// loopback 外へ出す唯一の手段は `prx serve --addr` である。
+// loopback 外へ出す唯一の手段は `nnx serve --addr` である。
 type ServerPort int
 
 // ServerPortAuto は既定の解決方法。
@@ -200,7 +200,7 @@ type yamlPrompts struct {
 
 // MarshalYAML は組み込みの既定値と一致するテンプレートを出力しない。Normalize が
 // 読み込み時に空のテンプレートを埋めるため、そのまま書き戻すと最初に保存した
-// PRX のバージョンの文言でファイルが固定されてしまう。
+// Next Now X のバージョンの文言でファイルが固定されてしまう。
 func (c Config) MarshalYAML() (any, error) {
 	defaults := prompt.DefaultTemplates(c.EffectiveLanguage())
 	prompts := yamlPrompts{}

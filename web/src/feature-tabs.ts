@@ -3,7 +3,7 @@ import {
   isArchivedFeature,
   isCompletedFeature,
 } from "./feature-status";
-import type { Feature } from "./gen/prx/v1/prx_pb";
+import type { Feature } from "./gen/nnx/v1/nnx_pb";
 
 // feature 一覧は表示先の project ページでステータス別に絞り込む。タブはブラウザ
 // 側の状態ではなく search parameter にしてあり、リロード・履歴・共有リンクで同じ
