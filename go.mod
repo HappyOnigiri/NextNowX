@@ -1,6 +1,6 @@
 module github.com/HappyOnigiri/NextNowX
 
-go 1.27.1
+go 1.27.3
 
 tool (
 	connectrpc.com/connect/cmd/protoc-gen-connect-go
