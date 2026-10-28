@@ -2,6 +2,7 @@ import { Copy, RotateCcw, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { readDocumentContent } from "../api";
 import { formatError } from "../i18n/domain";
 import { IconButton } from "./IconButton";
@@ -164,6 +165,7 @@ function MarkdownBody({
 export function MarkdownContent({ content }: { content: string }) {
   return (
     <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
       components={{
         a: ({ children, ...props }) => (
           <a {...props} target="_blank" rel="noreferrer">
