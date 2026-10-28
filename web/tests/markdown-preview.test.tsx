@@ -85,6 +85,27 @@ describe("MarkdownPreview", () => {
     unmount();
   });
 
+  it("renders GitHub Flavored Markdown tables", async () => {
+    vi.mocked(readDocumentContent).mockResolvedValue(
+      "Rename targets.\n\n| Target | Before | After |\n|---|---|---|\n| Type | `PearlType` | `StarType` |\n",
+    );
+    render(
+      <MarkdownPreview
+        document={{ id: "document-4", title: "Plan", locator: "" }}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const table = await screen.findByRole("table");
+    expect(
+      screen.getAllByRole("columnheader").map((cell) => cell.textContent),
+    ).toEqual(["Target", "Before", "After"]);
+    expect(screen.getAllByRole("cell").map((cell) => cell.textContent)).toEqual(
+      ["Type", "PearlType", "StarType"],
+    );
+    expect(table).not.toHaveTextContent("|");
+  });
+
   it("reports clipboard failures and clears the status after its timer", async () => {
     writeText.mockRejectedValueOnce(new Error("clipboard denied"));
     render(
