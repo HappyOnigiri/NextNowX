@@ -1353,7 +1353,7 @@
   white-space: nowrap;
 }
 
-/* アイコンは工程を示し、既存の色は誰のボールかを示す。工程と色を混ぜない。 */
+/* 工程は色とアイコンの両方で示し、色だけに頼らず区別できるようにする。 */
 .status-badge-icon {
   flex: 0 0 auto;
   stroke-width: 1.75;
@@ -1387,26 +1387,30 @@
   font-weight: 400;
 }
 
-/* 緑は自身が着手できる状態、青は自身が作業中、黄は他者待ち、紫は完了、
+/* 未着手は着手可能を示す緑を保ち、工程を持つ状態は工程ごとの色にする。
    クローズ済みは既定の控えめな枠で表す。 */
-.status-badge.state-not-started,
-.status-badge.state-designed,
-.status-badge.state-implemented,
-.status-badge.state-approved {
+.status-badge.state-not-started {
   border-color: var(--status-actionable);
   color: var(--status-actionable);
 }
 
 .status-badge.state-designing,
-.status-badge.state-in-progress {
-  border-color: var(--status-working);
-  color: var(--status-working);
+.status-badge.state-designed {
+  border-color: var(--status-design);
+  color: var(--status-design);
+}
+
+.status-badge.state-in-progress,
+.status-badge.state-implemented {
+  border-color: var(--status-implementation);
+  color: var(--status-implementation);
 }
 
 .status-badge.state-in-review,
+.status-badge.state-approved,
 .status-badge.state-review-waiting {
-  border-color: var(--status-waiting);
-  color: var(--status-waiting);
+  border-color: var(--status-review);
+  color: var(--status-review);
 }
 
 /* 完了タスクとマージ済み pull request は終端なので同じ色にし、クローズ済みは
