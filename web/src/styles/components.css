@@ -1387,11 +1387,11 @@
   font-weight: 400;
 }
 
-/* 未着手は着手可能を示す緑を保ち、工程を持つ状態は工程ごとの色にする。
+/* 未着手はスレートグレーで示し、工程を持つ状態は工程ごとの色にする。
    クローズ済みは既定の控えめな枠で表す。 */
 .status-badge.state-not-started {
-  border-color: var(--status-actionable);
-  color: var(--status-actionable);
+  border-color: var(--status-not-started);
+  color: var(--status-not-started);
 }
 
 .status-badge.state-designing,

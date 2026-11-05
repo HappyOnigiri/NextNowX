@@ -17,6 +17,7 @@
   /* task の工程は設計が青、実装が緑、レビューが黄、終了が紫。
      着手可能・他者待ちの色は、工程以外の表示でも使う。 */
   --status-design: light-dark(#0b6a8f, #52b6d8);
+  --status-not-started: light-dark(#596579, #a0aec0);
   --status-actionable: light-dark(#0c715a, #4cc2a0);
   --status-waiting: light-dark(#7b5100, #d9a441);
   --status-implementation: var(--status-actionable);
