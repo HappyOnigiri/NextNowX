@@ -19,7 +19,6 @@ export function matchesGraphSearch(
   const values = [
     task.id,
     task.title,
-    task.scope,
     task.assignee,
     pullRequest?.host,
     pullRequest?.owner,

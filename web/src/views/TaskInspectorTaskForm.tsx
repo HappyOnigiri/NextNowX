@@ -30,10 +30,6 @@ export function TaskInspectorTaskForm({
           <dd>{task.title}</dd>
         </div>
         <div>
-          <dt>{t("common.scope")}</dt>
-          <dd>{task.scope || t("inspector.notSet")}</dd>
-        </div>
-        <div>
           <dt>{t("common.assignee")}</dt>
           <dd>{task.assignee || t("common.unassigned")}</dd>
         </div>
@@ -50,16 +46,6 @@ export function TaskInspectorTaskForm({
           value={draft.title}
           onChange={(event) => {
             setDraft({ ...draft, title: event.target.value });
-          }}
-        />
-      </label>
-      <label>
-        {t("common.scope")}
-        <textarea
-          name="scope"
-          value={draft.scope}
-          onChange={(event) => {
-            setDraft({ ...draft, scope: event.target.value });
           }}
         />
       </label>

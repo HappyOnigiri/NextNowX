@@ -261,7 +261,6 @@ func (h *Handler) CreateTask(
 		ctx,
 		req.Msg.GetFeatureId(),
 		req.Msg.GetTitle(),
-		req.Msg.GetScope(),
 		req.Msg.GetAssignee(),
 	)
 	if err != nil {
@@ -288,17 +287,12 @@ func (h *Handler) UpdateTask(
 	if req.Msg.Title != nil {
 		titlePointer = &titleValue
 	}
-	scopeValue := req.Msg.GetScope()
-	var scopePointer *string
-	if req.Msg.Scope != nil {
-		scopePointer = &scopeValue
-	}
 	assigneeValue := req.Msg.GetAssignee()
 	var assigneePointer *string
 	if req.Msg.Assignee != nil {
 		assigneePointer = &assigneeValue
 	}
-	value, err := h.service.UpdateTask(ctx, req.Msg.GetId(), titlePointer, scopePointer, status, assigneePointer)
+	value, err := h.service.UpdateTask(ctx, req.Msg.GetId(), titlePointer, status, assigneePointer)
 	if err != nil {
 		return nil, rpcError(err)
 	}

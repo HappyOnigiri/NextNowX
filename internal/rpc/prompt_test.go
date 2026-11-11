@@ -56,7 +56,6 @@ func createPromptTask(t *testing.T, client nnxv1connect.NNXServiceClient) string
 	task, err := client.CreateTask(ctx, connect.NewRequest(&nnxv1.CreateTaskRequest{
 		FeatureId: feature.Msg.GetFeature().GetId(),
 		Title:     "Add the checkout API",
-		Scope:     "Server only",
 	}))
 	if err != nil {
 		t.Fatal(err)

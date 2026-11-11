@@ -55,14 +55,9 @@ describe("CreateTaskDialog", () => {
     dialogMocks.refreshSnapshot.mockResolvedValue(undefined);
   });
 
-  function submitForm(values: {
-    title?: string;
-    scope?: string;
-    assignee?: string;
-  }) {
+  function submitForm(values: { title?: string; assignee?: string }) {
     for (const [label, value] of [
       ["Title", values.title],
-      ["Scope", values.scope],
       ["Assignee", values.assignee],
     ] as const) {
       if (value !== undefined)
@@ -77,7 +72,6 @@ describe("CreateTaskDialog", () => {
 
     submitForm({
       title: "Implement checkout",
-      scope: "API and acceptance tests",
       assignee: "Carol",
     });
 
@@ -87,7 +81,6 @@ describe("CreateTaskDialog", () => {
     expect(dialogMocks.createTask).toHaveBeenCalledWith({
       featureId: "feature-1",
       title: "Implement checkout",
-      scope: "API and acceptance tests",
       assignee: "Carol",
     });
     expect(dialogMocks.addDependency).not.toHaveBeenCalled();
@@ -200,7 +193,6 @@ describe("CreateTaskDialog", () => {
       expect(dialogMocks.updateTask).toHaveBeenCalledWith({
         id: "task-new",
         title: "Implement refunds",
-        scope: "",
         assignee: "",
       });
     });

@@ -61,6 +61,7 @@ var supportedPlaceholders = []string{
 	requiredPlaceholder,
 	"feature_id",
 	"task_title",
+	// task_scope は既存テンプレートとの互換性のため、添付資料の読み取りへ誘導する。
 	"task_scope",
 }
 
@@ -80,7 +81,6 @@ var batchSupportedPlaceholders = []string{
 const defaultDesignTemplate = `Design Next Now X task {{task_id}} of feature {{feature_id}}.
 
 Title: {{task_title}}
-Scope: {{task_scope}}
 
 Next Now X is a local CLI that tracks tasks and the dependencies between them.
 Run ` + "`nnx --help`" + ` and ` + "`nnx <command> --help`" + ` for its exact surface.
@@ -98,16 +98,16 @@ into the plan as a stated assumption.
 2. Read the task and the work it depends on.
    - ` + "`nnx task {{task_id}}`" + `
    - ` + "`nnx graph {{feature_id}}`" + `
-   The other tasks in that graph carry their own scope: rely on their result, do not design it here.
+   The other tasks in that graph carry their own work: rely on their result, do not design it here.
    A dependency the graph does not show yet goes in as ` + "`nnx dependency add BLOCKER_TASK_ID {{task_id}}`" + `.
 3. Read the reference material attached in Next Now X before you decide anything.
    Documents hang off the task, off its feature, and off the project that feature belongs to,
-   and any of them may carry the requirements this scope has to meet.
+   and any of them may carry the requirements this task has to meet.
    - ` + "`nnx document --task {{task_id}}`" + ` and ` + "`nnx document --feature {{feature_id}}`" + `
    - ` + "`nnx feature {{feature_id}}`" + ` names the project, then ` + "`nnx document --project PROJECT_ID`" + `
    - ` + "`nnx document get DOCUMENT_ID`" + ` prints a stored document; one that points at a URL or a
      local file prints that locator instead, so open it yourself.
-4. Investigate the repository and decide how the scope above should be built.
+4. Investigate the repository and decide how this task should be built.
 5. Register the resulting plan on the task.
    Write the plan to a file in a temporary directory outside the repository, register that file,
    and delete it afterwards. A plan left inside the repository ends up committed by the next step.
@@ -121,7 +121,6 @@ Design only: leave the implementation and the pull request to the next step.
 const defaultImplementationTemplate = `Implement Next Now X task {{task_id}} of feature {{feature_id}}.
 
 Title: {{task_title}}
-Scope: {{task_scope}}
 
 Next Now X is a local CLI that tracks tasks and the dependencies between them.
 Run ` + "`nnx --help`" + ` and ` + "`nnx <command> --help`" + ` for its exact surface.
@@ -136,18 +135,18 @@ take the option you can defend and report it as a stated assumption.
    - ` + "`nnx graph {{feature_id}}`" + `
    - ` + "`nnx plan {{task_id}}`" + `
    That last command fails when no plan was registered. That is not an error to fix: settle the
-   approach yourself from the title, the scope, and the material below, and report it as a stated
+   approach yourself from the title and the material below, and report it as a stated
    assumption. Do not register a plan.
 2. Read the reference material attached in Next Now X before you write any code.
    Documents hang off the task, off its feature, and off the project that feature belongs to,
-   and any of them may carry the requirements this scope has to meet.
+   and any of them may carry the requirements this task has to meet.
    - ` + "`nnx document --task {{task_id}}`" + ` and ` + "`nnx document --feature {{feature_id}}`" + `
    - ` + "`nnx feature {{feature_id}}`" + ` names the project, then ` + "`nnx document --project PROJECT_ID`" + `
    - ` + "`nnx document get DOCUMENT_ID`" + ` prints a stored document; one that points at a URL or a
      local file prints that locator instead, so open it yourself.
 3. Mark the task as being worked on before you change anything.
    - ` + "`nnx task update {{task_id}} --status in_progress`" + `
-4. Implement the plan, or the approach you settled on, staying inside the scope above.
+4. Implement the plan, or the approach you settled on, staying within the task requirements.
    Branch from the base the work actually belongs on rather than from main or master by default.
    A task whose blocker is still open belongs on that blocker's branch, so the two pull requests stack.
 5. Record the result in Next Now X.
@@ -418,7 +417,7 @@ func Render(task domain.Task, kind Kind, templates Templates, language Language)
 		"task_id":    task.ID,
 		"feature_id": task.FeatureID,
 		"task_title": task.Title,
-		"task_scope": describedScope(task.Scope),
+		"task_scope": "nnx document --task " + task.ID,
 	}
 	body := placeholderPattern.ReplaceAllStringFunc(normalized.Template(kind), func(match string) string {
 		return values[placeholderName(match)]
@@ -462,18 +461,6 @@ func batchTaskList(tasks []domain.Task) string {
 		lines = append(lines, fmt.Sprintf("- %s: %s", task.ID, task.Title))
 	}
 	return strings.Join(lines, "\n")
-}
-
-// unspecifiedScope はスコープなしで作られたタスクの代わりに置く値。テンプレートは
-// 「上記のスコープ」を参照させるが、Next Now X を知らないエージェントは空行と読み込みに
-// 失敗した値を区別できない。
-const unspecifiedScope = "(not specified)"
-
-func describedScope(scope string) string {
-	if strings.TrimSpace(scope) == "" {
-		return unspecifiedScope
-	}
-	return scope
 }
 
 // Error は拒否されたテンプレートを報告する。呼び出し元が修正すべきテンプレートを

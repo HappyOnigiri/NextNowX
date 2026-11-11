@@ -18,7 +18,6 @@ nnx task create F-1 -- "-fix login redirect"
 ```
       --assignee string   assignee
   -h, --help              help for create
-      --scope string      scope description
 ```
 
 ### Options inherited from parent commands
