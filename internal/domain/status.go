@@ -117,6 +117,12 @@ func displayStateFor(task Task, pr *PullRequest) TaskDisplayState {
 	if task.Status == TaskStatusClosed {
 		return TaskDisplayStateClosed
 	}
+	if task.Kind == TaskKindWork {
+		if task.Status == TaskStatusInProgress {
+			return TaskDisplayStateInProgress
+		}
+		return TaskDisplayStateNotStarted
+	}
 	if pr != nil {
 		return taskDisplayStateFromPR(pr)
 	}
@@ -139,7 +145,7 @@ func IsSatisfied(task Task, pr *PullRequest) bool {
 	if task.Status == TaskStatusCompleted || task.Status == TaskStatusClosed {
 		return true
 	}
-	return pr != nil && (pr.State == PullRequestStateOpen ||
+	return task.Kind != TaskKindWork && pr != nil && (pr.State == PullRequestStateOpen ||
 		pr.State == PullRequestStateClosed || pr.State == PullRequestStateMerged)
 }
 

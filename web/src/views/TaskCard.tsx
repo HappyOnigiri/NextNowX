@@ -49,6 +49,7 @@ export function TaskCard({
               meta の先頭に置く。 */}
           <TaskStatusBadge
             state={task.displayState}
+            kind={task.kind}
             appearances={feature?.taskLabelAppearances}
           />
           <EntityIcon kind="task" size={15} />

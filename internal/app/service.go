@@ -34,7 +34,7 @@ type Repository interface {
 	GetFeature(ctx context.Context, id string) (domain.Feature, error)
 	DeleteFeature(ctx context.Context, id string, cascade bool) error
 
-	CreateTask(ctx context.Context, featureID, title, scope, assignee string) (domain.Task, error)
+	CreateTask(ctx context.Context, featureID, title, scope, assignee string, kind domain.TaskKind) (domain.Task, error)
 	GetTask(ctx context.Context, id string) (domain.Task, error)
 	UpdateTask(ctx context.Context, task domain.Task) (domain.Task, error)
 	DeleteTask(ctx context.Context, id string, cascade bool) error
@@ -307,6 +307,7 @@ func (s *Service) DeleteFeature(ctx context.Context, id string, cascade bool) er
 func (s *Service) CreateTask(
 	ctx context.Context,
 	featureID, title, scope, assignee string,
+	kind domain.TaskKind,
 ) (domain.Task, error) {
 	feature, err := s.ResolveFeature(ctx, featureID)
 	if err != nil {
@@ -319,7 +320,16 @@ func (s *Service) CreateTask(
 	if title == "" {
 		return domain.Task{}, domain.NewError(domain.DomainErrorCodeInvalidTitle, "task title is required")
 	}
-	return s.repository.CreateTask(ctx, feature.ID, title, strings.TrimSpace(scope), strings.TrimSpace(assignee))
+	if kind == "" {
+		kind = domain.TaskKindDevelopment
+	}
+	if kind != domain.TaskKindDevelopment && kind != domain.TaskKindWork {
+		return domain.Task{}, domain.NewError(
+			domain.DomainErrorCodeInvalidTaskKind,
+			"invalid task kind; use development or work",
+		)
+	}
+	return s.repository.CreateTask(ctx, feature.ID, title, strings.TrimSpace(scope), strings.TrimSpace(assignee), kind)
 }
 
 // UpdateTask は呼び出し側が指定した全フィールドを適用する。nil ポインタは未指定、
@@ -330,6 +340,7 @@ func (s *Service) UpdateTask(
 	title, scope *string,
 	status *domain.TaskStatus,
 	assignee *string,
+	kind *domain.TaskKind,
 ) (domain.Task, error) {
 	task, err := s.repository.GetTask(ctx, id)
 	if err != nil {
@@ -362,6 +373,35 @@ func (s *Service) UpdateTask(
 		domain.TaskStatusClosed,
 	) {
 		return domain.Task{}, domain.NewError(domain.DomainErrorCodeInvalidStatus, "invalid task status")
+	}
+	if kind != nil {
+		if *kind != domain.TaskKindDevelopment && *kind != domain.TaskKindWork {
+			return domain.Task{}, domain.NewError(
+				domain.DomainErrorCodeInvalidTaskKind,
+				"invalid task kind; use development or work",
+			)
+		}
+		task.Kind = *kind
+	}
+	if task.Kind == domain.TaskKindWork {
+		if task.Status == domain.TaskStatusDesigning {
+			return domain.Task{}, domain.NewError(
+				domain.DomainErrorCodeInvalidStatus,
+				"work tasks cannot use designing status",
+			)
+		}
+		snapshot, err := s.repository.Snapshot(ctx)
+		if err != nil {
+			return domain.Task{}, err
+		}
+		for _, pr := range snapshot.PullRequests {
+			if pr.TaskID == task.ID {
+				return domain.Task{}, domain.NewError(
+					domain.DomainErrorCodePullRequestOnWorkTask,
+					"detach the pull request before changing the task to work",
+				)
+			}
+		}
 	}
 	return s.repository.UpdateTask(ctx, task)
 }
@@ -428,6 +468,12 @@ func (s *Service) AttachPullRequest(ctx context.Context, taskID, rawURL string) 
 	}
 	if err := s.guardTask(ctx, task); err != nil {
 		return domain.PullRequest{}, err
+	}
+	if task.Kind == domain.TaskKindWork {
+		return domain.PullRequest{}, domain.NewError(
+			domain.DomainErrorCodePullRequestOnWorkTask,
+			"work tasks cannot have a pull request",
+		)
 	}
 	host, owner, repo, number, parsedCanonical, err := githubprovider.ParsePullRequestURLDetails(rawURL)
 	if err != nil {

@@ -456,6 +456,7 @@ func publicTaskIDs(values []db.Task) map[string]string {
 
 func domainTask(value db.Task, featureID string) domain.Task {
 	return domain.Task{
+		Kind:             domain.TaskKind(value.Kind),
 		ID:               value.PublicID,
 		StorageID:        value.ID,
 		FeatureID:        featureID,

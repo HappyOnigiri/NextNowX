@@ -49,6 +49,7 @@ func (repositoryStub) CreateTask(
 	string,
 	string,
 	string,
+	domain.TaskKind,
 ) (domain.Task, error) {
 	return domain.Task{}, errors.New("unexpected CreateTask call")
 }
@@ -362,19 +363,19 @@ func TestUpdateTaskAcceptsManualOverrides(t *testing.T) {
 	service := app.New(repository, nil)
 	completed := domain.TaskStatusCompleted
 
-	updated, err := service.UpdateTask(context.Background(), "task-id", nil, nil, &completed, nil)
+	updated, err := service.UpdateTask(context.Background(), "task-id", nil, nil, &completed, nil, nil)
 	if err != nil || updated.Status != domain.TaskStatusCompleted {
 		t.Fatalf("updated task=%+v err=%v", updated, err)
 	}
 
 	designing := domain.TaskStatusDesigning
-	updated, err = service.UpdateTask(context.Background(), "task-id", nil, nil, &designing, nil)
+	updated, err = service.UpdateTask(context.Background(), "task-id", nil, nil, &designing, nil, nil)
 	if err != nil || updated.Status != domain.TaskStatusDesigning {
 		t.Fatalf("updated task=%+v err=%v", updated, err)
 	}
 
 	invalid := domain.TaskStatus("designed")
-	if _, err := service.UpdateTask(context.Background(), "task-id", nil, nil, &invalid, nil); err == nil {
+	if _, err := service.UpdateTask(context.Background(), "task-id", nil, nil, &invalid, nil, nil); err == nil {
 		t.Fatal("a display state is not a stored status and must be rejected")
 	}
 }

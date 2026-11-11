@@ -59,6 +59,7 @@ import {
   type GitHubSyncStatus,
   type PromptTemplates,
   type Snapshot,
+  type TaskKind,
   type TaskLabelConfig,
   type TaskLabelOverridesUpdate,
   type TaskStatus,
@@ -193,12 +194,14 @@ export const mutations = {
     title: string;
     scope: string;
     assignee: string;
+    kind?: TaskKind;
   }) => client.createTask(create(CreateTaskRequestSchema, input)),
   updateTask: (input: {
     id: string;
     title?: string;
     scope?: string;
     status?: TaskStatus;
+    kind?: TaskKind;
     assignee?: string;
   }) => client.updateTask(create(UpdateTaskRequestSchema, input)),
   deleteTask: (id: string) =>

@@ -27,6 +27,8 @@ task ラベルは `nnx config label`、`nnx project label`、`nnx feature label`
 未指定の項目は変更せず、空文字列は継承へ戻す。人間向けの task 表示だけが実効文字列を使い、
 JSON の `status`・`display_state`・`block_labels` は安定値を保つ。
 
+task の JSON は種類を `kind`（`development` または `work`）で返す。`task create` の `--kind` は省略すると `development`、`task update` では省略すると種類を維持する。
+
 変更操作は非対話のままにし、人とコーディングエージェントが同じ操作面を使えるようにする。
 変更対象が存在しない場合は、成功した no-op として報告せず失敗させる。
 参照されたデータを破壊的にたどる操作には、明示的な cascade の指定を必要とする。

@@ -3,11 +3,13 @@ import { useRef, useState, type SyntheticEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { mutations } from "../api";
 import { formValue } from "../form";
+import { TaskKind } from "../gen/nnx/v1/nnx_pb";
 import { useDomainMutation, useSnapshotRefresh } from "../hooks";
 import { formatError } from "../i18n/domain";
 import { dependencyPair, type PendingDependency } from "./dependencyGraph";
 import { IconButton } from "./IconButton";
 import { MutationError } from "./MutationError";
+import { TaskKindSelect } from "./TaskKindSelect";
 import { useCloseOnEscape } from "./useCloseOnEscape";
 
 interface CreateTaskInput {
@@ -15,6 +17,7 @@ interface CreateTaskInput {
   title: string;
   scope: string;
   assignee: string;
+  kind: TaskKind;
 }
 
 // 依存の相手のタイトルは呼び出し側で解決する。ダイアログ側にも控えを置くと、
@@ -44,6 +47,7 @@ export function CreateTaskDialog({
         title: input.title,
         scope: input.scope,
         assignee: input.assignee,
+        kind: input.kind,
       });
     const taskId = created ?? (await mutations.createTask(input)).task?.id;
     // ID が取れないと依存を張れないので、成功として閉じずにエラーを見せる。
@@ -73,6 +77,7 @@ export function CreateTaskDialog({
         title: formValue(form, "title"),
         scope: formValue(form, "scope"),
         assignee: formValue(form, "assignee"),
+        kind: Number(formValue(form, "kind")),
       });
     } catch {
       return;
@@ -115,6 +120,7 @@ export function CreateTaskDialog({
             placeholder={t("taskCreate.scopePlaceholder")}
           />
         </label>
+        <TaskKindSelect defaultValue={TaskKind.DEVELOPMENT} />
         <label>
           {t("common.assignee")}
           <input

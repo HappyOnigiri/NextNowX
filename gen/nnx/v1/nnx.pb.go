@@ -88,6 +88,59 @@ func (FeatureStatus) EnumDescriptor() ([]byte, []int) {
 	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{0}
 }
 
+// TaskKind はタスクの種類を表す。
+type TaskKind int32
+
+const (
+	// TASK_KIND_UNSPECIFIED は作成時だけ開発を意味する。
+	TaskKind_TASK_KIND_UNSPECIFIED TaskKind = 0
+	// TASK_KIND_DEVELOPMENT は PR を紐づけられる開発タスク。
+	TaskKind_TASK_KIND_DEVELOPMENT TaskKind = 1
+	// TASK_KIND_WORK はステータスを手動変更する作業タスク。
+	TaskKind_TASK_KIND_WORK TaskKind = 2
+)
+
+// Enum value maps for TaskKind.
+var (
+	TaskKind_name = map[int32]string{
+		0: "TASK_KIND_UNSPECIFIED",
+		1: "TASK_KIND_DEVELOPMENT",
+		2: "TASK_KIND_WORK",
+	}
+	TaskKind_value = map[string]int32{
+		"TASK_KIND_UNSPECIFIED": 0,
+		"TASK_KIND_DEVELOPMENT": 1,
+		"TASK_KIND_WORK":        2,
+	}
+)
+
+func (x TaskKind) Enum() *TaskKind {
+	p := new(TaskKind)
+	*p = x
+	return p
+}
+
+func (x TaskKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (TaskKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_nnx_v1_nnx_proto_enumTypes[1].Descriptor()
+}
+
+func (TaskKind) Type() protoreflect.EnumType {
+	return &file_nnx_v1_nnx_proto_enumTypes[1]
+}
+
+func (x TaskKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use TaskKind.Descriptor instead.
+func (TaskKind) EnumDescriptor() ([]byte, []int) {
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{1}
+}
+
 // TaskStatus は task の保存されたワークフロー状態で、常に手動で設定する。
 // 未完了を表す値は紐づく pull request に譲り、完了を表す値は
 // pull request より優先される。
@@ -98,7 +151,7 @@ const (
 	TaskStatus_TASK_STATUS_UNSPECIFIED TaskStatus = 0
 	// TASK_STATUS_NOT_STARTED は新しい task の既定値で、未着手を表す。
 	TaskStatus_TASK_STATUS_NOT_STARTED TaskStatus = 1
-	// TASK_STATUS_IN_PROGRESS は pull request がない段階で実装中であることを表す。
+	// TASK_STATUS_IN_PROGRESS は開発の実装中、または作業の着手を表す。
 	TaskStatus_TASK_STATUS_IN_PROGRESS TaskStatus = 2
 	// TASK_STATUS_DESIGNING は実装計画がない段階で設計中であることを表す。
 	TaskStatus_TASK_STATUS_DESIGNING TaskStatus = 5
@@ -139,11 +192,11 @@ func (x TaskStatus) String() string {
 }
 
 func (TaskStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_nnx_v1_nnx_proto_enumTypes[1].Descriptor()
+	return file_nnx_v1_nnx_proto_enumTypes[2].Descriptor()
 }
 
 func (TaskStatus) Type() protoreflect.EnumType {
-	return &file_nnx_v1_nnx_proto_enumTypes[1]
+	return &file_nnx_v1_nnx_proto_enumTypes[2]
 }
 
 func (x TaskStatus) Number() protoreflect.EnumNumber {
@@ -152,7 +205,7 @@ func (x TaskStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use TaskStatus.Descriptor instead.
 func (TaskStatus) EnumDescriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{1}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{2}
 }
 
 // TaskDisplayState は task の表示用に導出された状態で、1 つの task につき 1 値。
@@ -163,7 +216,7 @@ type TaskDisplayState int32
 const (
 	// TASK_DISPLAY_STATE_UNSPECIFIED は有効な task では返らず、リクエストのフィールドでもない。
 	TaskDisplayState_TASK_DISPLAY_STATE_UNSPECIFIED TaskDisplayState = 0
-	// TASK_DISPLAY_STATE_NOT_STARTED は pull request も実装計画もないことを表す。
+	// TASK_DISPLAY_STATE_NOT_STARTED は未着手の task を表す。
 	TaskDisplayState_TASK_DISPLAY_STATE_NOT_STARTED TaskDisplayState = 1
 	// TASK_DISPLAY_STATE_DESIGNING は実装計画がないまま設計中であることを表す。
 	TaskDisplayState_TASK_DISPLAY_STATE_DESIGNING TaskDisplayState = 14
@@ -230,11 +283,11 @@ func (x TaskDisplayState) String() string {
 }
 
 func (TaskDisplayState) Descriptor() protoreflect.EnumDescriptor {
-	return file_nnx_v1_nnx_proto_enumTypes[2].Descriptor()
+	return file_nnx_v1_nnx_proto_enumTypes[3].Descriptor()
 }
 
 func (TaskDisplayState) Type() protoreflect.EnumType {
-	return &file_nnx_v1_nnx_proto_enumTypes[2]
+	return &file_nnx_v1_nnx_proto_enumTypes[3]
 }
 
 func (x TaskDisplayState) Number() protoreflect.EnumNumber {
@@ -243,7 +296,7 @@ func (x TaskDisplayState) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use TaskDisplayState.Descriptor instead.
 func (TaskDisplayState) EnumDescriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{2}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{3}
 }
 
 // TaskBlockLabel は task の進行を妨げている事情で、1 つの task に 0〜4 個付く。
@@ -292,11 +345,11 @@ func (x TaskBlockLabel) String() string {
 }
 
 func (TaskBlockLabel) Descriptor() protoreflect.EnumDescriptor {
-	return file_nnx_v1_nnx_proto_enumTypes[3].Descriptor()
+	return file_nnx_v1_nnx_proto_enumTypes[4].Descriptor()
 }
 
 func (TaskBlockLabel) Type() protoreflect.EnumType {
-	return &file_nnx_v1_nnx_proto_enumTypes[3]
+	return &file_nnx_v1_nnx_proto_enumTypes[4]
 }
 
 func (x TaskBlockLabel) Number() protoreflect.EnumNumber {
@@ -305,7 +358,7 @@ func (x TaskBlockLabel) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use TaskBlockLabel.Descriptor instead.
 func (TaskBlockLabel) EnumDescriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{3}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{4}
 }
 
 // PullRequestState は GitHub の pull request について報告される生のライフサイクル状態。
@@ -353,11 +406,11 @@ func (x PullRequestState) String() string {
 }
 
 func (PullRequestState) Descriptor() protoreflect.EnumDescriptor {
-	return file_nnx_v1_nnx_proto_enumTypes[4].Descriptor()
+	return file_nnx_v1_nnx_proto_enumTypes[5].Descriptor()
 }
 
 func (PullRequestState) Type() protoreflect.EnumType {
-	return &file_nnx_v1_nnx_proto_enumTypes[4]
+	return &file_nnx_v1_nnx_proto_enumTypes[5]
 }
 
 func (x PullRequestState) Number() protoreflect.EnumNumber {
@@ -366,7 +419,7 @@ func (x PullRequestState) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use PullRequestState.Descriptor instead.
 func (PullRequestState) EnumDescriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{4}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{5}
 }
 
 // ReviewState は現在のレビュー判定とレビュー依頼状況をまとめたもの。
@@ -418,11 +471,11 @@ func (x ReviewState) String() string {
 }
 
 func (ReviewState) Descriptor() protoreflect.EnumDescriptor {
-	return file_nnx_v1_nnx_proto_enumTypes[5].Descriptor()
+	return file_nnx_v1_nnx_proto_enumTypes[6].Descriptor()
 }
 
 func (ReviewState) Type() protoreflect.EnumType {
-	return &file_nnx_v1_nnx_proto_enumTypes[5]
+	return &file_nnx_v1_nnx_proto_enumTypes[6]
 }
 
 func (x ReviewState) Number() protoreflect.EnumNumber {
@@ -431,7 +484,7 @@ func (x ReviewState) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ReviewState.Descriptor instead.
 func (ReviewState) EnumDescriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{5}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{6}
 }
 
 // Mergeability は GitHub の pull request について報告される現在のマージ可否。
@@ -475,11 +528,11 @@ func (x Mergeability) String() string {
 }
 
 func (Mergeability) Descriptor() protoreflect.EnumDescriptor {
-	return file_nnx_v1_nnx_proto_enumTypes[6].Descriptor()
+	return file_nnx_v1_nnx_proto_enumTypes[7].Descriptor()
 }
 
 func (Mergeability) Type() protoreflect.EnumType {
-	return &file_nnx_v1_nnx_proto_enumTypes[6]
+	return &file_nnx_v1_nnx_proto_enumTypes[7]
 }
 
 func (x Mergeability) Number() protoreflect.EnumNumber {
@@ -488,7 +541,7 @@ func (x Mergeability) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Mergeability.Descriptor instead.
 func (Mergeability) EnumDescriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{6}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{7}
 }
 
 // CheckState は pull request の最新コミットについて GitHub が報告するステータス
@@ -541,11 +594,11 @@ func (x CheckState) String() string {
 }
 
 func (CheckState) Descriptor() protoreflect.EnumDescriptor {
-	return file_nnx_v1_nnx_proto_enumTypes[7].Descriptor()
+	return file_nnx_v1_nnx_proto_enumTypes[8].Descriptor()
 }
 
 func (CheckState) Type() protoreflect.EnumType {
-	return &file_nnx_v1_nnx_proto_enumTypes[7]
+	return &file_nnx_v1_nnx_proto_enumTypes[8]
 }
 
 func (x CheckState) Number() protoreflect.EnumNumber {
@@ -554,7 +607,7 @@ func (x CheckState) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use CheckState.Descriptor instead.
 func (CheckState) EnumDescriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{7}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{8}
 }
 
 // PullRequestDisplayState は pull request の導出された表示状態。
@@ -623,11 +676,11 @@ func (x PullRequestDisplayState) String() string {
 }
 
 func (PullRequestDisplayState) Descriptor() protoreflect.EnumDescriptor {
-	return file_nnx_v1_nnx_proto_enumTypes[8].Descriptor()
+	return file_nnx_v1_nnx_proto_enumTypes[9].Descriptor()
 }
 
 func (PullRequestDisplayState) Type() protoreflect.EnumType {
-	return &file_nnx_v1_nnx_proto_enumTypes[8]
+	return &file_nnx_v1_nnx_proto_enumTypes[9]
 }
 
 func (x PullRequestDisplayState) Number() protoreflect.EnumNumber {
@@ -636,7 +689,7 @@ func (x PullRequestDisplayState) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use PullRequestDisplayState.Descriptor instead.
 func (PullRequestDisplayState) EnumDescriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{8}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{9}
 }
 
 // DocumentKind は document に保存された参照の種類を表す。
@@ -680,11 +733,11 @@ func (x DocumentKind) String() string {
 }
 
 func (DocumentKind) Descriptor() protoreflect.EnumDescriptor {
-	return file_nnx_v1_nnx_proto_enumTypes[9].Descriptor()
+	return file_nnx_v1_nnx_proto_enumTypes[10].Descriptor()
 }
 
 func (DocumentKind) Type() protoreflect.EnumType {
-	return &file_nnx_v1_nnx_proto_enumTypes[9]
+	return &file_nnx_v1_nnx_proto_enumTypes[10]
 }
 
 func (x DocumentKind) Number() protoreflect.EnumNumber {
@@ -693,7 +746,7 @@ func (x DocumentKind) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use DocumentKind.Descriptor instead.
 func (DocumentKind) EnumDescriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{9}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{10}
 }
 
 // BlockedReasonCode は task が ready でない理由を表す。
@@ -733,11 +786,11 @@ func (x BlockedReasonCode) String() string {
 }
 
 func (BlockedReasonCode) Descriptor() protoreflect.EnumDescriptor {
-	return file_nnx_v1_nnx_proto_enumTypes[10].Descriptor()
+	return file_nnx_v1_nnx_proto_enumTypes[11].Descriptor()
 }
 
 func (BlockedReasonCode) Type() protoreflect.EnumType {
-	return &file_nnx_v1_nnx_proto_enumTypes[10]
+	return &file_nnx_v1_nnx_proto_enumTypes[11]
 }
 
 func (x BlockedReasonCode) Number() protoreflect.EnumNumber {
@@ -746,7 +799,7 @@ func (x BlockedReasonCode) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use BlockedReasonCode.Descriptor instead.
 func (BlockedReasonCode) EnumDescriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{10}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{11}
 }
 
 // DomainErrorCode は RPC で公開する検証・状態・保存・GitHub の既知エラーを表す。
@@ -811,6 +864,10 @@ const (
 	DomainErrorCode_DOMAIN_ERROR_CODE_UPDATE_FAILED DomainErrorCode = 33
 	// DOMAIN_ERROR_CODE_INVALID_TASK_LABEL は task ラベルのキーまたは表示値が不正であることを表す。
 	DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_TASK_LABEL DomainErrorCode = 34
+	// DOMAIN_ERROR_CODE_INVALID_TASK_KIND はタスクの種類が未対応であることを表す。
+	DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_TASK_KIND DomainErrorCode = 35
+	// DOMAIN_ERROR_CODE_PULL_REQUEST_ON_WORK_TASK は作業への PR 紐づけを拒否する。
+	DomainErrorCode_DOMAIN_ERROR_CODE_PULL_REQUEST_ON_WORK_TASK DomainErrorCode = 36
 )
 
 // Enum value maps for DomainErrorCode.
@@ -845,6 +902,8 @@ var (
 		32: "DOMAIN_ERROR_CODE_UPDATE_CHECK_FAILED",
 		33: "DOMAIN_ERROR_CODE_UPDATE_FAILED",
 		34: "DOMAIN_ERROR_CODE_INVALID_TASK_LABEL",
+		35: "DOMAIN_ERROR_CODE_INVALID_TASK_KIND",
+		36: "DOMAIN_ERROR_CODE_PULL_REQUEST_ON_WORK_TASK",
 	}
 	DomainErrorCode_value = map[string]int32{
 		"DOMAIN_ERROR_CODE_UNSPECIFIED":                   0,
@@ -876,6 +935,8 @@ var (
 		"DOMAIN_ERROR_CODE_UPDATE_CHECK_FAILED":           32,
 		"DOMAIN_ERROR_CODE_UPDATE_FAILED":                 33,
 		"DOMAIN_ERROR_CODE_INVALID_TASK_LABEL":            34,
+		"DOMAIN_ERROR_CODE_INVALID_TASK_KIND":             35,
+		"DOMAIN_ERROR_CODE_PULL_REQUEST_ON_WORK_TASK":     36,
 	}
 )
 
@@ -890,11 +951,11 @@ func (x DomainErrorCode) String() string {
 }
 
 func (DomainErrorCode) Descriptor() protoreflect.EnumDescriptor {
-	return file_nnx_v1_nnx_proto_enumTypes[11].Descriptor()
+	return file_nnx_v1_nnx_proto_enumTypes[12].Descriptor()
 }
 
 func (DomainErrorCode) Type() protoreflect.EnumType {
-	return &file_nnx_v1_nnx_proto_enumTypes[11]
+	return &file_nnx_v1_nnx_proto_enumTypes[12]
 }
 
 func (x DomainErrorCode) Number() protoreflect.EnumNumber {
@@ -903,7 +964,7 @@ func (x DomainErrorCode) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use DomainErrorCode.Descriptor instead.
 func (DomainErrorCode) EnumDescriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{11}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{12}
 }
 
 // GitHubAuthMethodType は GitHub のトークンの取得方法を表す。
@@ -951,11 +1012,11 @@ func (x GithubAuthMethodType) String() string {
 }
 
 func (GithubAuthMethodType) Descriptor() protoreflect.EnumDescriptor {
-	return file_nnx_v1_nnx_proto_enumTypes[12].Descriptor()
+	return file_nnx_v1_nnx_proto_enumTypes[13].Descriptor()
 }
 
 func (GithubAuthMethodType) Type() protoreflect.EnumType {
-	return &file_nnx_v1_nnx_proto_enumTypes[12]
+	return &file_nnx_v1_nnx_proto_enumTypes[13]
 }
 
 func (x GithubAuthMethodType) Number() protoreflect.EnumNumber {
@@ -964,7 +1025,7 @@ func (x GithubAuthMethodType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use GithubAuthMethodType.Descriptor instead.
 func (GithubAuthMethodType) EnumDescriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{12}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{13}
 }
 
 // TaskPromptKind は task をどのプロンプトテンプレートで展開したかを表す。
@@ -1006,11 +1067,11 @@ func (x TaskPromptKind) String() string {
 }
 
 func (TaskPromptKind) Descriptor() protoreflect.EnumDescriptor {
-	return file_nnx_v1_nnx_proto_enumTypes[13].Descriptor()
+	return file_nnx_v1_nnx_proto_enumTypes[14].Descriptor()
 }
 
 func (TaskPromptKind) Type() protoreflect.EnumType {
-	return &file_nnx_v1_nnx_proto_enumTypes[13]
+	return &file_nnx_v1_nnx_proto_enumTypes[14]
 }
 
 func (x TaskPromptKind) Number() protoreflect.EnumNumber {
@@ -1019,7 +1080,7 @@ func (x TaskPromptKind) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use TaskPromptKind.Descriptor instead.
 func (TaskPromptKind) EnumDescriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{13}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{14}
 }
 
 // DebugProblemCode は診断レポートが検出した問題を表す。
@@ -1112,11 +1173,11 @@ func (x DebugProblemCode) String() string {
 }
 
 func (DebugProblemCode) Descriptor() protoreflect.EnumDescriptor {
-	return file_nnx_v1_nnx_proto_enumTypes[14].Descriptor()
+	return file_nnx_v1_nnx_proto_enumTypes[15].Descriptor()
 }
 
 func (DebugProblemCode) Type() protoreflect.EnumType {
-	return &file_nnx_v1_nnx_proto_enumTypes[14]
+	return &file_nnx_v1_nnx_proto_enumTypes[15]
 }
 
 func (x DebugProblemCode) Number() protoreflect.EnumNumber {
@@ -1125,7 +1186,7 @@ func (x DebugProblemCode) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use DebugProblemCode.Descriptor instead.
 func (DebugProblemCode) EnumDescriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{14}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{15}
 }
 
 // UpdateDisabledReason は更新の確認も適用も行わない理由。
@@ -1169,11 +1230,11 @@ func (x UpdateDisabledReason) String() string {
 }
 
 func (UpdateDisabledReason) Descriptor() protoreflect.EnumDescriptor {
-	return file_nnx_v1_nnx_proto_enumTypes[15].Descriptor()
+	return file_nnx_v1_nnx_proto_enumTypes[16].Descriptor()
 }
 
 func (UpdateDisabledReason) Type() protoreflect.EnumType {
-	return &file_nnx_v1_nnx_proto_enumTypes[15]
+	return &file_nnx_v1_nnx_proto_enumTypes[16]
 }
 
 func (x UpdateDisabledReason) Number() protoreflect.EnumNumber {
@@ -1182,7 +1243,7 @@ func (x UpdateDisabledReason) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use UpdateDisabledReason.Descriptor instead.
 func (UpdateDisabledReason) EnumDescriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{15}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{16}
 }
 
 // BlockedReason は task が ready でない理由を構造化したもの。
@@ -2132,7 +2193,9 @@ type Task struct {
 	PendingBlockerTaskIds []string `protobuf:"bytes,14,rep,name=pending_blocker_task_ids,json=pendingBlockerTaskIds,proto3" json:"pending_blocker_task_ids,omitempty"`
 	// block_labels は task の進行を妨げている事情を、依存未解決・コンフリクト・修正依頼ありの
 	// 順で並べる。blocked_reason は依存未解決ラベルの詳細にあたる。
-	BlockLabels   []TaskBlockLabel `protobuf:"varint,15,rep,packed,name=block_labels,json=blockLabels,proto3,enum=nnx.v1.TaskBlockLabel" json:"block_labels,omitempty"`
+	BlockLabels []TaskBlockLabel `protobuf:"varint,15,rep,packed,name=block_labels,json=blockLabels,proto3,enum=nnx.v1.TaskBlockLabel" json:"block_labels,omitempty"`
+	// kind はタスクの種類。
+	Kind          TaskKind `protobuf:"varint,16,opt,name=kind,proto3,enum=nnx.v1.TaskKind" json:"kind,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2263,6 +2326,13 @@ func (x *Task) GetBlockLabels() []TaskBlockLabel {
 		return x.BlockLabels
 	}
 	return nil
+}
+
+func (x *Task) GetKind() TaskKind {
+	if x != nil {
+		return x.Kind
+	}
+	return TaskKind_TASK_KIND_UNSPECIFIED
 }
 
 // Dependency は 1 つの feature 内で blocker task から blocked task への有向辺を表す。
@@ -3690,7 +3760,9 @@ type CreateTaskRequest struct {
 	// scope は task が扱う作業内容を説明する。
 	Scope string `protobuf:"bytes,3,opt,name=scope,proto3" json:"scope,omitempty"`
 	// assignee は task の担当者で、任意。
-	Assignee      string `protobuf:"bytes,5,opt,name=assignee,proto3" json:"assignee,omitempty"`
+	Assignee string `protobuf:"bytes,5,opt,name=assignee,proto3" json:"assignee,omitempty"`
+	// kind は未指定なら開発。
+	Kind          TaskKind `protobuf:"varint,6,opt,name=kind,proto3,enum=nnx.v1.TaskKind" json:"kind,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3753,6 +3825,13 @@ func (x *CreateTaskRequest) GetAssignee() string {
 	return ""
 }
 
+func (x *CreateTaskRequest) GetKind() TaskKind {
+	if x != nil {
+		return x.Kind
+	}
+	return TaskKind_TASK_KIND_UNSPECIFIED
+}
+
 // CreateTaskResponse は作成された task を返す。
 type CreateTaskResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -3812,7 +3891,9 @@ type UpdateTaskRequest struct {
 	// status は未設定なら変更なし、値があれば置き換える。
 	Status *TaskStatus `protobuf:"varint,4,opt,name=status,proto3,enum=nnx.v1.TaskStatus,oneof" json:"status,omitempty"`
 	// assignee は未設定なら変更なし、空文字列ならクリアする。
-	Assignee      *string `protobuf:"bytes,5,opt,name=assignee,proto3,oneof" json:"assignee,omitempty"`
+	Assignee *string `protobuf:"bytes,5,opt,name=assignee,proto3,oneof" json:"assignee,omitempty"`
+	// kind は未指定なら変更しない。
+	Kind          *TaskKind `protobuf:"varint,6,opt,name=kind,proto3,enum=nnx.v1.TaskKind,oneof" json:"kind,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3880,6 +3961,13 @@ func (x *UpdateTaskRequest) GetAssignee() string {
 		return *x.Assignee
 	}
 	return ""
+}
+
+func (x *UpdateTaskRequest) GetKind() TaskKind {
+	if x != nil && x.Kind != nil {
+		return *x.Kind
+	}
+	return TaskKind_TASK_KIND_UNSPECIFIED
 }
 
 // UpdateTaskResponse は更新後の task を返す。
@@ -10352,7 +10440,7 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"\x0ftext_overridden\x18\x04 \x01(\bR\x0etextOverridden\x12)\n" +
 	"\x10color_overridden\x18\x05 \x01(\bR\x0fcolorOverridden\"K\n" +
 	"\x14TaskLabelAppearances\x123\n" +
-	"\x06values\x18\x01 \x03(\v2\x1b.nnx.v1.TaskLabelAppearanceR\x06values\"\xb2\x04\n" +
+	"\x06values\x18\x01 \x03(\v2\x1b.nnx.v1.TaskLabelAppearanceR\x06values\"\xd2\x04\n" +
 	"\x04Task\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -10371,7 +10459,8 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"\x0eblocked_reason\x18\f \x01(\v2\x15.nnx.v1.BlockedReasonR\rblockedReason\x126\n" +
 	"\x17has_implementation_plan\x18\r \x01(\bR\x15hasImplementationPlan\x127\n" +
 	"\x18pending_blocker_task_ids\x18\x0e \x03(\tR\x15pendingBlockerTaskIds\x129\n" +
-	"\fblock_labels\x18\x0f \x03(\x0e2\x16.nnx.v1.TaskBlockLabelR\vblockLabelsJ\x04\b\x05\x10\x06R\x04kind\"{\n" +
+	"\fblock_labels\x18\x0f \x03(\x0e2\x16.nnx.v1.TaskBlockLabelR\vblockLabels\x12$\n" +
+	"\x04kind\x18\x10 \x01(\x0e2\x10.nnx.v1.TaskKindR\x04kindJ\x04\b\x05\x10\x06\"{\n" +
 	"\n" +
 	"Dependency\x12&\n" +
 	"\x0fblocker_task_id\x18\x01 \x01(\tR\rblockerTaskId\x12&\n" +
@@ -10494,25 +10583,28 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"\x14DeleteFeatureRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\acascade\x18\x02 \x01(\bR\acascade\"\x17\n" +
-	"\x15DeleteFeatureResponse\"\x86\x01\n" +
+	"\x15DeleteFeatureResponse\"\xa6\x01\n" +
 	"\x11CreateTaskRequest\x12\x1d\n" +
 	"\n" +
 	"feature_id\x18\x01 \x01(\tR\tfeatureId\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x14\n" +
 	"\x05scope\x18\x03 \x01(\tR\x05scope\x12\x1a\n" +
-	"\bassignee\x18\x05 \x01(\tR\bassigneeJ\x04\b\x04\x10\x05R\x04kind\"6\n" +
+	"\bassignee\x18\x05 \x01(\tR\bassignee\x12$\n" +
+	"\x04kind\x18\x06 \x01(\x0e2\x10.nnx.v1.TaskKindR\x04kindJ\x04\b\x04\x10\x05\"6\n" +
 	"\x12CreateTaskResponse\x12 \n" +
-	"\x04task\x18\x01 \x01(\v2\f.nnx.v1.TaskR\x04task\"\xd7\x01\n" +
+	"\x04task\x18\x01 \x01(\v2\f.nnx.v1.TaskR\x04task\"\x8b\x02\n" +
 	"\x11UpdateTaskRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x19\n" +
 	"\x05title\x18\x02 \x01(\tH\x00R\x05title\x88\x01\x01\x12\x19\n" +
 	"\x05scope\x18\x03 \x01(\tH\x01R\x05scope\x88\x01\x01\x12/\n" +
 	"\x06status\x18\x04 \x01(\x0e2\x12.nnx.v1.TaskStatusH\x02R\x06status\x88\x01\x01\x12\x1f\n" +
-	"\bassignee\x18\x05 \x01(\tH\x03R\bassignee\x88\x01\x01B\b\n" +
+	"\bassignee\x18\x05 \x01(\tH\x03R\bassignee\x88\x01\x01\x12)\n" +
+	"\x04kind\x18\x06 \x01(\x0e2\x10.nnx.v1.TaskKindH\x04R\x04kind\x88\x01\x01B\b\n" +
 	"\x06_titleB\b\n" +
 	"\x06_scopeB\t\n" +
 	"\a_statusB\v\n" +
-	"\t_assignee\"6\n" +
+	"\t_assigneeB\a\n" +
+	"\x05_kind\"6\n" +
 	"\x12UpdateTaskResponse\x12 \n" +
 	"\x04task\x18\x01 \x01(\v2\f.nnx.v1.TaskR\x04task\"=\n" +
 	"\x11DeleteTaskRequest\x12\x0e\n" +
@@ -10978,7 +11070,11 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"\x15FEATURE_STATUS_PAUSED\x10\x02\x12\x1c\n" +
 	"\x18FEATURE_STATUS_COMPLETED\x10\x03\x12\x1c\n" +
 	"\x18FEATURE_STATUS_CANCELLED\x10\x04\x12\x17\n" +
-	"\x13FEATURE_STATUS_AUTO\x10\x05*\xb1\x01\n" +
+	"\x13FEATURE_STATUS_AUTO\x10\x05*T\n" +
+	"\bTaskKind\x12\x19\n" +
+	"\x15TASK_KIND_UNSPECIFIED\x10\x00\x12\x19\n" +
+	"\x15TASK_KIND_DEVELOPMENT\x10\x01\x12\x12\n" +
+	"\x0eTASK_KIND_WORK\x10\x02*\xb1\x01\n" +
 	"\n" +
 	"TaskStatus\x12\x1b\n" +
 	"\x17TASK_STATUS_UNSPECIFIED\x10\x00\x12\x1b\n" +
@@ -11052,8 +11148,7 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"\x11BlockedReasonCode\x12#\n" +
 	"\x1fBLOCKED_REASON_CODE_UNSPECIFIED\x10\x00\x122\n" +
 	".BLOCKED_REASON_CODE_DEPENDENCY_DATA_INCOMPLETE\x10\x01\x12+\n" +
-	"'BLOCKED_REASON_CODE_WAITING_FOR_BLOCKER\x10\x03\"\x04\b\x02\x10\x02*\xfd\n" +
-	"\n" +
+	"'BLOCKED_REASON_CODE_WAITING_FOR_BLOCKER\x10\x03\"\x04\b\x02\x10\x02*\xd7\v\n" +
 	"\x0fDomainErrorCode\x12!\n" +
 	"\x1dDOMAIN_ERROR_CODE_UNSPECIFIED\x10\x00\x12.\n" +
 	"*DOMAIN_ERROR_CODE_CROSS_FEATURE_DEPENDENCY\x10\x02\x12\x1b\n" +
@@ -11083,7 +11178,9 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"$DOMAIN_ERROR_CODE_UPDATE_UNAVAILABLE\x10\x1f\x12)\n" +
 	"%DOMAIN_ERROR_CODE_UPDATE_CHECK_FAILED\x10 \x12#\n" +
 	"\x1fDOMAIN_ERROR_CODE_UPDATE_FAILED\x10!\x12(\n" +
-	"$DOMAIN_ERROR_CODE_INVALID_TASK_LABEL\x10\"\"\x04\b\n" +
+	"$DOMAIN_ERROR_CODE_INVALID_TASK_LABEL\x10\"\x12'\n" +
+	"#DOMAIN_ERROR_CODE_INVALID_TASK_KIND\x10#\x12/\n" +
+	"+DOMAIN_ERROR_CODE_PULL_REQUEST_ON_WORK_TASK\x10$\"\x04\b\n" +
 	"\x10\n" +
 	"\"\x04\b\r\x10\r\"\x04\b\x0e\x10\x0e\"\x04\b\x13\x10\x13\"\x04\b\x14\x10\x14*\x1eDOMAIN_ERROR_CODE_INVALID_KIND*\x1eDOMAIN_ERROR_CODE_INVALID_SEED*\x1eDOMAIN_ERROR_CODE_INVALID_SLUG*-DOMAIN_ERROR_CODE_PULL_REQUEST_ON_MANUAL_TASK*\xd6\x01\n" +
 	"\x14GithubAuthMethodType\x12'\n" +
@@ -11183,372 +11280,376 @@ func file_nnx_v1_nnx_proto_rawDescGZIP() []byte {
 	return file_nnx_v1_nnx_proto_rawDescData
 }
 
-var file_nnx_v1_nnx_proto_enumTypes = make([]protoimpl.EnumInfo, 16)
+var file_nnx_v1_nnx_proto_enumTypes = make([]protoimpl.EnumInfo, 17)
 var file_nnx_v1_nnx_proto_msgTypes = make([]protoimpl.MessageInfo, 137)
 var file_nnx_v1_nnx_proto_goTypes = []any{
 	(FeatureStatus)(0),                       // 0: nnx.v1.FeatureStatus
-	(TaskStatus)(0),                          // 1: nnx.v1.TaskStatus
-	(TaskDisplayState)(0),                    // 2: nnx.v1.TaskDisplayState
-	(TaskBlockLabel)(0),                      // 3: nnx.v1.TaskBlockLabel
-	(PullRequestState)(0),                    // 4: nnx.v1.PullRequestState
-	(ReviewState)(0),                         // 5: nnx.v1.ReviewState
-	(Mergeability)(0),                        // 6: nnx.v1.Mergeability
-	(CheckState)(0),                          // 7: nnx.v1.CheckState
-	(PullRequestDisplayState)(0),             // 8: nnx.v1.PullRequestDisplayState
-	(DocumentKind)(0),                        // 9: nnx.v1.DocumentKind
-	(BlockedReasonCode)(0),                   // 10: nnx.v1.BlockedReasonCode
-	(DomainErrorCode)(0),                     // 11: nnx.v1.DomainErrorCode
-	(GithubAuthMethodType)(0),                // 12: nnx.v1.GithubAuthMethodType
-	(TaskPromptKind)(0),                      // 13: nnx.v1.TaskPromptKind
-	(DebugProblemCode)(0),                    // 14: nnx.v1.DebugProblemCode
-	(UpdateDisabledReason)(0),                // 15: nnx.v1.UpdateDisabledReason
-	(*BlockedReason)(nil),                    // 16: nnx.v1.BlockedReason
-	(*ErrorDetail)(nil),                      // 17: nnx.v1.ErrorDetail
-	(*Project)(nil),                          // 18: nnx.v1.Project
-	(*Feature)(nil),                          // 19: nnx.v1.Feature
-	(*PromptTemplateOverrides)(nil),          // 20: nnx.v1.PromptTemplateOverrides
-	(*PromptTemplateOverridesUpdate)(nil),    // 21: nnx.v1.PromptTemplateOverridesUpdate
-	(*TaskLabelOverride)(nil),                // 22: nnx.v1.TaskLabelOverride
-	(*TaskLabelOverrides)(nil),               // 23: nnx.v1.TaskLabelOverrides
-	(*TaskLabelOverrideUpdate)(nil),          // 24: nnx.v1.TaskLabelOverrideUpdate
-	(*TaskLabelOverridesUpdate)(nil),         // 25: nnx.v1.TaskLabelOverridesUpdate
-	(*TaskLabelAppearance)(nil),              // 26: nnx.v1.TaskLabelAppearance
-	(*TaskLabelAppearances)(nil),             // 27: nnx.v1.TaskLabelAppearances
-	(*Task)(nil),                             // 28: nnx.v1.Task
-	(*Dependency)(nil),                       // 29: nnx.v1.Dependency
-	(*PullRequest)(nil),                      // 30: nnx.v1.PullRequest
-	(*Document)(nil),                         // 31: nnx.v1.Document
-	(*Snapshot)(nil),                         // 32: nnx.v1.Snapshot
-	(*GetSnapshotRequest)(nil),               // 33: nnx.v1.GetSnapshotRequest
-	(*GetSnapshotResponse)(nil),              // 34: nnx.v1.GetSnapshotResponse
-	(*WatchRevisionRequest)(nil),             // 35: nnx.v1.WatchRevisionRequest
-	(*WatchRevisionResponse)(nil),            // 36: nnx.v1.WatchRevisionResponse
-	(*CreateProjectRequest)(nil),             // 37: nnx.v1.CreateProjectRequest
-	(*CreateProjectResponse)(nil),            // 38: nnx.v1.CreateProjectResponse
-	(*UpdateProjectRequest)(nil),             // 39: nnx.v1.UpdateProjectRequest
-	(*UpdateProjectResponse)(nil),            // 40: nnx.v1.UpdateProjectResponse
-	(*DeleteProjectRequest)(nil),             // 41: nnx.v1.DeleteProjectRequest
-	(*DeleteProjectResponse)(nil),            // 42: nnx.v1.DeleteProjectResponse
-	(*CreateFeatureRequest)(nil),             // 43: nnx.v1.CreateFeatureRequest
-	(*CreateFeatureResponse)(nil),            // 44: nnx.v1.CreateFeatureResponse
-	(*UpdateFeatureRequest)(nil),             // 45: nnx.v1.UpdateFeatureRequest
-	(*UpdateFeatureResponse)(nil),            // 46: nnx.v1.UpdateFeatureResponse
-	(*DeleteFeatureRequest)(nil),             // 47: nnx.v1.DeleteFeatureRequest
-	(*DeleteFeatureResponse)(nil),            // 48: nnx.v1.DeleteFeatureResponse
-	(*CreateTaskRequest)(nil),                // 49: nnx.v1.CreateTaskRequest
-	(*CreateTaskResponse)(nil),               // 50: nnx.v1.CreateTaskResponse
-	(*UpdateTaskRequest)(nil),                // 51: nnx.v1.UpdateTaskRequest
-	(*UpdateTaskResponse)(nil),               // 52: nnx.v1.UpdateTaskResponse
-	(*DeleteTaskRequest)(nil),                // 53: nnx.v1.DeleteTaskRequest
-	(*DeleteTaskResponse)(nil),               // 54: nnx.v1.DeleteTaskResponse
-	(*AddDependencyRequest)(nil),             // 55: nnx.v1.AddDependencyRequest
-	(*AddDependencyResponse)(nil),            // 56: nnx.v1.AddDependencyResponse
-	(*RemoveDependencyRequest)(nil),          // 57: nnx.v1.RemoveDependencyRequest
-	(*RemoveDependencyResponse)(nil),         // 58: nnx.v1.RemoveDependencyResponse
-	(*AttachPullRequestRequest)(nil),         // 59: nnx.v1.AttachPullRequestRequest
-	(*AttachPullRequestResponse)(nil),        // 60: nnx.v1.AttachPullRequestResponse
-	(*DetachPullRequestRequest)(nil),         // 61: nnx.v1.DetachPullRequestRequest
-	(*DetachPullRequestResponse)(nil),        // 62: nnx.v1.DetachPullRequestResponse
-	(*AddDocumentRequest)(nil),               // 63: nnx.v1.AddDocumentRequest
-	(*AddDocumentResponse)(nil),              // 64: nnx.v1.AddDocumentResponse
-	(*GetDocumentRequest)(nil),               // 65: nnx.v1.GetDocumentRequest
-	(*GetDocumentResponse)(nil),              // 66: nnx.v1.GetDocumentResponse
-	(*UpdateDocumentRequest)(nil),            // 67: nnx.v1.UpdateDocumentRequest
-	(*UpdateDocumentResponse)(nil),           // 68: nnx.v1.UpdateDocumentResponse
-	(*DeleteDocumentRequest)(nil),            // 69: nnx.v1.DeleteDocumentRequest
-	(*DeleteDocumentResponse)(nil),           // 70: nnx.v1.DeleteDocumentResponse
-	(*ReadDocumentContentRequest)(nil),       // 71: nnx.v1.ReadDocumentContentRequest
-	(*ReadDocumentContentResponse)(nil),      // 72: nnx.v1.ReadDocumentContentResponse
-	(*SelectLocalFileRequest)(nil),           // 73: nnx.v1.SelectLocalFileRequest
-	(*SelectLocalFileResponse)(nil),          // 74: nnx.v1.SelectLocalFileResponse
-	(*GitHubHost)(nil),                       // 75: nnx.v1.GitHubHost
-	(*GitHubAuthMethod)(nil),                 // 76: nnx.v1.GitHubAuthMethod
-	(*GitHubConfig)(nil),                     // 77: nnx.v1.GitHubConfig
-	(*GetConfigRequest)(nil),                 // 78: nnx.v1.GetConfigRequest
-	(*GetConfigResponse)(nil),                // 79: nnx.v1.GetConfigResponse
-	(*GetTaskLabelConfigRequest)(nil),        // 80: nnx.v1.GetTaskLabelConfigRequest
-	(*TaskLabelConfig)(nil),                  // 81: nnx.v1.TaskLabelConfig
-	(*GetTaskLabelConfigResponse)(nil),       // 82: nnx.v1.GetTaskLabelConfigResponse
-	(*UpdateTaskLabelConfigRequest)(nil),     // 83: nnx.v1.UpdateTaskLabelConfigRequest
-	(*UpdateTaskLabelConfigResponse)(nil),    // 84: nnx.v1.UpdateTaskLabelConfigResponse
-	(*UpdateGitHubSyncConfigRequest)(nil),    // 85: nnx.v1.UpdateGitHubSyncConfigRequest
-	(*UpdateGitHubSyncConfigResponse)(nil),   // 86: nnx.v1.UpdateGitHubSyncConfigResponse
-	(*UpdateLanguageConfigRequest)(nil),      // 87: nnx.v1.UpdateLanguageConfigRequest
-	(*UpdateLanguageConfigResponse)(nil),     // 88: nnx.v1.UpdateLanguageConfigResponse
-	(*AddGitHubHostRequest)(nil),             // 89: nnx.v1.AddGitHubHostRequest
-	(*AddGitHubHostResponse)(nil),            // 90: nnx.v1.AddGitHubHostResponse
-	(*UpdateGitHubHostRequest)(nil),          // 91: nnx.v1.UpdateGitHubHostRequest
-	(*UpdateGitHubHostResponse)(nil),         // 92: nnx.v1.UpdateGitHubHostResponse
-	(*DeleteGitHubHostRequest)(nil),          // 93: nnx.v1.DeleteGitHubHostRequest
-	(*DeleteGitHubHostResponse)(nil),         // 94: nnx.v1.DeleteGitHubHostResponse
-	(*AddGitHubAuthMethodRequest)(nil),       // 95: nnx.v1.AddGitHubAuthMethodRequest
-	(*AddGitHubAuthMethodResponse)(nil),      // 96: nnx.v1.AddGitHubAuthMethodResponse
-	(*UpdateGitHubAuthMethodRequest)(nil),    // 97: nnx.v1.UpdateGitHubAuthMethodRequest
-	(*UpdateGitHubAuthMethodResponse)(nil),   // 98: nnx.v1.UpdateGitHubAuthMethodResponse
-	(*DeleteGitHubAuthMethodRequest)(nil),    // 99: nnx.v1.DeleteGitHubAuthMethodRequest
-	(*DeleteGitHubAuthMethodResponse)(nil),   // 100: nnx.v1.DeleteGitHubAuthMethodResponse
-	(*ReorderGitHubAuthMethodsRequest)(nil),  // 101: nnx.v1.ReorderGitHubAuthMethodsRequest
-	(*ReorderGitHubAuthMethodsResponse)(nil), // 102: nnx.v1.ReorderGitHubAuthMethodsResponse
-	(*ValidateConfigRequest)(nil),            // 103: nnx.v1.ValidateConfigRequest
-	(*ValidateConfigResponse)(nil),           // 104: nnx.v1.ValidateConfigResponse
-	(*PromptTemplates)(nil),                  // 105: nnx.v1.PromptTemplates
-	(*GetPromptTemplatesRequest)(nil),        // 106: nnx.v1.GetPromptTemplatesRequest
-	(*GetPromptTemplatesResponse)(nil),       // 107: nnx.v1.GetPromptTemplatesResponse
-	(*UpdatePromptTemplatesRequest)(nil),     // 108: nnx.v1.UpdatePromptTemplatesRequest
-	(*UpdatePromptTemplatesResponse)(nil),    // 109: nnx.v1.UpdatePromptTemplatesResponse
-	(*GetTaskPromptRequest)(nil),             // 110: nnx.v1.GetTaskPromptRequest
-	(*GetTaskPromptResponse)(nil),            // 111: nnx.v1.GetTaskPromptResponse
-	(*GetBatchPromptRequest)(nil),            // 112: nnx.v1.GetBatchPromptRequest
-	(*GetBatchPromptResponse)(nil),           // 113: nnx.v1.GetBatchPromptResponse
-	(*SyncRequest)(nil),                      // 114: nnx.v1.SyncRequest
-	(*SyncResponse)(nil),                     // 115: nnx.v1.SyncResponse
-	(*GitHubSyncStatus)(nil),                 // 116: nnx.v1.GitHubSyncStatus
-	(*GetGitHubSyncStatusRequest)(nil),       // 117: nnx.v1.GetGitHubSyncStatusRequest
-	(*GetGitHubSyncStatusResponse)(nil),      // 118: nnx.v1.GetGitHubSyncStatusResponse
-	(*SyncGitHubIfDueRequest)(nil),           // 119: nnx.v1.SyncGitHubIfDueRequest
-	(*SyncGitHubIfDueResponse)(nil),          // 120: nnx.v1.SyncGitHubIfDueResponse
-	(*UpdateRelease)(nil),                    // 121: nnx.v1.UpdateRelease
-	(*UpdateStatus)(nil),                     // 122: nnx.v1.UpdateStatus
-	(*GetUpdateStatusRequest)(nil),           // 123: nnx.v1.GetUpdateStatusRequest
-	(*GetUpdateStatusResponse)(nil),          // 124: nnx.v1.GetUpdateStatusResponse
-	(*SkipUpdateVersionRequest)(nil),         // 125: nnx.v1.SkipUpdateVersionRequest
-	(*SkipUpdateVersionResponse)(nil),        // 126: nnx.v1.SkipUpdateVersionResponse
-	(*ApplyUpdateRequest)(nil),               // 127: nnx.v1.ApplyUpdateRequest
-	(*ApplyUpdateResponse)(nil),              // 128: nnx.v1.ApplyUpdateResponse
-	(*ValidateRequest)(nil),                  // 129: nnx.v1.ValidateRequest
-	(*ValidateResponse)(nil),                 // 130: nnx.v1.ValidateResponse
-	(*DebugProblem)(nil),                     // 131: nnx.v1.DebugProblem
-	(*DebugBuild)(nil),                       // 132: nnx.v1.DebugBuild
-	(*DebugRuntime)(nil),                     // 133: nnx.v1.DebugRuntime
-	(*DebugDaemon)(nil),                      // 134: nnx.v1.DebugDaemon
-	(*DebugEnvironmentVariable)(nil),         // 135: nnx.v1.DebugEnvironmentVariable
-	(*DebugPaths)(nil),                       // 136: nnx.v1.DebugPaths
-	(*DebugConfigHost)(nil),                  // 137: nnx.v1.DebugConfigHost
-	(*DebugConfigAuthMethod)(nil),            // 138: nnx.v1.DebugConfigAuthMethod
-	(*DebugConfig)(nil),                      // 139: nnx.v1.DebugConfig
-	(*DebugDatabaseFile)(nil),                // 140: nnx.v1.DebugDatabaseFile
-	(*DebugStorage)(nil),                     // 141: nnx.v1.DebugStorage
-	(*DebugCount)(nil),                       // 142: nnx.v1.DebugCount
-	(*DebugData)(nil),                        // 143: nnx.v1.DebugData
-	(*DebugSyncFailure)(nil),                 // 144: nnx.v1.DebugSyncFailure
-	(*DebugErrorGroup)(nil),                  // 145: nnx.v1.DebugErrorGroup
-	(*DebugAuthCacheEntry)(nil),              // 146: nnx.v1.DebugAuthCacheEntry
-	(*DebugGitHubSync)(nil),                  // 147: nnx.v1.DebugGitHubSync
-	(*DebugReport)(nil),                      // 148: nnx.v1.DebugReport
-	(*GetDebugReportRequest)(nil),            // 149: nnx.v1.GetDebugReportRequest
-	(*GetDebugReportResponse)(nil),           // 150: nnx.v1.GetDebugReportResponse
-	nil,                                      // 151: nnx.v1.TaskLabelOverrides.ValuesEntry
-	nil,                                      // 152: nnx.v1.TaskLabelOverridesUpdate.ValuesEntry
+	(TaskKind)(0),                            // 1: nnx.v1.TaskKind
+	(TaskStatus)(0),                          // 2: nnx.v1.TaskStatus
+	(TaskDisplayState)(0),                    // 3: nnx.v1.TaskDisplayState
+	(TaskBlockLabel)(0),                      // 4: nnx.v1.TaskBlockLabel
+	(PullRequestState)(0),                    // 5: nnx.v1.PullRequestState
+	(ReviewState)(0),                         // 6: nnx.v1.ReviewState
+	(Mergeability)(0),                        // 7: nnx.v1.Mergeability
+	(CheckState)(0),                          // 8: nnx.v1.CheckState
+	(PullRequestDisplayState)(0),             // 9: nnx.v1.PullRequestDisplayState
+	(DocumentKind)(0),                        // 10: nnx.v1.DocumentKind
+	(BlockedReasonCode)(0),                   // 11: nnx.v1.BlockedReasonCode
+	(DomainErrorCode)(0),                     // 12: nnx.v1.DomainErrorCode
+	(GithubAuthMethodType)(0),                // 13: nnx.v1.GithubAuthMethodType
+	(TaskPromptKind)(0),                      // 14: nnx.v1.TaskPromptKind
+	(DebugProblemCode)(0),                    // 15: nnx.v1.DebugProblemCode
+	(UpdateDisabledReason)(0),                // 16: nnx.v1.UpdateDisabledReason
+	(*BlockedReason)(nil),                    // 17: nnx.v1.BlockedReason
+	(*ErrorDetail)(nil),                      // 18: nnx.v1.ErrorDetail
+	(*Project)(nil),                          // 19: nnx.v1.Project
+	(*Feature)(nil),                          // 20: nnx.v1.Feature
+	(*PromptTemplateOverrides)(nil),          // 21: nnx.v1.PromptTemplateOverrides
+	(*PromptTemplateOverridesUpdate)(nil),    // 22: nnx.v1.PromptTemplateOverridesUpdate
+	(*TaskLabelOverride)(nil),                // 23: nnx.v1.TaskLabelOverride
+	(*TaskLabelOverrides)(nil),               // 24: nnx.v1.TaskLabelOverrides
+	(*TaskLabelOverrideUpdate)(nil),          // 25: nnx.v1.TaskLabelOverrideUpdate
+	(*TaskLabelOverridesUpdate)(nil),         // 26: nnx.v1.TaskLabelOverridesUpdate
+	(*TaskLabelAppearance)(nil),              // 27: nnx.v1.TaskLabelAppearance
+	(*TaskLabelAppearances)(nil),             // 28: nnx.v1.TaskLabelAppearances
+	(*Task)(nil),                             // 29: nnx.v1.Task
+	(*Dependency)(nil),                       // 30: nnx.v1.Dependency
+	(*PullRequest)(nil),                      // 31: nnx.v1.PullRequest
+	(*Document)(nil),                         // 32: nnx.v1.Document
+	(*Snapshot)(nil),                         // 33: nnx.v1.Snapshot
+	(*GetSnapshotRequest)(nil),               // 34: nnx.v1.GetSnapshotRequest
+	(*GetSnapshotResponse)(nil),              // 35: nnx.v1.GetSnapshotResponse
+	(*WatchRevisionRequest)(nil),             // 36: nnx.v1.WatchRevisionRequest
+	(*WatchRevisionResponse)(nil),            // 37: nnx.v1.WatchRevisionResponse
+	(*CreateProjectRequest)(nil),             // 38: nnx.v1.CreateProjectRequest
+	(*CreateProjectResponse)(nil),            // 39: nnx.v1.CreateProjectResponse
+	(*UpdateProjectRequest)(nil),             // 40: nnx.v1.UpdateProjectRequest
+	(*UpdateProjectResponse)(nil),            // 41: nnx.v1.UpdateProjectResponse
+	(*DeleteProjectRequest)(nil),             // 42: nnx.v1.DeleteProjectRequest
+	(*DeleteProjectResponse)(nil),            // 43: nnx.v1.DeleteProjectResponse
+	(*CreateFeatureRequest)(nil),             // 44: nnx.v1.CreateFeatureRequest
+	(*CreateFeatureResponse)(nil),            // 45: nnx.v1.CreateFeatureResponse
+	(*UpdateFeatureRequest)(nil),             // 46: nnx.v1.UpdateFeatureRequest
+	(*UpdateFeatureResponse)(nil),            // 47: nnx.v1.UpdateFeatureResponse
+	(*DeleteFeatureRequest)(nil),             // 48: nnx.v1.DeleteFeatureRequest
+	(*DeleteFeatureResponse)(nil),            // 49: nnx.v1.DeleteFeatureResponse
+	(*CreateTaskRequest)(nil),                // 50: nnx.v1.CreateTaskRequest
+	(*CreateTaskResponse)(nil),               // 51: nnx.v1.CreateTaskResponse
+	(*UpdateTaskRequest)(nil),                // 52: nnx.v1.UpdateTaskRequest
+	(*UpdateTaskResponse)(nil),               // 53: nnx.v1.UpdateTaskResponse
+	(*DeleteTaskRequest)(nil),                // 54: nnx.v1.DeleteTaskRequest
+	(*DeleteTaskResponse)(nil),               // 55: nnx.v1.DeleteTaskResponse
+	(*AddDependencyRequest)(nil),             // 56: nnx.v1.AddDependencyRequest
+	(*AddDependencyResponse)(nil),            // 57: nnx.v1.AddDependencyResponse
+	(*RemoveDependencyRequest)(nil),          // 58: nnx.v1.RemoveDependencyRequest
+	(*RemoveDependencyResponse)(nil),         // 59: nnx.v1.RemoveDependencyResponse
+	(*AttachPullRequestRequest)(nil),         // 60: nnx.v1.AttachPullRequestRequest
+	(*AttachPullRequestResponse)(nil),        // 61: nnx.v1.AttachPullRequestResponse
+	(*DetachPullRequestRequest)(nil),         // 62: nnx.v1.DetachPullRequestRequest
+	(*DetachPullRequestResponse)(nil),        // 63: nnx.v1.DetachPullRequestResponse
+	(*AddDocumentRequest)(nil),               // 64: nnx.v1.AddDocumentRequest
+	(*AddDocumentResponse)(nil),              // 65: nnx.v1.AddDocumentResponse
+	(*GetDocumentRequest)(nil),               // 66: nnx.v1.GetDocumentRequest
+	(*GetDocumentResponse)(nil),              // 67: nnx.v1.GetDocumentResponse
+	(*UpdateDocumentRequest)(nil),            // 68: nnx.v1.UpdateDocumentRequest
+	(*UpdateDocumentResponse)(nil),           // 69: nnx.v1.UpdateDocumentResponse
+	(*DeleteDocumentRequest)(nil),            // 70: nnx.v1.DeleteDocumentRequest
+	(*DeleteDocumentResponse)(nil),           // 71: nnx.v1.DeleteDocumentResponse
+	(*ReadDocumentContentRequest)(nil),       // 72: nnx.v1.ReadDocumentContentRequest
+	(*ReadDocumentContentResponse)(nil),      // 73: nnx.v1.ReadDocumentContentResponse
+	(*SelectLocalFileRequest)(nil),           // 74: nnx.v1.SelectLocalFileRequest
+	(*SelectLocalFileResponse)(nil),          // 75: nnx.v1.SelectLocalFileResponse
+	(*GitHubHost)(nil),                       // 76: nnx.v1.GitHubHost
+	(*GitHubAuthMethod)(nil),                 // 77: nnx.v1.GitHubAuthMethod
+	(*GitHubConfig)(nil),                     // 78: nnx.v1.GitHubConfig
+	(*GetConfigRequest)(nil),                 // 79: nnx.v1.GetConfigRequest
+	(*GetConfigResponse)(nil),                // 80: nnx.v1.GetConfigResponse
+	(*GetTaskLabelConfigRequest)(nil),        // 81: nnx.v1.GetTaskLabelConfigRequest
+	(*TaskLabelConfig)(nil),                  // 82: nnx.v1.TaskLabelConfig
+	(*GetTaskLabelConfigResponse)(nil),       // 83: nnx.v1.GetTaskLabelConfigResponse
+	(*UpdateTaskLabelConfigRequest)(nil),     // 84: nnx.v1.UpdateTaskLabelConfigRequest
+	(*UpdateTaskLabelConfigResponse)(nil),    // 85: nnx.v1.UpdateTaskLabelConfigResponse
+	(*UpdateGitHubSyncConfigRequest)(nil),    // 86: nnx.v1.UpdateGitHubSyncConfigRequest
+	(*UpdateGitHubSyncConfigResponse)(nil),   // 87: nnx.v1.UpdateGitHubSyncConfigResponse
+	(*UpdateLanguageConfigRequest)(nil),      // 88: nnx.v1.UpdateLanguageConfigRequest
+	(*UpdateLanguageConfigResponse)(nil),     // 89: nnx.v1.UpdateLanguageConfigResponse
+	(*AddGitHubHostRequest)(nil),             // 90: nnx.v1.AddGitHubHostRequest
+	(*AddGitHubHostResponse)(nil),            // 91: nnx.v1.AddGitHubHostResponse
+	(*UpdateGitHubHostRequest)(nil),          // 92: nnx.v1.UpdateGitHubHostRequest
+	(*UpdateGitHubHostResponse)(nil),         // 93: nnx.v1.UpdateGitHubHostResponse
+	(*DeleteGitHubHostRequest)(nil),          // 94: nnx.v1.DeleteGitHubHostRequest
+	(*DeleteGitHubHostResponse)(nil),         // 95: nnx.v1.DeleteGitHubHostResponse
+	(*AddGitHubAuthMethodRequest)(nil),       // 96: nnx.v1.AddGitHubAuthMethodRequest
+	(*AddGitHubAuthMethodResponse)(nil),      // 97: nnx.v1.AddGitHubAuthMethodResponse
+	(*UpdateGitHubAuthMethodRequest)(nil),    // 98: nnx.v1.UpdateGitHubAuthMethodRequest
+	(*UpdateGitHubAuthMethodResponse)(nil),   // 99: nnx.v1.UpdateGitHubAuthMethodResponse
+	(*DeleteGitHubAuthMethodRequest)(nil),    // 100: nnx.v1.DeleteGitHubAuthMethodRequest
+	(*DeleteGitHubAuthMethodResponse)(nil),   // 101: nnx.v1.DeleteGitHubAuthMethodResponse
+	(*ReorderGitHubAuthMethodsRequest)(nil),  // 102: nnx.v1.ReorderGitHubAuthMethodsRequest
+	(*ReorderGitHubAuthMethodsResponse)(nil), // 103: nnx.v1.ReorderGitHubAuthMethodsResponse
+	(*ValidateConfigRequest)(nil),            // 104: nnx.v1.ValidateConfigRequest
+	(*ValidateConfigResponse)(nil),           // 105: nnx.v1.ValidateConfigResponse
+	(*PromptTemplates)(nil),                  // 106: nnx.v1.PromptTemplates
+	(*GetPromptTemplatesRequest)(nil),        // 107: nnx.v1.GetPromptTemplatesRequest
+	(*GetPromptTemplatesResponse)(nil),       // 108: nnx.v1.GetPromptTemplatesResponse
+	(*UpdatePromptTemplatesRequest)(nil),     // 109: nnx.v1.UpdatePromptTemplatesRequest
+	(*UpdatePromptTemplatesResponse)(nil),    // 110: nnx.v1.UpdatePromptTemplatesResponse
+	(*GetTaskPromptRequest)(nil),             // 111: nnx.v1.GetTaskPromptRequest
+	(*GetTaskPromptResponse)(nil),            // 112: nnx.v1.GetTaskPromptResponse
+	(*GetBatchPromptRequest)(nil),            // 113: nnx.v1.GetBatchPromptRequest
+	(*GetBatchPromptResponse)(nil),           // 114: nnx.v1.GetBatchPromptResponse
+	(*SyncRequest)(nil),                      // 115: nnx.v1.SyncRequest
+	(*SyncResponse)(nil),                     // 116: nnx.v1.SyncResponse
+	(*GitHubSyncStatus)(nil),                 // 117: nnx.v1.GitHubSyncStatus
+	(*GetGitHubSyncStatusRequest)(nil),       // 118: nnx.v1.GetGitHubSyncStatusRequest
+	(*GetGitHubSyncStatusResponse)(nil),      // 119: nnx.v1.GetGitHubSyncStatusResponse
+	(*SyncGitHubIfDueRequest)(nil),           // 120: nnx.v1.SyncGitHubIfDueRequest
+	(*SyncGitHubIfDueResponse)(nil),          // 121: nnx.v1.SyncGitHubIfDueResponse
+	(*UpdateRelease)(nil),                    // 122: nnx.v1.UpdateRelease
+	(*UpdateStatus)(nil),                     // 123: nnx.v1.UpdateStatus
+	(*GetUpdateStatusRequest)(nil),           // 124: nnx.v1.GetUpdateStatusRequest
+	(*GetUpdateStatusResponse)(nil),          // 125: nnx.v1.GetUpdateStatusResponse
+	(*SkipUpdateVersionRequest)(nil),         // 126: nnx.v1.SkipUpdateVersionRequest
+	(*SkipUpdateVersionResponse)(nil),        // 127: nnx.v1.SkipUpdateVersionResponse
+	(*ApplyUpdateRequest)(nil),               // 128: nnx.v1.ApplyUpdateRequest
+	(*ApplyUpdateResponse)(nil),              // 129: nnx.v1.ApplyUpdateResponse
+	(*ValidateRequest)(nil),                  // 130: nnx.v1.ValidateRequest
+	(*ValidateResponse)(nil),                 // 131: nnx.v1.ValidateResponse
+	(*DebugProblem)(nil),                     // 132: nnx.v1.DebugProblem
+	(*DebugBuild)(nil),                       // 133: nnx.v1.DebugBuild
+	(*DebugRuntime)(nil),                     // 134: nnx.v1.DebugRuntime
+	(*DebugDaemon)(nil),                      // 135: nnx.v1.DebugDaemon
+	(*DebugEnvironmentVariable)(nil),         // 136: nnx.v1.DebugEnvironmentVariable
+	(*DebugPaths)(nil),                       // 137: nnx.v1.DebugPaths
+	(*DebugConfigHost)(nil),                  // 138: nnx.v1.DebugConfigHost
+	(*DebugConfigAuthMethod)(nil),            // 139: nnx.v1.DebugConfigAuthMethod
+	(*DebugConfig)(nil),                      // 140: nnx.v1.DebugConfig
+	(*DebugDatabaseFile)(nil),                // 141: nnx.v1.DebugDatabaseFile
+	(*DebugStorage)(nil),                     // 142: nnx.v1.DebugStorage
+	(*DebugCount)(nil),                       // 143: nnx.v1.DebugCount
+	(*DebugData)(nil),                        // 144: nnx.v1.DebugData
+	(*DebugSyncFailure)(nil),                 // 145: nnx.v1.DebugSyncFailure
+	(*DebugErrorGroup)(nil),                  // 146: nnx.v1.DebugErrorGroup
+	(*DebugAuthCacheEntry)(nil),              // 147: nnx.v1.DebugAuthCacheEntry
+	(*DebugGitHubSync)(nil),                  // 148: nnx.v1.DebugGitHubSync
+	(*DebugReport)(nil),                      // 149: nnx.v1.DebugReport
+	(*GetDebugReportRequest)(nil),            // 150: nnx.v1.GetDebugReportRequest
+	(*GetDebugReportResponse)(nil),           // 151: nnx.v1.GetDebugReportResponse
+	nil,                                      // 152: nnx.v1.TaskLabelOverrides.ValuesEntry
+	nil,                                      // 153: nnx.v1.TaskLabelOverridesUpdate.ValuesEntry
 }
 var file_nnx_v1_nnx_proto_depIdxs = []int32{
-	10,  // 0: nnx.v1.BlockedReason.code:type_name -> nnx.v1.BlockedReasonCode
-	11,  // 1: nnx.v1.ErrorDetail.code:type_name -> nnx.v1.DomainErrorCode
-	20,  // 2: nnx.v1.Project.prompt_overrides:type_name -> nnx.v1.PromptTemplateOverrides
-	23,  // 3: nnx.v1.Project.task_label_overrides:type_name -> nnx.v1.TaskLabelOverrides
+	11,  // 0: nnx.v1.BlockedReason.code:type_name -> nnx.v1.BlockedReasonCode
+	12,  // 1: nnx.v1.ErrorDetail.code:type_name -> nnx.v1.DomainErrorCode
+	21,  // 2: nnx.v1.Project.prompt_overrides:type_name -> nnx.v1.PromptTemplateOverrides
+	24,  // 3: nnx.v1.Project.task_label_overrides:type_name -> nnx.v1.TaskLabelOverrides
 	0,   // 4: nnx.v1.Feature.status:type_name -> nnx.v1.FeatureStatus
 	0,   // 5: nnx.v1.Feature.display_status:type_name -> nnx.v1.FeatureStatus
-	20,  // 6: nnx.v1.Feature.prompt_overrides:type_name -> nnx.v1.PromptTemplateOverrides
-	23,  // 7: nnx.v1.Feature.task_label_overrides:type_name -> nnx.v1.TaskLabelOverrides
-	27,  // 8: nnx.v1.Feature.task_label_appearances:type_name -> nnx.v1.TaskLabelAppearances
-	151, // 9: nnx.v1.TaskLabelOverrides.values:type_name -> nnx.v1.TaskLabelOverrides.ValuesEntry
-	152, // 10: nnx.v1.TaskLabelOverridesUpdate.values:type_name -> nnx.v1.TaskLabelOverridesUpdate.ValuesEntry
-	26,  // 11: nnx.v1.TaskLabelAppearances.values:type_name -> nnx.v1.TaskLabelAppearance
-	1,   // 12: nnx.v1.Task.status:type_name -> nnx.v1.TaskStatus
-	2,   // 13: nnx.v1.Task.display_state:type_name -> nnx.v1.TaskDisplayState
-	16,  // 14: nnx.v1.Task.blocked_reason:type_name -> nnx.v1.BlockedReason
-	3,   // 15: nnx.v1.Task.block_labels:type_name -> nnx.v1.TaskBlockLabel
-	4,   // 16: nnx.v1.PullRequest.state:type_name -> nnx.v1.PullRequestState
-	5,   // 17: nnx.v1.PullRequest.review_state:type_name -> nnx.v1.ReviewState
-	6,   // 18: nnx.v1.PullRequest.mergeability:type_name -> nnx.v1.Mergeability
-	8,   // 19: nnx.v1.PullRequest.display_state:type_name -> nnx.v1.PullRequestDisplayState
-	7,   // 20: nnx.v1.PullRequest.check_state:type_name -> nnx.v1.CheckState
-	9,   // 21: nnx.v1.Document.kind:type_name -> nnx.v1.DocumentKind
-	19,  // 22: nnx.v1.Snapshot.features:type_name -> nnx.v1.Feature
-	28,  // 23: nnx.v1.Snapshot.tasks:type_name -> nnx.v1.Task
-	29,  // 24: nnx.v1.Snapshot.dependencies:type_name -> nnx.v1.Dependency
-	30,  // 25: nnx.v1.Snapshot.pull_requests:type_name -> nnx.v1.PullRequest
-	31,  // 26: nnx.v1.Snapshot.documents:type_name -> nnx.v1.Document
-	28,  // 27: nnx.v1.Snapshot.ready_tasks:type_name -> nnx.v1.Task
-	28,  // 28: nnx.v1.Snapshot.review_waiting_tasks:type_name -> nnx.v1.Task
-	28,  // 29: nnx.v1.Snapshot.conflict_tasks:type_name -> nnx.v1.Task
-	28,  // 30: nnx.v1.Snapshot.stale_tasks:type_name -> nnx.v1.Task
-	18,  // 31: nnx.v1.Snapshot.projects:type_name -> nnx.v1.Project
-	32,  // 32: nnx.v1.GetSnapshotResponse.snapshot:type_name -> nnx.v1.Snapshot
-	18,  // 33: nnx.v1.CreateProjectResponse.project:type_name -> nnx.v1.Project
-	21,  // 34: nnx.v1.UpdateProjectRequest.prompt_overrides:type_name -> nnx.v1.PromptTemplateOverridesUpdate
-	25,  // 35: nnx.v1.UpdateProjectRequest.task_label_overrides:type_name -> nnx.v1.TaskLabelOverridesUpdate
-	18,  // 36: nnx.v1.UpdateProjectResponse.project:type_name -> nnx.v1.Project
-	19,  // 37: nnx.v1.CreateFeatureResponse.feature:type_name -> nnx.v1.Feature
-	0,   // 38: nnx.v1.UpdateFeatureRequest.status:type_name -> nnx.v1.FeatureStatus
-	21,  // 39: nnx.v1.UpdateFeatureRequest.prompt_overrides:type_name -> nnx.v1.PromptTemplateOverridesUpdate
-	25,  // 40: nnx.v1.UpdateFeatureRequest.task_label_overrides:type_name -> nnx.v1.TaskLabelOverridesUpdate
-	19,  // 41: nnx.v1.UpdateFeatureResponse.feature:type_name -> nnx.v1.Feature
-	28,  // 42: nnx.v1.CreateTaskResponse.task:type_name -> nnx.v1.Task
-	1,   // 43: nnx.v1.UpdateTaskRequest.status:type_name -> nnx.v1.TaskStatus
-	28,  // 44: nnx.v1.UpdateTaskResponse.task:type_name -> nnx.v1.Task
-	29,  // 45: nnx.v1.AddDependencyResponse.dependency:type_name -> nnx.v1.Dependency
-	30,  // 46: nnx.v1.AttachPullRequestResponse.pull_request:type_name -> nnx.v1.PullRequest
-	31,  // 47: nnx.v1.AddDocumentResponse.document:type_name -> nnx.v1.Document
-	31,  // 48: nnx.v1.GetDocumentResponse.document:type_name -> nnx.v1.Document
-	31,  // 49: nnx.v1.UpdateDocumentResponse.document:type_name -> nnx.v1.Document
-	12,  // 50: nnx.v1.GitHubAuthMethod.type:type_name -> nnx.v1.GithubAuthMethodType
-	75,  // 51: nnx.v1.GitHubConfig.hosts:type_name -> nnx.v1.GitHubHost
-	76,  // 52: nnx.v1.GitHubConfig.auth_methods:type_name -> nnx.v1.GitHubAuthMethod
-	23,  // 53: nnx.v1.GitHubConfig.task_label_overrides:type_name -> nnx.v1.TaskLabelOverrides
-	27,  // 54: nnx.v1.GitHubConfig.built_in_task_label_appearances:type_name -> nnx.v1.TaskLabelAppearances
-	77,  // 55: nnx.v1.GetConfigResponse.config:type_name -> nnx.v1.GitHubConfig
-	23,  // 56: nnx.v1.TaskLabelConfig.overrides:type_name -> nnx.v1.TaskLabelOverrides
-	27,  // 57: nnx.v1.TaskLabelConfig.built_in:type_name -> nnx.v1.TaskLabelAppearances
-	81,  // 58: nnx.v1.GetTaskLabelConfigResponse.config:type_name -> nnx.v1.TaskLabelConfig
-	25,  // 59: nnx.v1.UpdateTaskLabelConfigRequest.overrides:type_name -> nnx.v1.TaskLabelOverridesUpdate
-	81,  // 60: nnx.v1.UpdateTaskLabelConfigResponse.config:type_name -> nnx.v1.TaskLabelConfig
-	77,  // 61: nnx.v1.UpdateGitHubSyncConfigResponse.config:type_name -> nnx.v1.GitHubConfig
-	77,  // 62: nnx.v1.UpdateLanguageConfigResponse.config:type_name -> nnx.v1.GitHubConfig
-	75,  // 63: nnx.v1.AddGitHubHostResponse.host:type_name -> nnx.v1.GitHubHost
-	75,  // 64: nnx.v1.UpdateGitHubHostResponse.host:type_name -> nnx.v1.GitHubHost
-	12,  // 65: nnx.v1.AddGitHubAuthMethodRequest.type:type_name -> nnx.v1.GithubAuthMethodType
-	76,  // 66: nnx.v1.AddGitHubAuthMethodResponse.auth_method:type_name -> nnx.v1.GitHubAuthMethod
-	12,  // 67: nnx.v1.UpdateGitHubAuthMethodRequest.type:type_name -> nnx.v1.GithubAuthMethodType
-	76,  // 68: nnx.v1.UpdateGitHubAuthMethodResponse.auth_method:type_name -> nnx.v1.GitHubAuthMethod
-	76,  // 69: nnx.v1.ReorderGitHubAuthMethodsResponse.auth_methods:type_name -> nnx.v1.GitHubAuthMethod
-	105, // 70: nnx.v1.GetPromptTemplatesResponse.templates:type_name -> nnx.v1.PromptTemplates
-	105, // 71: nnx.v1.GetPromptTemplatesResponse.built_in:type_name -> nnx.v1.PromptTemplates
-	105, // 72: nnx.v1.UpdatePromptTemplatesResponse.templates:type_name -> nnx.v1.PromptTemplates
-	13,  // 73: nnx.v1.GetTaskPromptRequest.kind:type_name -> nnx.v1.TaskPromptKind
-	13,  // 74: nnx.v1.GetTaskPromptResponse.kind:type_name -> nnx.v1.TaskPromptKind
-	13,  // 75: nnx.v1.GetBatchPromptRequest.kind:type_name -> nnx.v1.TaskPromptKind
-	13,  // 76: nnx.v1.GetBatchPromptResponse.kind:type_name -> nnx.v1.TaskPromptKind
-	116, // 77: nnx.v1.GetGitHubSyncStatusResponse.status:type_name -> nnx.v1.GitHubSyncStatus
-	116, // 78: nnx.v1.SyncGitHubIfDueResponse.status:type_name -> nnx.v1.GitHubSyncStatus
-	15,  // 79: nnx.v1.UpdateStatus.disabled_reason:type_name -> nnx.v1.UpdateDisabledReason
-	121, // 80: nnx.v1.UpdateStatus.releases:type_name -> nnx.v1.UpdateRelease
-	122, // 81: nnx.v1.GetUpdateStatusResponse.status:type_name -> nnx.v1.UpdateStatus
-	122, // 82: nnx.v1.SkipUpdateVersionResponse.status:type_name -> nnx.v1.UpdateStatus
-	14,  // 83: nnx.v1.DebugProblem.code:type_name -> nnx.v1.DebugProblemCode
-	135, // 84: nnx.v1.DebugPaths.environment_variables:type_name -> nnx.v1.DebugEnvironmentVariable
-	137, // 85: nnx.v1.DebugConfig.hosts:type_name -> nnx.v1.DebugConfigHost
-	138, // 86: nnx.v1.DebugConfig.auth_methods:type_name -> nnx.v1.DebugConfigAuthMethod
-	140, // 87: nnx.v1.DebugStorage.database_file:type_name -> nnx.v1.DebugDatabaseFile
-	142, // 88: nnx.v1.DebugData.feature_statuses:type_name -> nnx.v1.DebugCount
-	142, // 89: nnx.v1.DebugData.task_display_states:type_name -> nnx.v1.DebugCount
-	142, // 90: nnx.v1.DebugData.pull_request_display_states:type_name -> nnx.v1.DebugCount
-	142, // 91: nnx.v1.DebugData.pull_request_hosts:type_name -> nnx.v1.DebugCount
-	142, // 92: nnx.v1.DebugData.document_kinds:type_name -> nnx.v1.DebugCount
-	142, // 93: nnx.v1.DebugData.project_states:type_name -> nnx.v1.DebugCount
-	116, // 94: nnx.v1.DebugGitHubSync.status:type_name -> nnx.v1.GitHubSyncStatus
-	144, // 95: nnx.v1.DebugGitHubSync.host_failures:type_name -> nnx.v1.DebugSyncFailure
-	144, // 96: nnx.v1.DebugGitHubSync.repository_failures:type_name -> nnx.v1.DebugSyncFailure
-	145, // 97: nnx.v1.DebugGitHubSync.error_groups:type_name -> nnx.v1.DebugErrorGroup
-	146, // 98: nnx.v1.DebugGitHubSync.auth_cache:type_name -> nnx.v1.DebugAuthCacheEntry
-	131, // 99: nnx.v1.DebugReport.problems:type_name -> nnx.v1.DebugProblem
-	132, // 100: nnx.v1.DebugReport.build:type_name -> nnx.v1.DebugBuild
-	133, // 101: nnx.v1.DebugReport.runtime:type_name -> nnx.v1.DebugRuntime
-	136, // 102: nnx.v1.DebugReport.paths:type_name -> nnx.v1.DebugPaths
-	134, // 103: nnx.v1.DebugReport.daemon:type_name -> nnx.v1.DebugDaemon
-	139, // 104: nnx.v1.DebugReport.config:type_name -> nnx.v1.DebugConfig
-	141, // 105: nnx.v1.DebugReport.storage:type_name -> nnx.v1.DebugStorage
-	143, // 106: nnx.v1.DebugReport.records:type_name -> nnx.v1.DebugData
-	147, // 107: nnx.v1.DebugReport.github_sync:type_name -> nnx.v1.DebugGitHubSync
-	148, // 108: nnx.v1.GetDebugReportResponse.report:type_name -> nnx.v1.DebugReport
-	22,  // 109: nnx.v1.TaskLabelOverrides.ValuesEntry.value:type_name -> nnx.v1.TaskLabelOverride
-	24,  // 110: nnx.v1.TaskLabelOverridesUpdate.ValuesEntry.value:type_name -> nnx.v1.TaskLabelOverrideUpdate
-	33,  // 111: nnx.v1.NNXService.GetSnapshot:input_type -> nnx.v1.GetSnapshotRequest
-	35,  // 112: nnx.v1.NNXService.WatchRevision:input_type -> nnx.v1.WatchRevisionRequest
-	37,  // 113: nnx.v1.NNXService.CreateProject:input_type -> nnx.v1.CreateProjectRequest
-	39,  // 114: nnx.v1.NNXService.UpdateProject:input_type -> nnx.v1.UpdateProjectRequest
-	41,  // 115: nnx.v1.NNXService.DeleteProject:input_type -> nnx.v1.DeleteProjectRequest
-	43,  // 116: nnx.v1.NNXService.CreateFeature:input_type -> nnx.v1.CreateFeatureRequest
-	45,  // 117: nnx.v1.NNXService.UpdateFeature:input_type -> nnx.v1.UpdateFeatureRequest
-	47,  // 118: nnx.v1.NNXService.DeleteFeature:input_type -> nnx.v1.DeleteFeatureRequest
-	49,  // 119: nnx.v1.NNXService.CreateTask:input_type -> nnx.v1.CreateTaskRequest
-	51,  // 120: nnx.v1.NNXService.UpdateTask:input_type -> nnx.v1.UpdateTaskRequest
-	53,  // 121: nnx.v1.NNXService.DeleteTask:input_type -> nnx.v1.DeleteTaskRequest
-	55,  // 122: nnx.v1.NNXService.AddDependency:input_type -> nnx.v1.AddDependencyRequest
-	57,  // 123: nnx.v1.NNXService.RemoveDependency:input_type -> nnx.v1.RemoveDependencyRequest
-	59,  // 124: nnx.v1.NNXService.AttachPullRequest:input_type -> nnx.v1.AttachPullRequestRequest
-	61,  // 125: nnx.v1.NNXService.DetachPullRequest:input_type -> nnx.v1.DetachPullRequestRequest
-	63,  // 126: nnx.v1.NNXService.AddDocument:input_type -> nnx.v1.AddDocumentRequest
-	65,  // 127: nnx.v1.NNXService.GetDocument:input_type -> nnx.v1.GetDocumentRequest
-	67,  // 128: nnx.v1.NNXService.UpdateDocument:input_type -> nnx.v1.UpdateDocumentRequest
-	69,  // 129: nnx.v1.NNXService.DeleteDocument:input_type -> nnx.v1.DeleteDocumentRequest
-	71,  // 130: nnx.v1.NNXService.ReadDocumentContent:input_type -> nnx.v1.ReadDocumentContentRequest
-	73,  // 131: nnx.v1.NNXService.SelectLocalFile:input_type -> nnx.v1.SelectLocalFileRequest
-	114, // 132: nnx.v1.NNXService.Sync:input_type -> nnx.v1.SyncRequest
-	117, // 133: nnx.v1.NNXService.GetGitHubSyncStatus:input_type -> nnx.v1.GetGitHubSyncStatusRequest
-	119, // 134: nnx.v1.NNXService.SyncGitHubIfDue:input_type -> nnx.v1.SyncGitHubIfDueRequest
-	123, // 135: nnx.v1.NNXService.GetUpdateStatus:input_type -> nnx.v1.GetUpdateStatusRequest
-	125, // 136: nnx.v1.NNXService.SkipUpdateVersion:input_type -> nnx.v1.SkipUpdateVersionRequest
-	127, // 137: nnx.v1.NNXService.ApplyUpdate:input_type -> nnx.v1.ApplyUpdateRequest
-	129, // 138: nnx.v1.NNXService.Validate:input_type -> nnx.v1.ValidateRequest
-	149, // 139: nnx.v1.NNXService.GetDebugReport:input_type -> nnx.v1.GetDebugReportRequest
-	78,  // 140: nnx.v1.NNXService.GetConfig:input_type -> nnx.v1.GetConfigRequest
-	80,  // 141: nnx.v1.NNXService.GetTaskLabelConfig:input_type -> nnx.v1.GetTaskLabelConfigRequest
-	83,  // 142: nnx.v1.NNXService.UpdateTaskLabelConfig:input_type -> nnx.v1.UpdateTaskLabelConfigRequest
-	85,  // 143: nnx.v1.NNXService.UpdateGitHubSyncConfig:input_type -> nnx.v1.UpdateGitHubSyncConfigRequest
-	87,  // 144: nnx.v1.NNXService.UpdateLanguageConfig:input_type -> nnx.v1.UpdateLanguageConfigRequest
-	89,  // 145: nnx.v1.NNXService.AddGitHubHost:input_type -> nnx.v1.AddGitHubHostRequest
-	91,  // 146: nnx.v1.NNXService.UpdateGitHubHost:input_type -> nnx.v1.UpdateGitHubHostRequest
-	93,  // 147: nnx.v1.NNXService.DeleteGitHubHost:input_type -> nnx.v1.DeleteGitHubHostRequest
-	95,  // 148: nnx.v1.NNXService.AddGitHubAuthMethod:input_type -> nnx.v1.AddGitHubAuthMethodRequest
-	97,  // 149: nnx.v1.NNXService.UpdateGitHubAuthMethod:input_type -> nnx.v1.UpdateGitHubAuthMethodRequest
-	99,  // 150: nnx.v1.NNXService.DeleteGitHubAuthMethod:input_type -> nnx.v1.DeleteGitHubAuthMethodRequest
-	101, // 151: nnx.v1.NNXService.ReorderGitHubAuthMethods:input_type -> nnx.v1.ReorderGitHubAuthMethodsRequest
-	103, // 152: nnx.v1.NNXService.ValidateConfig:input_type -> nnx.v1.ValidateConfigRequest
-	106, // 153: nnx.v1.NNXService.GetPromptTemplates:input_type -> nnx.v1.GetPromptTemplatesRequest
-	108, // 154: nnx.v1.NNXService.UpdatePromptTemplates:input_type -> nnx.v1.UpdatePromptTemplatesRequest
-	110, // 155: nnx.v1.NNXService.GetTaskPrompt:input_type -> nnx.v1.GetTaskPromptRequest
-	112, // 156: nnx.v1.NNXService.GetBatchPrompt:input_type -> nnx.v1.GetBatchPromptRequest
-	34,  // 157: nnx.v1.NNXService.GetSnapshot:output_type -> nnx.v1.GetSnapshotResponse
-	36,  // 158: nnx.v1.NNXService.WatchRevision:output_type -> nnx.v1.WatchRevisionResponse
-	38,  // 159: nnx.v1.NNXService.CreateProject:output_type -> nnx.v1.CreateProjectResponse
-	40,  // 160: nnx.v1.NNXService.UpdateProject:output_type -> nnx.v1.UpdateProjectResponse
-	42,  // 161: nnx.v1.NNXService.DeleteProject:output_type -> nnx.v1.DeleteProjectResponse
-	44,  // 162: nnx.v1.NNXService.CreateFeature:output_type -> nnx.v1.CreateFeatureResponse
-	46,  // 163: nnx.v1.NNXService.UpdateFeature:output_type -> nnx.v1.UpdateFeatureResponse
-	48,  // 164: nnx.v1.NNXService.DeleteFeature:output_type -> nnx.v1.DeleteFeatureResponse
-	50,  // 165: nnx.v1.NNXService.CreateTask:output_type -> nnx.v1.CreateTaskResponse
-	52,  // 166: nnx.v1.NNXService.UpdateTask:output_type -> nnx.v1.UpdateTaskResponse
-	54,  // 167: nnx.v1.NNXService.DeleteTask:output_type -> nnx.v1.DeleteTaskResponse
-	56,  // 168: nnx.v1.NNXService.AddDependency:output_type -> nnx.v1.AddDependencyResponse
-	58,  // 169: nnx.v1.NNXService.RemoveDependency:output_type -> nnx.v1.RemoveDependencyResponse
-	60,  // 170: nnx.v1.NNXService.AttachPullRequest:output_type -> nnx.v1.AttachPullRequestResponse
-	62,  // 171: nnx.v1.NNXService.DetachPullRequest:output_type -> nnx.v1.DetachPullRequestResponse
-	64,  // 172: nnx.v1.NNXService.AddDocument:output_type -> nnx.v1.AddDocumentResponse
-	66,  // 173: nnx.v1.NNXService.GetDocument:output_type -> nnx.v1.GetDocumentResponse
-	68,  // 174: nnx.v1.NNXService.UpdateDocument:output_type -> nnx.v1.UpdateDocumentResponse
-	70,  // 175: nnx.v1.NNXService.DeleteDocument:output_type -> nnx.v1.DeleteDocumentResponse
-	72,  // 176: nnx.v1.NNXService.ReadDocumentContent:output_type -> nnx.v1.ReadDocumentContentResponse
-	74,  // 177: nnx.v1.NNXService.SelectLocalFile:output_type -> nnx.v1.SelectLocalFileResponse
-	115, // 178: nnx.v1.NNXService.Sync:output_type -> nnx.v1.SyncResponse
-	118, // 179: nnx.v1.NNXService.GetGitHubSyncStatus:output_type -> nnx.v1.GetGitHubSyncStatusResponse
-	120, // 180: nnx.v1.NNXService.SyncGitHubIfDue:output_type -> nnx.v1.SyncGitHubIfDueResponse
-	124, // 181: nnx.v1.NNXService.GetUpdateStatus:output_type -> nnx.v1.GetUpdateStatusResponse
-	126, // 182: nnx.v1.NNXService.SkipUpdateVersion:output_type -> nnx.v1.SkipUpdateVersionResponse
-	128, // 183: nnx.v1.NNXService.ApplyUpdate:output_type -> nnx.v1.ApplyUpdateResponse
-	130, // 184: nnx.v1.NNXService.Validate:output_type -> nnx.v1.ValidateResponse
-	150, // 185: nnx.v1.NNXService.GetDebugReport:output_type -> nnx.v1.GetDebugReportResponse
-	79,  // 186: nnx.v1.NNXService.GetConfig:output_type -> nnx.v1.GetConfigResponse
-	82,  // 187: nnx.v1.NNXService.GetTaskLabelConfig:output_type -> nnx.v1.GetTaskLabelConfigResponse
-	84,  // 188: nnx.v1.NNXService.UpdateTaskLabelConfig:output_type -> nnx.v1.UpdateTaskLabelConfigResponse
-	86,  // 189: nnx.v1.NNXService.UpdateGitHubSyncConfig:output_type -> nnx.v1.UpdateGitHubSyncConfigResponse
-	88,  // 190: nnx.v1.NNXService.UpdateLanguageConfig:output_type -> nnx.v1.UpdateLanguageConfigResponse
-	90,  // 191: nnx.v1.NNXService.AddGitHubHost:output_type -> nnx.v1.AddGitHubHostResponse
-	92,  // 192: nnx.v1.NNXService.UpdateGitHubHost:output_type -> nnx.v1.UpdateGitHubHostResponse
-	94,  // 193: nnx.v1.NNXService.DeleteGitHubHost:output_type -> nnx.v1.DeleteGitHubHostResponse
-	96,  // 194: nnx.v1.NNXService.AddGitHubAuthMethod:output_type -> nnx.v1.AddGitHubAuthMethodResponse
-	98,  // 195: nnx.v1.NNXService.UpdateGitHubAuthMethod:output_type -> nnx.v1.UpdateGitHubAuthMethodResponse
-	100, // 196: nnx.v1.NNXService.DeleteGitHubAuthMethod:output_type -> nnx.v1.DeleteGitHubAuthMethodResponse
-	102, // 197: nnx.v1.NNXService.ReorderGitHubAuthMethods:output_type -> nnx.v1.ReorderGitHubAuthMethodsResponse
-	104, // 198: nnx.v1.NNXService.ValidateConfig:output_type -> nnx.v1.ValidateConfigResponse
-	107, // 199: nnx.v1.NNXService.GetPromptTemplates:output_type -> nnx.v1.GetPromptTemplatesResponse
-	109, // 200: nnx.v1.NNXService.UpdatePromptTemplates:output_type -> nnx.v1.UpdatePromptTemplatesResponse
-	111, // 201: nnx.v1.NNXService.GetTaskPrompt:output_type -> nnx.v1.GetTaskPromptResponse
-	113, // 202: nnx.v1.NNXService.GetBatchPrompt:output_type -> nnx.v1.GetBatchPromptResponse
-	157, // [157:203] is the sub-list for method output_type
-	111, // [111:157] is the sub-list for method input_type
-	111, // [111:111] is the sub-list for extension type_name
-	111, // [111:111] is the sub-list for extension extendee
-	0,   // [0:111] is the sub-list for field type_name
+	21,  // 6: nnx.v1.Feature.prompt_overrides:type_name -> nnx.v1.PromptTemplateOverrides
+	24,  // 7: nnx.v1.Feature.task_label_overrides:type_name -> nnx.v1.TaskLabelOverrides
+	28,  // 8: nnx.v1.Feature.task_label_appearances:type_name -> nnx.v1.TaskLabelAppearances
+	152, // 9: nnx.v1.TaskLabelOverrides.values:type_name -> nnx.v1.TaskLabelOverrides.ValuesEntry
+	153, // 10: nnx.v1.TaskLabelOverridesUpdate.values:type_name -> nnx.v1.TaskLabelOverridesUpdate.ValuesEntry
+	27,  // 11: nnx.v1.TaskLabelAppearances.values:type_name -> nnx.v1.TaskLabelAppearance
+	2,   // 12: nnx.v1.Task.status:type_name -> nnx.v1.TaskStatus
+	3,   // 13: nnx.v1.Task.display_state:type_name -> nnx.v1.TaskDisplayState
+	17,  // 14: nnx.v1.Task.blocked_reason:type_name -> nnx.v1.BlockedReason
+	4,   // 15: nnx.v1.Task.block_labels:type_name -> nnx.v1.TaskBlockLabel
+	1,   // 16: nnx.v1.Task.kind:type_name -> nnx.v1.TaskKind
+	5,   // 17: nnx.v1.PullRequest.state:type_name -> nnx.v1.PullRequestState
+	6,   // 18: nnx.v1.PullRequest.review_state:type_name -> nnx.v1.ReviewState
+	7,   // 19: nnx.v1.PullRequest.mergeability:type_name -> nnx.v1.Mergeability
+	9,   // 20: nnx.v1.PullRequest.display_state:type_name -> nnx.v1.PullRequestDisplayState
+	8,   // 21: nnx.v1.PullRequest.check_state:type_name -> nnx.v1.CheckState
+	10,  // 22: nnx.v1.Document.kind:type_name -> nnx.v1.DocumentKind
+	20,  // 23: nnx.v1.Snapshot.features:type_name -> nnx.v1.Feature
+	29,  // 24: nnx.v1.Snapshot.tasks:type_name -> nnx.v1.Task
+	30,  // 25: nnx.v1.Snapshot.dependencies:type_name -> nnx.v1.Dependency
+	31,  // 26: nnx.v1.Snapshot.pull_requests:type_name -> nnx.v1.PullRequest
+	32,  // 27: nnx.v1.Snapshot.documents:type_name -> nnx.v1.Document
+	29,  // 28: nnx.v1.Snapshot.ready_tasks:type_name -> nnx.v1.Task
+	29,  // 29: nnx.v1.Snapshot.review_waiting_tasks:type_name -> nnx.v1.Task
+	29,  // 30: nnx.v1.Snapshot.conflict_tasks:type_name -> nnx.v1.Task
+	29,  // 31: nnx.v1.Snapshot.stale_tasks:type_name -> nnx.v1.Task
+	19,  // 32: nnx.v1.Snapshot.projects:type_name -> nnx.v1.Project
+	33,  // 33: nnx.v1.GetSnapshotResponse.snapshot:type_name -> nnx.v1.Snapshot
+	19,  // 34: nnx.v1.CreateProjectResponse.project:type_name -> nnx.v1.Project
+	22,  // 35: nnx.v1.UpdateProjectRequest.prompt_overrides:type_name -> nnx.v1.PromptTemplateOverridesUpdate
+	26,  // 36: nnx.v1.UpdateProjectRequest.task_label_overrides:type_name -> nnx.v1.TaskLabelOverridesUpdate
+	19,  // 37: nnx.v1.UpdateProjectResponse.project:type_name -> nnx.v1.Project
+	20,  // 38: nnx.v1.CreateFeatureResponse.feature:type_name -> nnx.v1.Feature
+	0,   // 39: nnx.v1.UpdateFeatureRequest.status:type_name -> nnx.v1.FeatureStatus
+	22,  // 40: nnx.v1.UpdateFeatureRequest.prompt_overrides:type_name -> nnx.v1.PromptTemplateOverridesUpdate
+	26,  // 41: nnx.v1.UpdateFeatureRequest.task_label_overrides:type_name -> nnx.v1.TaskLabelOverridesUpdate
+	20,  // 42: nnx.v1.UpdateFeatureResponse.feature:type_name -> nnx.v1.Feature
+	1,   // 43: nnx.v1.CreateTaskRequest.kind:type_name -> nnx.v1.TaskKind
+	29,  // 44: nnx.v1.CreateTaskResponse.task:type_name -> nnx.v1.Task
+	2,   // 45: nnx.v1.UpdateTaskRequest.status:type_name -> nnx.v1.TaskStatus
+	1,   // 46: nnx.v1.UpdateTaskRequest.kind:type_name -> nnx.v1.TaskKind
+	29,  // 47: nnx.v1.UpdateTaskResponse.task:type_name -> nnx.v1.Task
+	30,  // 48: nnx.v1.AddDependencyResponse.dependency:type_name -> nnx.v1.Dependency
+	31,  // 49: nnx.v1.AttachPullRequestResponse.pull_request:type_name -> nnx.v1.PullRequest
+	32,  // 50: nnx.v1.AddDocumentResponse.document:type_name -> nnx.v1.Document
+	32,  // 51: nnx.v1.GetDocumentResponse.document:type_name -> nnx.v1.Document
+	32,  // 52: nnx.v1.UpdateDocumentResponse.document:type_name -> nnx.v1.Document
+	13,  // 53: nnx.v1.GitHubAuthMethod.type:type_name -> nnx.v1.GithubAuthMethodType
+	76,  // 54: nnx.v1.GitHubConfig.hosts:type_name -> nnx.v1.GitHubHost
+	77,  // 55: nnx.v1.GitHubConfig.auth_methods:type_name -> nnx.v1.GitHubAuthMethod
+	24,  // 56: nnx.v1.GitHubConfig.task_label_overrides:type_name -> nnx.v1.TaskLabelOverrides
+	28,  // 57: nnx.v1.GitHubConfig.built_in_task_label_appearances:type_name -> nnx.v1.TaskLabelAppearances
+	78,  // 58: nnx.v1.GetConfigResponse.config:type_name -> nnx.v1.GitHubConfig
+	24,  // 59: nnx.v1.TaskLabelConfig.overrides:type_name -> nnx.v1.TaskLabelOverrides
+	28,  // 60: nnx.v1.TaskLabelConfig.built_in:type_name -> nnx.v1.TaskLabelAppearances
+	82,  // 61: nnx.v1.GetTaskLabelConfigResponse.config:type_name -> nnx.v1.TaskLabelConfig
+	26,  // 62: nnx.v1.UpdateTaskLabelConfigRequest.overrides:type_name -> nnx.v1.TaskLabelOverridesUpdate
+	82,  // 63: nnx.v1.UpdateTaskLabelConfigResponse.config:type_name -> nnx.v1.TaskLabelConfig
+	78,  // 64: nnx.v1.UpdateGitHubSyncConfigResponse.config:type_name -> nnx.v1.GitHubConfig
+	78,  // 65: nnx.v1.UpdateLanguageConfigResponse.config:type_name -> nnx.v1.GitHubConfig
+	76,  // 66: nnx.v1.AddGitHubHostResponse.host:type_name -> nnx.v1.GitHubHost
+	76,  // 67: nnx.v1.UpdateGitHubHostResponse.host:type_name -> nnx.v1.GitHubHost
+	13,  // 68: nnx.v1.AddGitHubAuthMethodRequest.type:type_name -> nnx.v1.GithubAuthMethodType
+	77,  // 69: nnx.v1.AddGitHubAuthMethodResponse.auth_method:type_name -> nnx.v1.GitHubAuthMethod
+	13,  // 70: nnx.v1.UpdateGitHubAuthMethodRequest.type:type_name -> nnx.v1.GithubAuthMethodType
+	77,  // 71: nnx.v1.UpdateGitHubAuthMethodResponse.auth_method:type_name -> nnx.v1.GitHubAuthMethod
+	77,  // 72: nnx.v1.ReorderGitHubAuthMethodsResponse.auth_methods:type_name -> nnx.v1.GitHubAuthMethod
+	106, // 73: nnx.v1.GetPromptTemplatesResponse.templates:type_name -> nnx.v1.PromptTemplates
+	106, // 74: nnx.v1.GetPromptTemplatesResponse.built_in:type_name -> nnx.v1.PromptTemplates
+	106, // 75: nnx.v1.UpdatePromptTemplatesResponse.templates:type_name -> nnx.v1.PromptTemplates
+	14,  // 76: nnx.v1.GetTaskPromptRequest.kind:type_name -> nnx.v1.TaskPromptKind
+	14,  // 77: nnx.v1.GetTaskPromptResponse.kind:type_name -> nnx.v1.TaskPromptKind
+	14,  // 78: nnx.v1.GetBatchPromptRequest.kind:type_name -> nnx.v1.TaskPromptKind
+	14,  // 79: nnx.v1.GetBatchPromptResponse.kind:type_name -> nnx.v1.TaskPromptKind
+	117, // 80: nnx.v1.GetGitHubSyncStatusResponse.status:type_name -> nnx.v1.GitHubSyncStatus
+	117, // 81: nnx.v1.SyncGitHubIfDueResponse.status:type_name -> nnx.v1.GitHubSyncStatus
+	16,  // 82: nnx.v1.UpdateStatus.disabled_reason:type_name -> nnx.v1.UpdateDisabledReason
+	122, // 83: nnx.v1.UpdateStatus.releases:type_name -> nnx.v1.UpdateRelease
+	123, // 84: nnx.v1.GetUpdateStatusResponse.status:type_name -> nnx.v1.UpdateStatus
+	123, // 85: nnx.v1.SkipUpdateVersionResponse.status:type_name -> nnx.v1.UpdateStatus
+	15,  // 86: nnx.v1.DebugProblem.code:type_name -> nnx.v1.DebugProblemCode
+	136, // 87: nnx.v1.DebugPaths.environment_variables:type_name -> nnx.v1.DebugEnvironmentVariable
+	138, // 88: nnx.v1.DebugConfig.hosts:type_name -> nnx.v1.DebugConfigHost
+	139, // 89: nnx.v1.DebugConfig.auth_methods:type_name -> nnx.v1.DebugConfigAuthMethod
+	141, // 90: nnx.v1.DebugStorage.database_file:type_name -> nnx.v1.DebugDatabaseFile
+	143, // 91: nnx.v1.DebugData.feature_statuses:type_name -> nnx.v1.DebugCount
+	143, // 92: nnx.v1.DebugData.task_display_states:type_name -> nnx.v1.DebugCount
+	143, // 93: nnx.v1.DebugData.pull_request_display_states:type_name -> nnx.v1.DebugCount
+	143, // 94: nnx.v1.DebugData.pull_request_hosts:type_name -> nnx.v1.DebugCount
+	143, // 95: nnx.v1.DebugData.document_kinds:type_name -> nnx.v1.DebugCount
+	143, // 96: nnx.v1.DebugData.project_states:type_name -> nnx.v1.DebugCount
+	117, // 97: nnx.v1.DebugGitHubSync.status:type_name -> nnx.v1.GitHubSyncStatus
+	145, // 98: nnx.v1.DebugGitHubSync.host_failures:type_name -> nnx.v1.DebugSyncFailure
+	145, // 99: nnx.v1.DebugGitHubSync.repository_failures:type_name -> nnx.v1.DebugSyncFailure
+	146, // 100: nnx.v1.DebugGitHubSync.error_groups:type_name -> nnx.v1.DebugErrorGroup
+	147, // 101: nnx.v1.DebugGitHubSync.auth_cache:type_name -> nnx.v1.DebugAuthCacheEntry
+	132, // 102: nnx.v1.DebugReport.problems:type_name -> nnx.v1.DebugProblem
+	133, // 103: nnx.v1.DebugReport.build:type_name -> nnx.v1.DebugBuild
+	134, // 104: nnx.v1.DebugReport.runtime:type_name -> nnx.v1.DebugRuntime
+	137, // 105: nnx.v1.DebugReport.paths:type_name -> nnx.v1.DebugPaths
+	135, // 106: nnx.v1.DebugReport.daemon:type_name -> nnx.v1.DebugDaemon
+	140, // 107: nnx.v1.DebugReport.config:type_name -> nnx.v1.DebugConfig
+	142, // 108: nnx.v1.DebugReport.storage:type_name -> nnx.v1.DebugStorage
+	144, // 109: nnx.v1.DebugReport.records:type_name -> nnx.v1.DebugData
+	148, // 110: nnx.v1.DebugReport.github_sync:type_name -> nnx.v1.DebugGitHubSync
+	149, // 111: nnx.v1.GetDebugReportResponse.report:type_name -> nnx.v1.DebugReport
+	23,  // 112: nnx.v1.TaskLabelOverrides.ValuesEntry.value:type_name -> nnx.v1.TaskLabelOverride
+	25,  // 113: nnx.v1.TaskLabelOverridesUpdate.ValuesEntry.value:type_name -> nnx.v1.TaskLabelOverrideUpdate
+	34,  // 114: nnx.v1.NNXService.GetSnapshot:input_type -> nnx.v1.GetSnapshotRequest
+	36,  // 115: nnx.v1.NNXService.WatchRevision:input_type -> nnx.v1.WatchRevisionRequest
+	38,  // 116: nnx.v1.NNXService.CreateProject:input_type -> nnx.v1.CreateProjectRequest
+	40,  // 117: nnx.v1.NNXService.UpdateProject:input_type -> nnx.v1.UpdateProjectRequest
+	42,  // 118: nnx.v1.NNXService.DeleteProject:input_type -> nnx.v1.DeleteProjectRequest
+	44,  // 119: nnx.v1.NNXService.CreateFeature:input_type -> nnx.v1.CreateFeatureRequest
+	46,  // 120: nnx.v1.NNXService.UpdateFeature:input_type -> nnx.v1.UpdateFeatureRequest
+	48,  // 121: nnx.v1.NNXService.DeleteFeature:input_type -> nnx.v1.DeleteFeatureRequest
+	50,  // 122: nnx.v1.NNXService.CreateTask:input_type -> nnx.v1.CreateTaskRequest
+	52,  // 123: nnx.v1.NNXService.UpdateTask:input_type -> nnx.v1.UpdateTaskRequest
+	54,  // 124: nnx.v1.NNXService.DeleteTask:input_type -> nnx.v1.DeleteTaskRequest
+	56,  // 125: nnx.v1.NNXService.AddDependency:input_type -> nnx.v1.AddDependencyRequest
+	58,  // 126: nnx.v1.NNXService.RemoveDependency:input_type -> nnx.v1.RemoveDependencyRequest
+	60,  // 127: nnx.v1.NNXService.AttachPullRequest:input_type -> nnx.v1.AttachPullRequestRequest
+	62,  // 128: nnx.v1.NNXService.DetachPullRequest:input_type -> nnx.v1.DetachPullRequestRequest
+	64,  // 129: nnx.v1.NNXService.AddDocument:input_type -> nnx.v1.AddDocumentRequest
+	66,  // 130: nnx.v1.NNXService.GetDocument:input_type -> nnx.v1.GetDocumentRequest
+	68,  // 131: nnx.v1.NNXService.UpdateDocument:input_type -> nnx.v1.UpdateDocumentRequest
+	70,  // 132: nnx.v1.NNXService.DeleteDocument:input_type -> nnx.v1.DeleteDocumentRequest
+	72,  // 133: nnx.v1.NNXService.ReadDocumentContent:input_type -> nnx.v1.ReadDocumentContentRequest
+	74,  // 134: nnx.v1.NNXService.SelectLocalFile:input_type -> nnx.v1.SelectLocalFileRequest
+	115, // 135: nnx.v1.NNXService.Sync:input_type -> nnx.v1.SyncRequest
+	118, // 136: nnx.v1.NNXService.GetGitHubSyncStatus:input_type -> nnx.v1.GetGitHubSyncStatusRequest
+	120, // 137: nnx.v1.NNXService.SyncGitHubIfDue:input_type -> nnx.v1.SyncGitHubIfDueRequest
+	124, // 138: nnx.v1.NNXService.GetUpdateStatus:input_type -> nnx.v1.GetUpdateStatusRequest
+	126, // 139: nnx.v1.NNXService.SkipUpdateVersion:input_type -> nnx.v1.SkipUpdateVersionRequest
+	128, // 140: nnx.v1.NNXService.ApplyUpdate:input_type -> nnx.v1.ApplyUpdateRequest
+	130, // 141: nnx.v1.NNXService.Validate:input_type -> nnx.v1.ValidateRequest
+	150, // 142: nnx.v1.NNXService.GetDebugReport:input_type -> nnx.v1.GetDebugReportRequest
+	79,  // 143: nnx.v1.NNXService.GetConfig:input_type -> nnx.v1.GetConfigRequest
+	81,  // 144: nnx.v1.NNXService.GetTaskLabelConfig:input_type -> nnx.v1.GetTaskLabelConfigRequest
+	84,  // 145: nnx.v1.NNXService.UpdateTaskLabelConfig:input_type -> nnx.v1.UpdateTaskLabelConfigRequest
+	86,  // 146: nnx.v1.NNXService.UpdateGitHubSyncConfig:input_type -> nnx.v1.UpdateGitHubSyncConfigRequest
+	88,  // 147: nnx.v1.NNXService.UpdateLanguageConfig:input_type -> nnx.v1.UpdateLanguageConfigRequest
+	90,  // 148: nnx.v1.NNXService.AddGitHubHost:input_type -> nnx.v1.AddGitHubHostRequest
+	92,  // 149: nnx.v1.NNXService.UpdateGitHubHost:input_type -> nnx.v1.UpdateGitHubHostRequest
+	94,  // 150: nnx.v1.NNXService.DeleteGitHubHost:input_type -> nnx.v1.DeleteGitHubHostRequest
+	96,  // 151: nnx.v1.NNXService.AddGitHubAuthMethod:input_type -> nnx.v1.AddGitHubAuthMethodRequest
+	98,  // 152: nnx.v1.NNXService.UpdateGitHubAuthMethod:input_type -> nnx.v1.UpdateGitHubAuthMethodRequest
+	100, // 153: nnx.v1.NNXService.DeleteGitHubAuthMethod:input_type -> nnx.v1.DeleteGitHubAuthMethodRequest
+	102, // 154: nnx.v1.NNXService.ReorderGitHubAuthMethods:input_type -> nnx.v1.ReorderGitHubAuthMethodsRequest
+	104, // 155: nnx.v1.NNXService.ValidateConfig:input_type -> nnx.v1.ValidateConfigRequest
+	107, // 156: nnx.v1.NNXService.GetPromptTemplates:input_type -> nnx.v1.GetPromptTemplatesRequest
+	109, // 157: nnx.v1.NNXService.UpdatePromptTemplates:input_type -> nnx.v1.UpdatePromptTemplatesRequest
+	111, // 158: nnx.v1.NNXService.GetTaskPrompt:input_type -> nnx.v1.GetTaskPromptRequest
+	113, // 159: nnx.v1.NNXService.GetBatchPrompt:input_type -> nnx.v1.GetBatchPromptRequest
+	35,  // 160: nnx.v1.NNXService.GetSnapshot:output_type -> nnx.v1.GetSnapshotResponse
+	37,  // 161: nnx.v1.NNXService.WatchRevision:output_type -> nnx.v1.WatchRevisionResponse
+	39,  // 162: nnx.v1.NNXService.CreateProject:output_type -> nnx.v1.CreateProjectResponse
+	41,  // 163: nnx.v1.NNXService.UpdateProject:output_type -> nnx.v1.UpdateProjectResponse
+	43,  // 164: nnx.v1.NNXService.DeleteProject:output_type -> nnx.v1.DeleteProjectResponse
+	45,  // 165: nnx.v1.NNXService.CreateFeature:output_type -> nnx.v1.CreateFeatureResponse
+	47,  // 166: nnx.v1.NNXService.UpdateFeature:output_type -> nnx.v1.UpdateFeatureResponse
+	49,  // 167: nnx.v1.NNXService.DeleteFeature:output_type -> nnx.v1.DeleteFeatureResponse
+	51,  // 168: nnx.v1.NNXService.CreateTask:output_type -> nnx.v1.CreateTaskResponse
+	53,  // 169: nnx.v1.NNXService.UpdateTask:output_type -> nnx.v1.UpdateTaskResponse
+	55,  // 170: nnx.v1.NNXService.DeleteTask:output_type -> nnx.v1.DeleteTaskResponse
+	57,  // 171: nnx.v1.NNXService.AddDependency:output_type -> nnx.v1.AddDependencyResponse
+	59,  // 172: nnx.v1.NNXService.RemoveDependency:output_type -> nnx.v1.RemoveDependencyResponse
+	61,  // 173: nnx.v1.NNXService.AttachPullRequest:output_type -> nnx.v1.AttachPullRequestResponse
+	63,  // 174: nnx.v1.NNXService.DetachPullRequest:output_type -> nnx.v1.DetachPullRequestResponse
+	65,  // 175: nnx.v1.NNXService.AddDocument:output_type -> nnx.v1.AddDocumentResponse
+	67,  // 176: nnx.v1.NNXService.GetDocument:output_type -> nnx.v1.GetDocumentResponse
+	69,  // 177: nnx.v1.NNXService.UpdateDocument:output_type -> nnx.v1.UpdateDocumentResponse
+	71,  // 178: nnx.v1.NNXService.DeleteDocument:output_type -> nnx.v1.DeleteDocumentResponse
+	73,  // 179: nnx.v1.NNXService.ReadDocumentContent:output_type -> nnx.v1.ReadDocumentContentResponse
+	75,  // 180: nnx.v1.NNXService.SelectLocalFile:output_type -> nnx.v1.SelectLocalFileResponse
+	116, // 181: nnx.v1.NNXService.Sync:output_type -> nnx.v1.SyncResponse
+	119, // 182: nnx.v1.NNXService.GetGitHubSyncStatus:output_type -> nnx.v1.GetGitHubSyncStatusResponse
+	121, // 183: nnx.v1.NNXService.SyncGitHubIfDue:output_type -> nnx.v1.SyncGitHubIfDueResponse
+	125, // 184: nnx.v1.NNXService.GetUpdateStatus:output_type -> nnx.v1.GetUpdateStatusResponse
+	127, // 185: nnx.v1.NNXService.SkipUpdateVersion:output_type -> nnx.v1.SkipUpdateVersionResponse
+	129, // 186: nnx.v1.NNXService.ApplyUpdate:output_type -> nnx.v1.ApplyUpdateResponse
+	131, // 187: nnx.v1.NNXService.Validate:output_type -> nnx.v1.ValidateResponse
+	151, // 188: nnx.v1.NNXService.GetDebugReport:output_type -> nnx.v1.GetDebugReportResponse
+	80,  // 189: nnx.v1.NNXService.GetConfig:output_type -> nnx.v1.GetConfigResponse
+	83,  // 190: nnx.v1.NNXService.GetTaskLabelConfig:output_type -> nnx.v1.GetTaskLabelConfigResponse
+	85,  // 191: nnx.v1.NNXService.UpdateTaskLabelConfig:output_type -> nnx.v1.UpdateTaskLabelConfigResponse
+	87,  // 192: nnx.v1.NNXService.UpdateGitHubSyncConfig:output_type -> nnx.v1.UpdateGitHubSyncConfigResponse
+	89,  // 193: nnx.v1.NNXService.UpdateLanguageConfig:output_type -> nnx.v1.UpdateLanguageConfigResponse
+	91,  // 194: nnx.v1.NNXService.AddGitHubHost:output_type -> nnx.v1.AddGitHubHostResponse
+	93,  // 195: nnx.v1.NNXService.UpdateGitHubHost:output_type -> nnx.v1.UpdateGitHubHostResponse
+	95,  // 196: nnx.v1.NNXService.DeleteGitHubHost:output_type -> nnx.v1.DeleteGitHubHostResponse
+	97,  // 197: nnx.v1.NNXService.AddGitHubAuthMethod:output_type -> nnx.v1.AddGitHubAuthMethodResponse
+	99,  // 198: nnx.v1.NNXService.UpdateGitHubAuthMethod:output_type -> nnx.v1.UpdateGitHubAuthMethodResponse
+	101, // 199: nnx.v1.NNXService.DeleteGitHubAuthMethod:output_type -> nnx.v1.DeleteGitHubAuthMethodResponse
+	103, // 200: nnx.v1.NNXService.ReorderGitHubAuthMethods:output_type -> nnx.v1.ReorderGitHubAuthMethodsResponse
+	105, // 201: nnx.v1.NNXService.ValidateConfig:output_type -> nnx.v1.ValidateConfigResponse
+	108, // 202: nnx.v1.NNXService.GetPromptTemplates:output_type -> nnx.v1.GetPromptTemplatesResponse
+	110, // 203: nnx.v1.NNXService.UpdatePromptTemplates:output_type -> nnx.v1.UpdatePromptTemplatesResponse
+	112, // 204: nnx.v1.NNXService.GetTaskPrompt:output_type -> nnx.v1.GetTaskPromptResponse
+	114, // 205: nnx.v1.NNXService.GetBatchPrompt:output_type -> nnx.v1.GetBatchPromptResponse
+	160, // [160:206] is the sub-list for method output_type
+	114, // [114:160] is the sub-list for method input_type
+	114, // [114:114] is the sub-list for extension type_name
+	114, // [114:114] is the sub-list for extension extendee
+	0,   // [0:114] is the sub-list for field type_name
 }
 
 func init() { file_nnx_v1_nnx_proto_init() }
@@ -11581,7 +11682,7 @@ func file_nnx_v1_nnx_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_nnx_v1_nnx_proto_rawDesc), len(file_nnx_v1_nnx_proto_rawDesc)),
-			NumEnums:      16,
+			NumEnums:      17,
 			NumMessages:   137,
 			NumExtensions: 0,
 			NumServices:   1,

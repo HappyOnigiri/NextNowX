@@ -126,6 +126,7 @@ function buildRawNodes({
           title: task.title,
           assignee: task.assignee,
           state: task.displayState,
+          kind: task.kind,
           ...(taskLabelAppearances ? { taskLabelAppearances } : {}),
           dormant: isDormantTask(task),
           blocked: isDependencyBlockedTask(task),

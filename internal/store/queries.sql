@@ -60,8 +60,8 @@ WHERE id=? RETURNING *;
 DELETE FROM features WHERE id=?;
 
 -- name: CreateTask :one
-INSERT INTO tasks (id, public_id, feature_id, title, scope, status, assignee, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *;
+INSERT INTO tasks (id, public_id, feature_id, title, scope, status, assignee, created_at, updated_at, kind)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *;
 
 -- name: GetTask :one
 SELECT * FROM tasks WHERE id=?;
@@ -76,7 +76,7 @@ SELECT * FROM tasks ORDER BY created_at, id;
 SELECT * FROM tasks WHERE feature_id=? ORDER BY created_at, id;
 
 -- name: UpdateTask :one
-UPDATE tasks SET title=?, scope=?, status=?, assignee=?, updated_at=? WHERE id=? RETURNING *;
+UPDATE tasks SET title=?, scope=?, status=?, assignee=?, updated_at=?, kind=? WHERE id=? RETURNING *;
 
 -- name: DeleteTask :exec
 DELETE FROM tasks WHERE id=?;

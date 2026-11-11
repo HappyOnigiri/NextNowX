@@ -100,7 +100,9 @@ func rpcError(err error) error {
 	}
 	code := connect.CodeInvalidArgument
 	switch domainErr.Code {
-	case domain.DomainErrorCodeCrossFeatureDependency,
+	case domain.DomainErrorCodeInvalidTaskKind,
+		domain.DomainErrorCodePullRequestOnWorkTask,
+		domain.DomainErrorCodeCrossFeatureDependency,
 		domain.DomainErrorCodeInvalidDatabase,
 		domain.DomainErrorCodeInvalidDocument,
 		domain.DomainErrorCodeInvalidDocumentKind,
@@ -257,12 +259,17 @@ func (h *Handler) CreateTask(
 	ctx context.Context,
 	req *connect.Request[nnxv1.CreateTaskRequest],
 ) (*connect.Response[nnxv1.CreateTaskResponse], error) {
+	kind, err := domainTaskKind(req.Msg.GetKind(), true)
+	if err != nil {
+		return nil, rpcError(err)
+	}
 	value, err := h.service.CreateTask(
 		ctx,
 		req.Msg.GetFeatureId(),
 		req.Msg.GetTitle(),
 		req.Msg.GetScope(),
 		req.Msg.GetAssignee(),
+		kind,
 	)
 	if err != nil {
 		return nil, rpcError(err)
@@ -298,7 +305,15 @@ func (h *Handler) UpdateTask(
 	if req.Msg.Assignee != nil {
 		assigneePointer = &assigneeValue
 	}
-	value, err := h.service.UpdateTask(ctx, req.Msg.GetId(), titlePointer, scopePointer, status, assigneePointer)
+	var kind *domain.TaskKind
+	if req.Msg.Kind != nil {
+		value, err := domainTaskKind(req.Msg.GetKind(), false)
+		if err != nil {
+			return nil, rpcError(err)
+		}
+		kind = &value
+	}
+	value, err := h.service.UpdateTask(ctx, req.Msg.GetId(), titlePointer, scopePointer, status, assigneePointer, kind)
 	if err != nil {
 		return nil, rpcError(err)
 	}

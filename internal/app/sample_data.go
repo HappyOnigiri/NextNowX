@@ -88,12 +88,12 @@ func (s *Service) seedSampleGraph(ctx context.Context, projectID string, text sa
 	}
 	tasks := make([]domain.Task, len(text.tasks))
 	for index, value := range text.tasks {
-		task, err := s.CreateTask(ctx, feature.ID, value.title, value.scope, "")
+		task, err := s.CreateTask(ctx, feature.ID, value.title, value.scope, "", "")
 		if err != nil {
 			return err
 		}
 		if status := sampleTaskStatuses[index]; status != domain.TaskStatusNotStarted {
-			if task, err = s.UpdateTask(ctx, task.ID, nil, nil, &status, nil); err != nil {
+			if task, err = s.UpdateTask(ctx, task.ID, nil, nil, &status, nil, nil); err != nil {
 				return err
 			}
 		}
