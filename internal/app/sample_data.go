@@ -17,8 +17,8 @@ type DatabaseFileCreator interface {
 
 // sampleTaskText はサンプルの task 1 件分の文言。status と依存はグラフ側が持つ。
 type sampleTaskText struct {
-	title string
-	scope string
+	title       string
+	description string
 }
 
 // sampleDataText はサンプルデータの文言一式。実効言語ごとに 1 つ用意する。
@@ -88,12 +88,18 @@ func (s *Service) seedSampleGraph(ctx context.Context, projectID string, text sa
 	}
 	tasks := make([]domain.Task, len(text.tasks))
 	for index, value := range text.tasks {
-		task, err := s.CreateTask(ctx, feature.ID, value.title, value.scope, "")
+		task, err := s.CreateTask(ctx, feature.ID, value.title, "")
 		if err != nil {
 			return err
 		}
+		if value.description != "" {
+			if _, err := s.AddDocument(ctx, domain.DocumentParent{TaskID: task.ID},
+				domain.DocumentKindMarkdown, "", "", value.description, false); err != nil {
+				return err
+			}
+		}
 		if status := sampleTaskStatuses[index]; status != domain.TaskStatusNotStarted {
-			if task, err = s.UpdateTask(ctx, task.ID, nil, nil, &status, nil); err != nil {
+			if task, err = s.UpdateTask(ctx, task.ID, nil, &status, nil); err != nil {
 				return err
 			}
 		}
@@ -144,12 +150,12 @@ func englishSampleText() sampleDataText {
 		documentContent:    englishSampleDocument,
 		planContent:        englishSamplePlan,
 		tasks: []sampleTaskText{
-			{title: "Sketch the plan", scope: "Agree on what this feature delivers"},
-			{title: "Prepare the workspace", scope: "Get the tools and the repository ready"},
-			{title: "Build the core flow", scope: "Implement the path that everything else needs"},
-			{title: "Write the guide", scope: "Describe the feature for the people who use it"},
-			{title: "Polish the UI", scope: "Finish the screens on top of the core flow"},
-			{title: "Ship the release", scope: "Cut the release once the work above lands"},
+			{title: "Sketch the plan", description: "Agree on what this feature delivers"},
+			{title: "Prepare the workspace", description: "Get the tools and the repository ready"},
+			{title: "Build the core flow", description: "Implement the path that everything else needs"},
+			{title: "Write the guide", description: "Describe the feature for the people who use it"},
+			{title: "Polish the UI", description: "Finish the screens on top of the core flow"},
+			{title: "Ship the release", description: "Cut the release once the work above lands"},
 		},
 	}
 }

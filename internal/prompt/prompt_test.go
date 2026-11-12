@@ -12,7 +12,6 @@ import (
 func designTask() domain.Task {
 	return domain.Task{
 		ID: "T-7", FeatureID: "F-3", Title: "Add the checkout API",
-		Scope: "Server only",
 	}
 }
 
@@ -46,20 +45,7 @@ func TestRenderExpandsEveryPlaceholderOfTheSelectedTemplate(t *testing.T) {
 	if kind != prompt.KindDesign {
 		t.Fatalf("kind=%q, want %q", kind, prompt.KindDesign)
 	}
-	if want := "design T-7 F-3 Add the checkout API Server only"; body != want {
-		t.Fatalf("body=%q, want %q", body, want)
-	}
-
-	// タスクはスコープなしでも作れるが、テンプレートは「上記のスコープ」内に
-	// 留まるよう指示する。そこが空行だと、制約がないのではなく値の読み込みに
-	// 失敗したと読めてしまう。
-	scopeless := designTask()
-	scopeless.Scope = "  "
-	_, body, err = prompt.Render(scopeless, "", templates, prompt.LanguageEnglish)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if want := "design T-7 F-3 Add the checkout API (not specified)"; body != want {
+	if want := "design T-7 F-3 Add the checkout API nnx document --task T-7"; body != want {
 		t.Fatalf("body=%q, want %q", body, want)
 	}
 

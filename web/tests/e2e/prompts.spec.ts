@@ -53,7 +53,6 @@ test("copies a task prompt built from the configured template", async ({
   await page.getByRole("button", { name: "Add task" }).first().click();
   const taskDialog = page.getByRole("form", { name: "Create task" });
   await taskDialog.getByLabel("Title").fill("E2E prompt task");
-  await taskDialog.getByLabel("Scope").fill("Prompt boundary");
   await taskDialog.getByRole("button", { name: "Add task" }).click();
   await expect(
     page.locator(".task-node").filter({ hasText: "E2E prompt task" }),

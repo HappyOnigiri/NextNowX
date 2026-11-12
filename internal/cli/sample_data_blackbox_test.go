@@ -72,8 +72,8 @@ func TestSetupSeedsSampleDataIntoTheRealDatabase(t *testing.T) {
 	}
 	snapshot := readSampleSnapshot(t, binary, dbPath)
 	if len(snapshot.Projects) != 1 || len(snapshot.Features) != 1 ||
-		len(snapshot.Tasks) != 6 || len(snapshot.Documents) != 2 {
-		t.Fatalf("snapshot=%+v, want 1 project, 1 feature, 6 tasks and 2 documents", snapshot)
+		len(snapshot.Tasks) != 6 || len(snapshot.Documents) != 8 {
+		t.Fatalf("snapshot=%+v, want 1 project, 1 feature, 6 tasks and 8 documents", snapshot)
 	}
 	if len(snapshot.PullRequests) != 0 {
 		t.Errorf("pull requests=%d, want none", len(snapshot.PullRequests))

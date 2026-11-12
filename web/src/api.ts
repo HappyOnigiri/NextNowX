@@ -188,16 +188,11 @@ export const mutations = {
     client.deleteFeature(
       create(DeleteFeatureRequestSchema, { id, cascade: true }),
     ),
-  createTask: (input: {
-    featureId: string;
-    title: string;
-    scope: string;
-    assignee: string;
-  }) => client.createTask(create(CreateTaskRequestSchema, input)),
+  createTask: (input: { featureId: string; title: string; assignee: string }) =>
+    client.createTask(create(CreateTaskRequestSchema, input)),
   updateTask: (input: {
     id: string;
     title?: string;
-    scope?: string;
     status?: TaskStatus;
     assignee?: string;
   }) => client.updateTask(create(UpdateTaskRequestSchema, input)),

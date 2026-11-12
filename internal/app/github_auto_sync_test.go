@@ -33,7 +33,7 @@ func TestAutomaticSyncClaimsOnceAndFiltersArchivedButRefreshesMergedPullRequests
 	service := app.NewWithConfig(database, provider, configStore)
 
 	active := newFeature(t, ctx, service, "Active sync")
-	activeTask, err := service.CreateTask(ctx, active.ID, "Active PR", "", "")
+	activeTask, err := service.CreateTask(ctx, active.ID, "Active PR", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +54,7 @@ func TestAutomaticSyncClaimsOnceAndFiltersArchivedButRefreshesMergedPullRequests
 	if err != nil {
 		t.Fatal(err)
 	}
-	mergedTask, err := service.CreateTask(ctx, active.ID, "Merged PR", "", "")
+	mergedTask, err := service.CreateTask(ctx, active.ID, "Merged PR", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,7 +126,7 @@ func archivedFeatureWithPullRequest(
 	t.Helper()
 	ctx := context.Background()
 	feature := newFeature(t, ctx, service, slug)
-	task, err := service.CreateTask(ctx, feature.ID, "Archived PR", "", "")
+	task, err := service.CreateTask(ctx, feature.ID, "Archived PR", "")
 	if err != nil {
 		return domain.Task{}, err
 	}
@@ -157,7 +157,7 @@ func featureInArchivedProjectWithPullRequest(
 	if err != nil {
 		return domain.Task{}, err
 	}
-	task, err := service.CreateTask(ctx, feature.ID, "Project PR", "", "")
+	task, err := service.CreateTask(ctx, feature.ID, "Project PR", "")
 	if err != nil {
 		return domain.Task{}, err
 	}
@@ -179,7 +179,7 @@ func TestTargetedManualSyncLeavesTheAutomaticIntervalAndStatusUntouched(t *testi
 	defer func() { _ = database.Close() }()
 
 	feature := newFeature(t, ctx, service, "Targeted")
-	task, err := service.CreateTask(ctx, feature.ID, "Targeted PR", "", "")
+	task, err := service.CreateTask(ctx, feature.ID, "Targeted PR", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -231,7 +231,7 @@ func TestAutomaticSyncRecordsTheRunAfterTheCallerCancels(t *testing.T) {
 	)
 
 	feature := newFeature(t, context.Background(), service, "Cancelled")
-	task, err := service.CreateTask(context.Background(), feature.ID, "PR", "", "")
+	task, err := service.CreateTask(context.Background(), feature.ID, "PR", "")
 	if err != nil {
 		t.Fatal(err)
 	}

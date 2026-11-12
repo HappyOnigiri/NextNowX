@@ -12,12 +12,12 @@ import (
 )
 
 type demoTask struct {
-	title    string
-	scope    string
-	status   domain.TaskStatus
-	assignee string
-	plan     string
-	pr       *domain.PullRequest
+	title       string
+	description string
+	status      domain.TaskStatus
+	assignee    string
+	plan        string
+	pr          *domain.PullRequest
 }
 
 func demoPullRequestURL(pr domain.PullRequest) string {
@@ -181,27 +181,27 @@ func (s *Service) createPausedDemo(ctx context.Context, projectID string) error 
 	}
 	pausedTasks, err := s.createDemoTasks(ctx, paused, []demoTask{
 		{
-			title:    "Foundation complete",
-			scope:    "Shared rollout foundation",
-			status:   domain.TaskStatusCompleted,
-			assignee: "Bob",
+			title:       "Foundation complete",
+			description: "Shared rollout foundation",
+			status:      domain.TaskStatusCompleted,
+			assignee:    "Bob",
 		},
 		{
-			title:  "Prepare operator guide",
-			scope:  "Document the rollout",
-			status: domain.TaskStatusNotStarted,
+			title:       "Prepare operator guide",
+			description: "Document the rollout",
+			status:      domain.TaskStatusNotStarted,
 		},
 		{
-			title:    "Run limited rollout",
-			scope:    "Exercise the first cohort",
-			status:   domain.TaskStatusInProgress,
-			assignee: "Carol",
+			title:       "Run limited rollout",
+			description: "Exercise the first cohort",
+			status:      domain.TaskStatusInProgress,
+			assignee:    "Carol",
 		},
 		{
-			title:    "Complete general rollout",
-			scope:    "Merge both rollout branches",
-			status:   domain.TaskStatusNotStarted,
-			assignee: "Alice",
+			title:       "Complete general rollout",
+			description: "Merge both rollout branches",
+			status:      domain.TaskStatusNotStarted,
+			assignee:    "Alice",
 		},
 	})
 	if err != nil {
@@ -251,21 +251,21 @@ func (s *Service) createCancelledDemo(ctx context.Context, projectID string) err
 	}
 	cancelledTasks, err := s.createDemoTasks(ctx, cancelled, []demoTask{
 		{
-			title:    "Record experiment",
-			scope:    "Preserve the original hypothesis",
-			status:   domain.TaskStatusCompleted,
-			assignee: "Alice",
+			title:       "Record experiment",
+			description: "Preserve the original hypothesis",
+			status:      domain.TaskStatusCompleted,
+			assignee:    "Alice",
 		},
 		{
-			title:    "Close implementation",
-			scope:    "Stop implementation work",
-			status:   domain.TaskStatusClosed,
-			assignee: "Bob",
+			title:       "Close implementation",
+			description: "Stop implementation work",
+			status:      domain.TaskStatusClosed,
+			assignee:    "Bob",
 		},
 		{
-			title:  "Capture decision",
-			scope:  "Document the cancellation",
-			status: domain.TaskStatusCompleted,
+			title:       "Capture decision",
+			description: "Document the cancellation",
+			status:      domain.TaskStatusCompleted,
 		},
 	})
 	if err != nil {
@@ -302,16 +302,16 @@ func (s *Service) createSunsetPostmortemDemo(ctx context.Context, projectID stri
 	}
 	tasks, err := s.createDemoTasks(ctx, postmortem, []demoTask{
 		{
-			title:    "Collect lessons",
-			scope:    "Summarize what the experiment showed",
-			status:   domain.TaskStatusCompleted,
-			assignee: "Alice",
+			title:       "Collect lessons",
+			description: "Summarize what the experiment showed",
+			status:      domain.TaskStatusCompleted,
+			assignee:    "Alice",
 		},
 		{
-			title:    "Share the summary",
-			scope:    "Hand the summary to the teams that asked for it",
-			status:   domain.TaskStatusCompleted,
-			assignee: "Bob",
+			title:       "Share the summary",
+			description: "Hand the summary to the teams that asked for it",
+			status:      domain.TaskStatusCompleted,
+			assignee:    "Bob",
 		},
 	})
 	if err != nil {
@@ -328,13 +328,19 @@ func (s *Service) createDemoTasks(
 ) ([]domain.Task, error) {
 	tasks := make([]domain.Task, len(values))
 	for index, value := range values {
-		task, err := s.CreateTask(ctx, feature.ID, value.title, value.scope, value.assignee)
+		task, err := s.CreateTask(ctx, feature.ID, value.title, value.assignee)
 		if err != nil {
 			return nil, err
 		}
+		if value.description != "" {
+			if _, err := s.AddDocument(ctx, domain.DocumentParent{TaskID: task.ID},
+				domain.DocumentKindMarkdown, "", "", value.description, false); err != nil {
+				return nil, err
+			}
+		}
 		if value.status != domain.TaskStatusNotStarted {
 			status := value.status
-			task, err = s.UpdateTask(ctx, task.ID, nil, nil, &status, nil)
+			task, err = s.UpdateTask(ctx, task.ID, nil, &status, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -375,10 +381,10 @@ func completedDemoTasks() []demoTask {
 	tasks := make([]demoTask, 100)
 	for index := range tasks {
 		tasks[index] = demoTask{
-			title:    fmt.Sprintf("Completed delivery slice %03d", index+1),
-			scope:    "A completed repository delivery boundary",
-			status:   domain.TaskStatusNotStarted,
-			assignee: []string{"Alice", "Bob", "Carol"}[index%3],
+			title:       fmt.Sprintf("Completed delivery slice %03d", index+1),
+			description: "A completed repository delivery boundary",
+			status:      domain.TaskStatusNotStarted,
+			assignee:    []string{"Alice", "Bob", "Carol"}[index%3],
 			pr: &domain.PullRequest{
 				Host: "github.com", Owner: "nnx-demo", Repository: "nnx-demo-scale",
 				Number: int64(1001 + index), State: domain.PullRequestStateMerged,
@@ -393,41 +399,41 @@ func completedDemoTasks() []demoTask {
 func showcaseManualTasks() []demoTask {
 	return []demoTask{
 		{
-			title:  "Define rollout scope",
-			scope:  "A ready manual task",
-			status: domain.TaskStatusNotStarted,
+			title:       "Define rollout scope",
+			description: "A ready manual task",
+			status:      domain.TaskStatusNotStarted,
 		},
 		{
-			title:    "Design dependency policy",
-			scope:    "A planned task waiting on scope",
-			status:   domain.TaskStatusNotStarted,
-			assignee: "Bob",
-			plan:     "1. Confirm dependency direction.\n2. Document readiness rules.\n3. Verify the graph.",
+			title:       "Design dependency policy",
+			description: "A planned task waiting on scope",
+			status:      domain.TaskStatusNotStarted,
+			assignee:    "Bob",
+			plan:        "1. Confirm dependency direction.\n2. Document readiness rules.\n3. Verify the graph.",
 		},
 		{
-			title:    "Implement command surface",
-			scope:    "Explicitly in-progress work",
-			status:   domain.TaskStatusInProgress,
-			assignee: "Carol",
+			title:       "Implement command surface",
+			description: "Explicitly in-progress work",
+			status:      domain.TaskStatusInProgress,
+			assignee:    "Carol",
 		},
 		{
-			title:    "Verify storage boundary",
-			scope:    "Explicitly completed work",
-			status:   domain.TaskStatusCompleted,
-			assignee: "Alice",
+			title:       "Verify storage boundary",
+			description: "Explicitly completed work",
+			status:      domain.TaskStatusCompleted,
+			assignee:    "Alice",
 		},
 		{
-			title:  "Retire legacy path",
-			scope:  "Explicitly closed work",
-			status: domain.TaskStatusClosed,
+			title:       "Retire legacy path",
+			description: "Explicitly closed work",
+			status:      domain.TaskStatusClosed,
 		},
 		{
 			// 手作業の承認は pull request を持たないので、進行中のまま実装済みの
 			// pull request を止めておける。依存未解決のラベルはここから伸ばす。
-			title:    "Approve rollout policy",
-			scope:    "Manual sign-off that never gets a pull request",
-			status:   domain.TaskStatusInProgress,
-			assignee: "Bob",
+			title:       "Approve rollout policy",
+			description: "Manual sign-off that never gets a pull request",
+			status:      domain.TaskStatusInProgress,
+			assignee:    "Bob",
 		},
 	}
 }
@@ -497,7 +503,7 @@ func showcasePullRequestTasks() []demoTask {
 }
 
 func demoPullRequestTask(
-	title, scope, repository string,
+	title, description, repository string,
 	number int64,
 	state domain.PullRequestState,
 	draft bool,
@@ -506,7 +512,7 @@ func demoPullRequestTask(
 	assignee string,
 ) demoTask {
 	return demoTask{
-		title: title, scope: scope,
+		title: title, description: description,
 		status: domain.TaskStatusNotStarted, assignee: assignee,
 		pr: &domain.PullRequest{
 			Host: "github.com", Owner: "nnx-demo", Repository: repository,

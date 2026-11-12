@@ -112,7 +112,6 @@ type Task struct {
 	ID        string `json:"id"`
 	FeatureID string `json:"feature_id"`
 	Title     string `json:"title"`
-	Scope     string `json:"scope"`
 	Status    string `json:"status"`
 	Assignee  string `json:"assignee"`
 	CreatedAt string `json:"created_at"`

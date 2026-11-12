@@ -209,7 +209,6 @@ type Task struct {
 	FeatureID             string            `json:"feature_id"`
 	StorageFeatureID      string            `json:"-"`
 	Title                 string            `json:"title"`
-	Scope                 string            `json:"scope"`
 	Status                TaskStatus        `json:"status"`
 	Assignee              string            `json:"assignee"`
 	HasImplementationPlan bool              `json:"has_implementation_plan"`

@@ -48,11 +48,11 @@ type Service interface {
 	GetNode(ctx context.Context, id string) (any, error)
 	DeleteFeature(ctx context.Context, id string, cascade bool) error
 
-	CreateTask(ctx context.Context, featureID, title, scope, assignee string) (domain.Task, error)
+	CreateTask(ctx context.Context, featureID, title, assignee string) (domain.Task, error)
 	UpdateTask(
 		ctx context.Context,
 		id string,
-		title, scope *string,
+		title *string,
 		status *domain.TaskStatus,
 		assignee *string,
 	) (domain.Task, error)

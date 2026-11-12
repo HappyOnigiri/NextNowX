@@ -95,7 +95,6 @@ export async function submitCreateTask(
   const dialog = page.getByRole("form", { name: "Create task" });
   if (relation !== undefined) await expect(dialog).toContainText(relation);
   await dialog.getByLabel("Title").fill(title);
-  await dialog.getByLabel("Scope").fill(`Acceptance boundary for ${title}`);
   await dialog.getByLabel("Assignee").fill("Bob");
   await dialog.getByRole("button", { name: "Add task" }).click();
   await expect(dialog).toBeHidden();
