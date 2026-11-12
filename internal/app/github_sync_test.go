@@ -149,6 +149,7 @@ func addSyncPullRequest(
 		snapshot.Features[0].ID,
 		fmt.Sprintf("PR %d", number),
 		"",
+		"",
 	)
 	if err != nil {
 		t.Fatal(err)

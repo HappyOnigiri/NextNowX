@@ -253,6 +253,8 @@ export const errorKeys = {
   [DomainErrorCode.INVALID_PARENT]: "error.invalidParent",
   [DomainErrorCode.INVALID_PULL_REQUEST_URL]: "error.invalidPullRequestUrl",
   [DomainErrorCode.INVALID_PROMPT_TEMPLATE]: "error.invalidPromptTemplate",
+  [DomainErrorCode.INVALID_TASK_KIND]: "error.invalidTaskKind",
+  [DomainErrorCode.PULL_REQUEST_ON_WORK_TASK]: "error.pullRequestOnWorkTask",
   [DomainErrorCode.INVALID_STATUS]: "error.invalidStatus",
   [DomainErrorCode.INVALID_TASK_LABEL]: "error.invalidTaskLabel",
   [DomainErrorCode.INVALID_TITLE]: "error.invalidTitle",

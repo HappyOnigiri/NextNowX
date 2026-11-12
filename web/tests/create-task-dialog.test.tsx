@@ -6,6 +6,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { TaskKind } from "../src/gen/nnx/v1/nnx_pb";
 import { CreateTaskDialog } from "../src/views/CreateTaskDialog";
 
 const dialogMocks = vi.hoisted(() => ({
@@ -80,6 +81,7 @@ describe("CreateTaskDialog", () => {
     });
     expect(dialogMocks.createTask).toHaveBeenCalledWith({
       featureId: "feature-1",
+      kind: TaskKind.DEVELOPMENT,
       title: "Implement checkout",
       assignee: "Carol",
     });
@@ -192,6 +194,7 @@ describe("CreateTaskDialog", () => {
     await waitFor(() => {
       expect(dialogMocks.updateTask).toHaveBeenCalledWith({
         id: "task-new",
+        kind: TaskKind.DEVELOPMENT,
         title: "Implement refunds",
         assignee: "",
       });
@@ -283,5 +286,20 @@ describe("CreateTaskDialog", () => {
     expect(screen.getByRole("button", { name: "Add task" })).toBeDisabled();
     expect(screen.getAllByRole("alert")).toHaveLength(1);
     expect(screen.getByRole("alert")).toHaveTextContent("server rejected task");
+  });
+  it("defaults to Development and can create Work", async () => {
+    render(<CreateTaskDialog featureId="feature-1" onClose={vi.fn()} />);
+    expect(screen.getByLabelText("Kind")).toHaveValue(
+      String(TaskKind.DEVELOPMENT),
+    );
+    fireEvent.change(screen.getByLabelText("Kind"), {
+      target: { value: String(TaskKind.WORK) },
+    });
+    submitForm({ title: "Manual task" });
+    await waitFor(() => {
+      expect(dialogMocks.createTask).toHaveBeenCalledWith(
+        expect.objectContaining({ kind: TaskKind.WORK }),
+      );
+    });
   });
 });

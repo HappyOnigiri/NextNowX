@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { mutations } from "../api";
-import type { Task, TaskStatus } from "../gen/nnx/v1/nnx_pb";
+import type { Task, TaskKind, TaskStatus } from "../gen/nnx/v1/nnx_pb";
 import { useDomainMutation } from "../hooks";
 
 interface TaskDraft {
   title: string;
   status: TaskStatus;
+  kind: TaskKind;
   assignee: string;
 }
 
@@ -22,6 +23,7 @@ function draftOf(task: Task): TaskDraft {
   return {
     title: task.title,
     status: task.status,
+    kind: task.kind,
     assignee: task.assignee,
   };
 }
@@ -38,6 +40,7 @@ export function useTaskDraft(task: Task): TaskDraftController {
     dirty:
       draft.title !== saved.title ||
       draft.status !== saved.status ||
+      draft.kind !== saved.kind ||
       draft.assignee !== saved.assignee,
     pending: updateTask.isPending,
     error: updateTask.error,

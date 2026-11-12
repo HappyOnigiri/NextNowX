@@ -30,6 +30,9 @@ export const errors = {
       invalidPullRequestUrl: "Enter a github.com pull request URL.",
       invalidPromptTemplate: "The prompt template is invalid.",
       invalidStatus: "The selected status is invalid.",
+      invalidTaskKind: "The selected task kind is invalid.",
+      pullRequestOnWorkTask:
+        "Work tasks cannot have a pull request. Detach the pull request before changing the kind.",
       invalidTaskLabel: "The task label is invalid.",
       invalidTitle: "Enter a title.",
       notFound: "The requested item was not found.",
@@ -71,6 +74,9 @@ export const errors = {
         "github.com のプルリクエスト URL を入力してください。",
       invalidPromptTemplate: "プロンプトテンプレートが正しくありません。",
       invalidStatus: "選択したステータスは正しくありません。",
+      invalidTaskKind: "選択したタスクの種類は正しくありません。",
+      pullRequestOnWorkTask:
+        "作業には PR を紐づけられません。種類を変更する前に PR の紐づけを解除してください。",
       invalidTaskLabel: "タスクラベルが正しくありません。",
       invalidTitle: "タイトルを入力してください。",
       notFound: "指定された項目が見つかりません。",

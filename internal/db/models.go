@@ -117,6 +117,7 @@ type Task struct {
 	CreatedAt string `json:"created_at"`
 	UpdatedAt string `json:"updated_at"`
 	PublicID  string `json:"public_id"`
+	Kind      string `json:"kind"`
 }
 
 type UpdateCheckState struct {

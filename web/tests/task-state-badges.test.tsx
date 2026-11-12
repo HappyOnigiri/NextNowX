@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   TaskBlockLabel,
   TaskDisplayState,
+  TaskKind,
   TaskLabelAppearanceSchema,
   TaskLabelAppearancesSchema,
 } from "../src/gen/nnx/v1/nnx_pb";
@@ -218,4 +219,17 @@ describe("TaskStatusBadge", () => {
     );
     expect(container).toHaveTextContent("Unclassified");
   });
+});
+
+it("shows Work in progress as a manual status in Japanese", async () => {
+  await setDisplayLanguage("ja");
+  const { container } = render(
+    <TaskStatusBadge
+      kind={TaskKind.WORK}
+      state={TaskDisplayState.IN_PROGRESS}
+    />,
+  );
+  expect(container).toHaveTextContent("着手");
+  expect(container).not.toHaveTextContent("実装");
+  await setDisplayLanguage("en");
 });

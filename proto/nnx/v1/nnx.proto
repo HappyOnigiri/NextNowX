@@ -22,6 +22,16 @@ enum FeatureStatus {
   FEATURE_STATUS_AUTO = 5;
 }
 
+// TaskKind はタスクの種類を表す。
+enum TaskKind {
+  // TASK_KIND_UNSPECIFIED は作成時だけ開発を意味する。
+  TASK_KIND_UNSPECIFIED = 0;
+  // TASK_KIND_DEVELOPMENT は PR を紐づけられる開発タスク。
+  TASK_KIND_DEVELOPMENT = 1;
+  // TASK_KIND_WORK はステータスを手動変更する作業タスク。
+  TASK_KIND_WORK = 2;
+}
+
 // TaskStatus は task の保存されたワークフロー状態で、常に手動で設定する。
 // 未完了を表す値は紐づく pull request に譲り、完了を表す値は
 // pull request より優先される。
@@ -30,7 +40,7 @@ enum TaskStatus {
   TASK_STATUS_UNSPECIFIED = 0;
   // TASK_STATUS_NOT_STARTED は新しい task の既定値で、未着手を表す。
   TASK_STATUS_NOT_STARTED = 1;
-  // TASK_STATUS_IN_PROGRESS は pull request がない段階で実装中であることを表す。
+  // TASK_STATUS_IN_PROGRESS は開発の実装中、または作業の着手を表す。
   TASK_STATUS_IN_PROGRESS = 2;
   // TASK_STATUS_DESIGNING は実装計画がない段階で設計中であることを表す。
   TASK_STATUS_DESIGNING = 5;
@@ -46,7 +56,7 @@ enum TaskStatus {
 enum TaskDisplayState {
   // TASK_DISPLAY_STATE_UNSPECIFIED は有効な task では返らず、リクエストのフィールドでもない。
   TASK_DISPLAY_STATE_UNSPECIFIED = 0;
-  // TASK_DISPLAY_STATE_NOT_STARTED は pull request も実装計画もないことを表す。
+  // TASK_DISPLAY_STATE_NOT_STARTED は未着手の task を表す。
   TASK_DISPLAY_STATE_NOT_STARTED = 1;
   // TASK_DISPLAY_STATE_DESIGNING は実装計画がないまま設計中であることを表す。
   TASK_DISPLAY_STATE_DESIGNING = 14;
@@ -273,6 +283,10 @@ enum DomainErrorCode {
   DOMAIN_ERROR_CODE_UPDATE_FAILED = 33;
   // DOMAIN_ERROR_CODE_INVALID_TASK_LABEL は task ラベルのキーまたは表示値が不正であることを表す。
   DOMAIN_ERROR_CODE_INVALID_TASK_LABEL = 34;
+  // DOMAIN_ERROR_CODE_INVALID_TASK_KIND はタスクの種類が未対応であることを表す。
+  DOMAIN_ERROR_CODE_INVALID_TASK_KIND = 35;
+  // DOMAIN_ERROR_CODE_PULL_REQUEST_ON_WORK_TASK は作業への PR 紐づけを拒否する。
+  DOMAIN_ERROR_CODE_PULL_REQUEST_ON_WORK_TASK = 36;
 }
 
 // GitHubAuthMethodType は GitHub のトークンの取得方法を表す。
@@ -514,7 +528,7 @@ message Task {
   reserved 4;
   reserved "scope";
   reserved 5;
-  reserved "kind";
+
   // status は保存されたワークフロー制御用の値。
   TaskStatus status = 6;
   // assignee は担当者が割り当てられている場合のその人物。
@@ -538,6 +552,8 @@ message Task {
   // block_labels は task の進行を妨げている事情を、依存未解決・コンフリクト・修正依頼ありの
   // 順で並べる。blocked_reason は依存未解決ラベルの詳細にあたる。
   repeated TaskBlockLabel block_labels = 15;
+  // kind はタスクの種類。
+  TaskKind kind = 16;
 }
 
 // Dependency は 1 つの feature 内で blocker task から blocked task への有向辺を表す。
@@ -790,9 +806,11 @@ message CreateTaskRequest {
   reserved 3;
   reserved "scope";
   reserved 4;
-  reserved "kind";
+
   // assignee は task の担当者で、任意。
   string assignee = 5;
+  // kind は未指定なら開発。
+  TaskKind kind = 6;
 }
 
 // CreateTaskResponse は作成された task を返す。
@@ -814,6 +832,8 @@ message UpdateTaskRequest {
   optional TaskStatus status = 4;
   // assignee は未設定なら変更なし、空文字列ならクリアする。
   optional string assignee = 5;
+  // kind は未指定なら変更しない。
+  optional TaskKind kind = 6;
 }
 
 // UpdateTaskResponse は更新後の task を返す。

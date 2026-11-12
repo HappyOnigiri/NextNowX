@@ -15,6 +15,7 @@ import {
   DocumentKind,
   PullRequestDisplayState,
   TaskBlockLabel,
+  TaskKind,
   TaskLabelAppearanceSchema,
   TaskLabelAppearancesSchema,
   TaskStatus,
@@ -254,6 +255,7 @@ describe("TaskInspector", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save task" }));
     expect(mutationFor("updateTask").mutate).toHaveBeenCalledWith({
       id: task.id,
+      kind: TaskKind.DEVELOPMENT,
       title: "Updated task",
       status: TaskStatus.CLOSED,
       assignee: "Carol",
@@ -516,5 +518,94 @@ describe("TaskInspector", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Delete reference" }));
     expect(apiFor("deleteDocument")).toHaveBeenCalledWith("document-md");
+  });
+  it("warns before changing a linked task to Work and preserves the kind", () => {
+    const task = makeTask();
+    render(
+      <TaskInspector
+        task={task}
+        tasks={[task]}
+        pullRequest={makePullRequest()}
+        documents={[]}
+        onPreview={vi.fn()}
+        onClose={vi.fn()}
+      />,
+      { wrapper: Wrapper },
+    );
+    fireEvent.change(screen.getByLabelText("Kind"), {
+      target: { value: String(TaskKind.WORK) },
+    });
+    expect(
+      screen.getByRole("dialog", { name: "Detach the pull request first" }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Kind")).toHaveValue(
+      String(TaskKind.DEVELOPMENT),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(mutationFor("detachPR").mutate).not.toHaveBeenCalled();
+    expect(mutationFor("updateTask").mutate).not.toHaveBeenCalled();
+  });
+
+  it("offers only manual statuses for Work and hides pull request attachment", () => {
+    const task = makeTask({ kind: TaskKind.WORK });
+    render(
+      <TaskInspector
+        task={task}
+        tasks={[task]}
+        pullRequest={undefined}
+        documents={[]}
+        onPreview={vi.fn()}
+        onClose={vi.fn()}
+      />,
+      { wrapper: Wrapper },
+    );
+    expect(
+      screen.getByLabelText("Status").querySelectorAll("option"),
+    ).toHaveLength(4);
+    expect(
+      screen.queryByRole("option", { name: "Designing" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Attach" }),
+    ).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Status"), {
+      target: { value: String(TaskStatus.COMPLETED) },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save task" }));
+    expect(mutationFor("updateTask").mutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: TaskKind.WORK,
+        status: TaskStatus.COMPLETED,
+      }),
+    );
+  });
+
+  it("changes an unlinked designing task to Work with a valid manual status", () => {
+    const task = makeTask({ status: TaskStatus.DESIGNING });
+    render(
+      <TaskInspector
+        task={task}
+        tasks={[task]}
+        pullRequest={undefined}
+        documents={[]}
+        onPreview={vi.fn()}
+        onClose={vi.fn()}
+      />,
+      { wrapper: Wrapper },
+    );
+    fireEvent.change(screen.getByLabelText("Kind"), {
+      target: { value: String(TaskKind.WORK) },
+    });
+    expect(screen.getByLabelText("Status")).toHaveValue(
+      String(TaskStatus.NOT_STARTED),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Save task" }));
+    expect(mutationFor("updateTask").mutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: TaskKind.WORK,
+        status: TaskStatus.NOT_STARTED,
+      }),
+    );
   });
 });

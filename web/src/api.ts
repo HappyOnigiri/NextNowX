@@ -59,6 +59,7 @@ import {
   type GitHubSyncStatus,
   type PromptTemplates,
   type Snapshot,
+  type TaskKind,
   type TaskLabelConfig,
   type TaskLabelOverridesUpdate,
   type TaskStatus,
@@ -188,12 +189,17 @@ export const mutations = {
     client.deleteFeature(
       create(DeleteFeatureRequestSchema, { id, cascade: true }),
     ),
-  createTask: (input: { featureId: string; title: string; assignee: string }) =>
-    client.createTask(create(CreateTaskRequestSchema, input)),
+  createTask: (input: {
+    featureId: string;
+    title: string;
+    assignee: string;
+    kind?: TaskKind;
+  }) => client.createTask(create(CreateTaskRequestSchema, input)),
   updateTask: (input: {
     id: string;
     title?: string;
     status?: TaskStatus;
+    kind?: TaskKind;
     assignee?: string;
   }) => client.updateTask(create(UpdateTaskRequestSchema, input)),
   deleteTask: (id: string) =>

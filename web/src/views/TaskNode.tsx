@@ -12,6 +12,7 @@ import {
   DocumentKind,
   type TaskBlockLabel,
   type TaskDisplayState,
+  type TaskKind,
   type TaskLabelAppearances,
 } from "../gen/nnx/v1/nnx_pb";
 import { taskDisplayStateToken } from "../i18n/domain";
@@ -42,6 +43,7 @@ interface TaskNodeData extends Record<string, unknown> {
   title: string;
   assignee: string;
   state: TaskDisplayState;
+  kind?: TaskKind;
   // dormant はその task を今は見なくてよいかで、ステータス 1 つからは読み取れ
   // ない。ノードの面の明暗で示す。docs/design/webui.md を参照。
   dormant: boolean;
@@ -217,6 +219,7 @@ export function TaskNode({
       <p className="task-node-badges">
         <TaskStatusBadge
           state={data.state}
+          kind={data.kind}
           appearances={data.taskLabelAppearances}
         />
         <TaskBlockLabels

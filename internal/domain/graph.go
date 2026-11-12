@@ -122,6 +122,9 @@ func Derive(tasks []Task, deps []Dependency, prs []PullRequest) []Task {
 	result := make([]Task, len(tasks))
 	for i, task := range tasks {
 		pr := prByTask[task.ID]
+		if task.Kind == TaskKindWork {
+			pr = nil
+		}
 		task.Ready = false
 		task.BlockedReason = ""
 		task.BlockedCode = ""

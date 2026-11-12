@@ -19,6 +19,8 @@ const (
 	DomainErrorCodeInvalidParent               DomainErrorCode = "invalid_parent"
 	DomainErrorCodeInvalidPullRequestURL       DomainErrorCode = "invalid_pull_request_url"
 	DomainErrorCodeInvalidStatus               DomainErrorCode = "invalid_status"
+	DomainErrorCodeInvalidTaskKind             DomainErrorCode = "invalid_task_kind"
+	DomainErrorCodePullRequestOnWorkTask       DomainErrorCode = "pull_request_on_work_task"
 	DomainErrorCodeInvalidTitle                DomainErrorCode = "invalid_title"
 	DomainErrorCodeNotFound                    DomainErrorCode = "not_found"
 	DomainErrorCodeReferencesExist             DomainErrorCode = "references_exist"

@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import {
+  TaskKind,
   TaskStatus,
   type Task,
   type TaskLabelAppearances,
@@ -7,6 +8,7 @@ import {
 import { taskStatusLabel } from "../i18n/domain";
 import { MutationError } from "./MutationError";
 import { type TaskDraftController } from "./taskDraft";
+import { TaskKindSelect } from "./TaskKindSelect";
 import { taskStatusLabelKey } from "./taskStatusLabelKey";
 
 export function TaskInspectorTaskForm({
@@ -14,27 +16,17 @@ export function TaskInspectorTaskForm({
   controller,
   appearances,
   readOnly = false,
+  hasPullRequest = false,
 }: {
   task: Task;
   controller: TaskDraftController;
   appearances?: TaskLabelAppearances | undefined;
   readOnly?: boolean;
+  hasPullRequest?: boolean;
 }) {
   const { t } = useTranslation();
 
-  if (readOnly)
-    return (
-      <dl className="inspector-values">
-        <div>
-          <dt>{t("common.title")}</dt>
-          <dd>{task.title}</dd>
-        </div>
-        <div>
-          <dt>{t("common.assignee")}</dt>
-          <dd>{task.assignee || t("common.unassigned")}</dd>
-        </div>
-      </dl>
-    );
+  if (readOnly) return <TaskInspectorReadOnlyValues task={task} />;
 
   const { draft, setDraft } = controller;
   return (
@@ -49,6 +41,20 @@ export function TaskInspectorTaskForm({
           }}
         />
       </label>
+      <TaskKindSelect
+        value={draft.kind}
+        hasPullRequest={hasPullRequest}
+        onChange={(kind) => {
+          setDraft({
+            ...draft,
+            kind,
+            status:
+              kind === TaskKind.WORK && draft.status === TaskStatus.DESIGNING
+                ? TaskStatus.NOT_STARTED
+                : draft.status,
+          });
+        }}
+      />
       <div className="form-row">
         <label>
           {t("common.status")}
@@ -65,11 +71,20 @@ export function TaskInspectorTaskForm({
               TaskStatus.IN_PROGRESS,
               TaskStatus.COMPLETED,
               TaskStatus.CLOSED,
-            ].map((status) => (
-              <option value={status} key={status}>
-                {taskStatusLabelFor(status, appearances, t)}
-              </option>
-            ))}
+            ]
+              .filter(
+                (status) =>
+                  draft.kind !== TaskKind.WORK ||
+                  status !== TaskStatus.DESIGNING,
+              )
+              .map((status) => (
+                <option value={status} key={status}>
+                  {draft.kind === TaskKind.WORK &&
+                  status === TaskStatus.IN_PROGRESS
+                    ? t("taskKind.started")
+                    : taskStatusLabelFor(status, appearances, t)}
+                </option>
+              ))}
           </select>
         </label>
         <label>
@@ -98,4 +113,30 @@ function taskStatusLabelFor(
   );
   if (appearance?.textOverridden && appearance.text) return appearance.text;
   return taskStatusLabel(status, t);
+}
+
+function TaskInspectorReadOnlyValues({ task }: { task: Task }) {
+  const { t } = useTranslation();
+  return (
+    <dl className="inspector-values">
+      <div>
+        <dt>{t("common.kind")}</dt>
+        <dd>
+          {t(
+            task.kind === TaskKind.WORK
+              ? "taskKind.work"
+              : "taskKind.development",
+          )}
+        </dd>
+      </div>
+      <div>
+        <dt>{t("common.title")}</dt>
+        <dd>{task.title}</dd>
+      </div>
+      <div>
+        <dt>{t("common.assignee")}</dt>
+        <dd>{task.assignee || t("common.unassigned")}</dd>
+      </div>
+    </dl>
+  );
 }

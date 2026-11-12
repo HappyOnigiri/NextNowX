@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { mutations } from "../api";
 import {
+  TaskKind,
   type PullRequest,
   type Task,
   type TaskLabelAppearances,
@@ -74,6 +75,7 @@ function TaskInspectorHeader({
         <div className="inspector-heading-line">
           <TaskStatusBadge
             state={task.displayState}
+            kind={task.kind}
             appearances={appearances}
           />
           <h2>
@@ -140,14 +142,17 @@ export function TaskInspector({
       <TaskInspectorTaskForm
         task={task}
         controller={controller}
+        hasPullRequest={!!pullRequest}
         appearances={appearances}
         readOnly={readOnly}
       />
-      <PullRequestSection
-        taskId={task.id}
-        pullRequest={pullRequest}
-        readOnly={readOnly}
-      />
+      {task.kind !== TaskKind.WORK && (
+        <PullRequestSection
+          taskId={task.id}
+          pullRequest={pullRequest}
+          readOnly={readOnly}
+        />
+      )}
       <ReferencesSection
         documents={documents}
         onPreview={onPreview}

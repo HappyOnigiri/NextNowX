@@ -10,6 +10,7 @@ import {
   PullRequestSchema,
   SnapshotSchema,
   TaskDisplayState,
+  TaskKind,
   TaskSchema,
   TaskStatus,
   type Dependency,
@@ -38,6 +39,7 @@ const projectDefaults = {
 } satisfies MessageInitShape<typeof ProjectSchema>;
 
 const taskDefaults = {
+  kind: TaskKind.DEVELOPMENT,
   id: "task-1",
   featureId: "feature-1",
   title: "Build API",

@@ -126,6 +126,7 @@ func domainPromptTemplateOverridesUpdate(
 
 func protoTask(v domain.Task) *nnxv1.Task {
 	return &nnxv1.Task{
+		Kind:                  protoTaskKind(v.Kind),
 		Id:                    v.ID,
 		FeatureId:             v.FeatureID,
 		Title:                 v.Title,
@@ -537,6 +538,10 @@ func protoDomainErrorCode(value domain.DomainErrorCode) nnxv1.DomainErrorCode {
 		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_PARENT
 	case domain.DomainErrorCodeInvalidPullRequestURL:
 		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_PULL_REQUEST_URL
+	case domain.DomainErrorCodeInvalidTaskKind:
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_TASK_KIND
+	case domain.DomainErrorCodePullRequestOnWorkTask:
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_PULL_REQUEST_ON_WORK_TASK
 	case domain.DomainErrorCodeInvalidStatus:
 		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_STATUS
 	case domain.DomainErrorCodeInvalidTitle:
@@ -579,3 +584,24 @@ func optionalValue[T any](present bool, value T) *T {
 }
 
 const timeFormat = "2006-01-02T15:04:05.999999999Z07:00"
+
+func protoTaskKind(value domain.TaskKind) nnxv1.TaskKind {
+	if value == domain.TaskKindWork {
+		return nnxv1.TaskKind_TASK_KIND_WORK
+	}
+	return nnxv1.TaskKind_TASK_KIND_DEVELOPMENT
+}
+
+func domainTaskKind(value nnxv1.TaskKind, creating bool) (domain.TaskKind, error) {
+	switch value {
+	case nnxv1.TaskKind_TASK_KIND_DEVELOPMENT:
+		return domain.TaskKindDevelopment, nil
+	case nnxv1.TaskKind_TASK_KIND_WORK:
+		return domain.TaskKindWork, nil
+	case nnxv1.TaskKind_TASK_KIND_UNSPECIFIED:
+		if creating {
+			return domain.TaskKindDevelopment, nil
+		}
+	}
+	return "", domain.NewError(domain.DomainErrorCodeInvalidTaskKind, "invalid task kind")
+}

@@ -203,7 +203,15 @@ type Feature struct {
 	FinishedCount      int           `json:"finished_count,omitempty"`
 }
 
+type TaskKind string
+
+const (
+	TaskKindDevelopment TaskKind = "development"
+	TaskKindWork        TaskKind = "work"
+)
+
 type Task struct {
+	Kind                  TaskKind          `json:"kind"`
 	ID                    string            `json:"id"`
 	StorageID             string            `json:"-"`
 	FeatureID             string            `json:"feature_id"`

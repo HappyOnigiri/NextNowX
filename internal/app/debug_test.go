@@ -55,7 +55,7 @@ func TestDebugReportsStorageConfigurationAndData(t *testing.T) {
 		t.Fatal(err)
 	}
 	feature := newFeature(t, ctx, service, "Checkout")
-	task, err := service.CreateTask(ctx, feature.ID, "Payment API", "")
+	task, err := service.CreateTask(ctx, feature.ID, "Payment API", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}

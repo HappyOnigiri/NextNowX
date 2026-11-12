@@ -328,7 +328,7 @@ func (s *Service) createDemoTasks(
 ) ([]domain.Task, error) {
 	tasks := make([]domain.Task, len(values))
 	for index, value := range values {
-		task, err := s.CreateTask(ctx, feature.ID, value.title, value.assignee)
+		task, err := s.CreateTask(ctx, feature.ID, value.title, value.assignee, "")
 		if err != nil {
 			return nil, err
 		}
@@ -340,7 +340,7 @@ func (s *Service) createDemoTasks(
 		}
 		if value.status != domain.TaskStatusNotStarted {
 			status := value.status
-			task, err = s.UpdateTask(ctx, task.ID, nil, &status, nil)
+			task, err = s.UpdateTask(ctx, task.ID, nil, &status, nil, nil)
 			if err != nil {
 				return nil, err
 			}

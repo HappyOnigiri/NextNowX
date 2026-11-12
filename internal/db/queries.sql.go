@@ -295,8 +295,8 @@ func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (P
 }
 
 const createTask = `-- name: CreateTask :one
-INSERT INTO tasks (id, public_id, feature_id, title, status, assignee, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, feature_id, title, status, assignee, created_at, updated_at, public_id
+INSERT INTO tasks (id, public_id, feature_id, title, status, assignee, created_at, updated_at, kind)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, feature_id, title, status, assignee, created_at, updated_at, public_id, kind
 `
 
 type CreateTaskParams struct {
@@ -308,6 +308,7 @@ type CreateTaskParams struct {
 	Assignee  string `json:"assignee"`
 	CreatedAt string `json:"created_at"`
 	UpdatedAt string `json:"updated_at"`
+	Kind      string `json:"kind"`
 }
 
 func (q *Queries) CreateTask(ctx context.Context, arg CreateTaskParams) (Task, error) {
@@ -320,6 +321,7 @@ func (q *Queries) CreateTask(ctx context.Context, arg CreateTaskParams) (Task, e
 		arg.Assignee,
 		arg.CreatedAt,
 		arg.UpdatedAt,
+		arg.Kind,
 	)
 	var i Task
 	err := row.Scan(
@@ -331,6 +333,7 @@ func (q *Queries) CreateTask(ctx context.Context, arg CreateTaskParams) (Task, e
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.PublicID,
+		&i.Kind,
 	)
 	return i, err
 }
@@ -708,7 +711,7 @@ func (q *Queries) GetPullRequestByTask(ctx context.Context, taskID string) (Pull
 }
 
 const getTask = `-- name: GetTask :one
-SELECT id, feature_id, title, status, assignee, created_at, updated_at, public_id FROM tasks WHERE id=?
+SELECT id, feature_id, title, status, assignee, created_at, updated_at, public_id, kind FROM tasks WHERE id=?
 `
 
 func (q *Queries) GetTask(ctx context.Context, id string) (Task, error) {
@@ -723,12 +726,13 @@ func (q *Queries) GetTask(ctx context.Context, id string) (Task, error) {
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.PublicID,
+		&i.Kind,
 	)
 	return i, err
 }
 
 const getTaskByPublicID = `-- name: GetTaskByPublicID :one
-SELECT id, feature_id, title, status, assignee, created_at, updated_at, public_id FROM tasks WHERE public_id=?
+SELECT id, feature_id, title, status, assignee, created_at, updated_at, public_id, kind FROM tasks WHERE public_id=?
 `
 
 func (q *Queries) GetTaskByPublicID(ctx context.Context, publicID string) (Task, error) {
@@ -743,6 +747,7 @@ func (q *Queries) GetTaskByPublicID(ctx context.Context, publicID string) (Task,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.PublicID,
+		&i.Kind,
 	)
 	return i, err
 }
@@ -1120,7 +1125,7 @@ func (q *Queries) ListPullRequests(ctx context.Context) ([]PullRequest, error) {
 }
 
 const listTasks = `-- name: ListTasks :many
-SELECT id, feature_id, title, status, assignee, created_at, updated_at, public_id FROM tasks ORDER BY created_at, id
+SELECT id, feature_id, title, status, assignee, created_at, updated_at, public_id, kind FROM tasks ORDER BY created_at, id
 `
 
 func (q *Queries) ListTasks(ctx context.Context) ([]Task, error) {
@@ -1141,6 +1146,7 @@ func (q *Queries) ListTasks(ctx context.Context) ([]Task, error) {
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.PublicID,
+			&i.Kind,
 		); err != nil {
 			return nil, err
 		}
@@ -1156,7 +1162,7 @@ func (q *Queries) ListTasks(ctx context.Context) ([]Task, error) {
 }
 
 const listTasksByFeature = `-- name: ListTasksByFeature :many
-SELECT id, feature_id, title, status, assignee, created_at, updated_at, public_id FROM tasks WHERE feature_id=? ORDER BY created_at, id
+SELECT id, feature_id, title, status, assignee, created_at, updated_at, public_id, kind FROM tasks WHERE feature_id=? ORDER BY created_at, id
 `
 
 func (q *Queries) ListTasksByFeature(ctx context.Context, featureID string) ([]Task, error) {
@@ -1177,6 +1183,7 @@ func (q *Queries) ListTasksByFeature(ctx context.Context, featureID string) ([]T
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.PublicID,
+			&i.Kind,
 		); err != nil {
 			return nil, err
 		}
@@ -1390,7 +1397,7 @@ func (q *Queries) UpdateProject(ctx context.Context, arg UpdateProjectParams) (P
 }
 
 const updateTask = `-- name: UpdateTask :one
-UPDATE tasks SET title=?, status=?, assignee=?, updated_at=? WHERE id=? RETURNING id, feature_id, title, status, assignee, created_at, updated_at, public_id
+UPDATE tasks SET title=?, status=?, assignee=?, updated_at=?, kind=? WHERE id=? RETURNING id, feature_id, title, status, assignee, created_at, updated_at, public_id, kind
 `
 
 type UpdateTaskParams struct {
@@ -1398,6 +1405,7 @@ type UpdateTaskParams struct {
 	Status    string `json:"status"`
 	Assignee  string `json:"assignee"`
 	UpdatedAt string `json:"updated_at"`
+	Kind      string `json:"kind"`
 	ID        string `json:"id"`
 }
 
@@ -1407,6 +1415,7 @@ func (q *Queries) UpdateTask(ctx context.Context, arg UpdateTaskParams) (Task, e
 		arg.Status,
 		arg.Assignee,
 		arg.UpdatedAt,
+		arg.Kind,
 		arg.ID,
 	)
 	var i Task
@@ -1419,6 +1428,7 @@ func (q *Queries) UpdateTask(ctx context.Context, arg UpdateTaskParams) (Task, e
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.PublicID,
+		&i.Kind,
 	)
 	return i, err
 }

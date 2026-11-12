@@ -2,6 +2,7 @@ import {
   CircleCheck,
   CircleDashed,
   CircleHelp,
+  CirclePlay,
   CircleX,
   Code2,
   MessagesSquare,
@@ -12,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import {
   TaskBlockLabel,
   TaskDisplayState,
+  TaskKind,
   type TaskLabelAppearance,
   type TaskLabelAppearances,
 } from "../gen/nnx/v1/nnx_pb";
@@ -78,9 +80,11 @@ const taskStatusPresentations = {
 // 0〜4 個で進行を妨げている事情を示す。docs/design/webui.md を参照。
 export function TaskStatusBadge({
   state,
+  kind,
   appearances,
 }: {
   state: TaskDisplayState;
+  kind?: TaskKind | undefined;
   appearances?: TaskLabelAppearances | undefined;
 }) {
   const { t } = useTranslation();
@@ -89,21 +93,25 @@ export function TaskStatusBadge({
     appearances,
     taskDisplayStateLabelKey(state),
   );
+  const workStarted =
+    kind === TaskKind.WORK && state === TaskDisplayState.IN_PROGRESS;
   const customText = appearance?.textOverridden ? appearance.text : "";
-  const label = customText || taskDisplayStateLabel(state, t);
+  const label =
+    customText ||
+    (workStarted ? t("taskKind.started") : taskDisplayStateLabel(state, t));
   return (
     <StatusBadge
       className={`state-${taskDisplayStateToken(state)}`}
       color={appearance?.colorOverridden ? appearance.color : undefined}
-      icon={presentation.icon}
+      icon={workStarted ? CirclePlay : presentation.icon}
       label={label}
       accessibleLabel={label}
-      {...(customText
+      {...(customText || workStarted
         ? {}
         : presentation.stage
           ? { mainLabel: taskBadgeStageLabel(presentation.stage, t) }
           : {})}
-      {...(customText
+      {...(customText || workStarted
         ? {}
         : presentation.state
           ? { secondaryLabel: taskBadgeStateLabel(presentation.state, t) }

@@ -35,7 +35,7 @@ func TestAttachPullRequestUsesConfiguredHostURL(t *testing.T) {
 	}
 	service := app.NewWithConfig(database, nil, configStore)
 	feature := newFeature(t, ctx, service, "GHE")
-	task, err := service.CreateTask(ctx, feature.ID, "Enterprise PR", "")
+	task, err := service.CreateTask(ctx, feature.ID, "Enterprise PR", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}

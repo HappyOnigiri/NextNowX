@@ -272,6 +272,7 @@ func (s *Store) UpdateFeature(ctx context.Context, feature domain.Feature) (doma
 func (s *Store) CreateTask(
 	ctx context.Context,
 	featureID, title, assignee string,
+	kind domain.TaskKind,
 ) (domain.Task, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -288,7 +289,11 @@ func (s *Store) CreateTask(
 		return domain.Task{}, err
 	}
 	now := timestamp(s.now())
+	if kind == "" {
+		kind = domain.TaskKindDevelopment
+	}
 	params := db.CreateTaskParams{
+		Kind:      string(kind),
 		ID:        uuid.NewString(),
 		PublicID:  publicID,
 		FeatureID: feature.ID,
@@ -328,6 +333,7 @@ func (s *Store) UpdateTask(ctx context.Context, task domain.Task) (domain.Task, 
 		storageID = value.ID
 	}
 	params := db.UpdateTaskParams{
+		Kind:      string(task.Kind),
 		Title:     task.Title,
 		Status:    string(task.Status),
 		Assignee:  task.Assignee,
