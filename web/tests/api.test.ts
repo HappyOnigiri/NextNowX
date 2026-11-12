@@ -382,28 +382,24 @@ describe("RPC API wrappers", () => {
     await mutations.createTask({
       featureId: "feature-1",
       title: "Implement",
-      scope: "WebUI",
       assignee: "Bob",
     });
     expect(apiMocks.client.createTask).toHaveBeenCalledWith(
       expect.objectContaining({
         featureId: "feature-1",
         title: "Implement",
-        scope: "WebUI",
         assignee: "Bob",
       }),
     );
 
     await mutations.updateTask({
       id: "task-1",
-      scope: "API",
       status: 2,
       assignee: "Carol",
     });
     expect(apiMocks.client.updateTask).toHaveBeenCalledWith(
       expect.objectContaining({
         id: "task-1",
-        scope: "API",
         status: 2,
         assignee: "Carol",
       }),

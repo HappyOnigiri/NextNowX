@@ -56,7 +56,7 @@ demo は稼働中サーバの記録を書かず、flock も取らない。一時
 
 ## 初回のサンプルデータ
 
-`nnx setup` は、起動時にデータベースファイルを新規作成したときだけ、小さなサンプル（project 1・feature 1・task 6・document 2）を通常のデータベースへ投入する。
+`nnx setup` は、起動時にデータベースファイルを新規作成したときだけ、小さなサンプル（project 1・feature 1・task 6・document 8）を通常のデータベースへ投入する。
 インストール直後のデータベースは空なので、task・依存・表示状態という中心概念を、利用者が自分でデータを作るまで一度も見られない。それを初回の 1 画面で見せるためである。
 投入するのは `nnx setup` だけである。`nnx serve` を含む他のコマンドは、データベースを新規作成しても投入しない。
 
@@ -95,3 +95,9 @@ task は最大 1 つの document を implementation plan に指定できる。
 この指定は task だけのものである。project や feature の document が plan になることはない。
 この指定により、pull request のない未着手または designing の task は designed の表示状態に移る。readiness、依存の充足、完了状態は変わらない。
 plan 以外の document、feature の document、project の document には、アプリケーション層での件数制限はない。
+
+## タスクの作業範囲から添付資料への移行
+
+タスクの作業範囲は専用項目として持たず、要件や背景は添付資料に記録する。
+既存の空でない作業範囲は、更新後にデータベースを開いたとき、タイトルを `Scope` とする通常の Markdown document へ移す。
+本文とタスクの作成・更新日時を保持し、実装計画には指定しない。

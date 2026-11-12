@@ -2368,7 +2368,7 @@ func TestBlackBoxPromptFollowsThePlanAndTheConfiguredTemplates(t *testing.T) {
 	if result := run("feature", "create", "Prompts", "--project", "P-1"); result.exit != 0 {
 		t.Fatalf("create feature: stderr=%q", result.stderr)
 	}
-	if result := run("task", "create", "F-1", "Add the checkout API", "--scope", "Server only"); result.exit != 0 {
+	if result := run("task", "create", "F-1", "Add the checkout API"); result.exit != 0 {
 		t.Fatalf("create task: stderr=%q", result.stderr)
 	}
 
@@ -2380,7 +2380,7 @@ func TestBlackBoxPromptFollowsThePlanAndTheConfiguredTemplates(t *testing.T) {
 	if !strings.HasPrefix(design.stdout, "Design Next Now X task T-1 of feature F-1.\n") {
 		t.Fatalf("design prompt=%q", design.stdout)
 	}
-	for _, expected := range []string{"Add the checkout API", "Server only", "nnx plan set T-1 --file PATH"} {
+	for _, expected := range []string{"Add the checkout API", "nnx plan set T-1 --file PATH"} {
 		if !strings.Contains(design.stdout, expected) {
 			t.Fatalf("design prompt does not contain %q: %q", expected, design.stdout)
 		}
@@ -2474,7 +2474,7 @@ func TestBlackBoxConfigLanguageSwitchesThePromptLanguage(t *testing.T) {
 	for _, args := range [][]string{
 		{"project", "create", "Prompts"},
 		{"feature", "create", "Prompts", "--project", "P-1"},
-		{"task", "create", "F-1", "Add the checkout API", "--scope", "Server only"},
+		{"task", "create", "F-1", "Add the checkout API"},
 	} {
 		if result := run(englishLocale, args...); result.exit != 0 {
 			t.Fatalf("%v: stderr=%q", args, result.stderr)

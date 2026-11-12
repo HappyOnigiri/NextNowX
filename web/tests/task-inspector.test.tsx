@@ -137,7 +137,6 @@ describe("TaskInspector", () => {
   it("edits a task and keeps reference editing in the inspector", async () => {
     const task = makeTask({
       title: "Current task",
-      scope: "Initial scope",
       status: TaskStatus.NOT_STARTED,
       assignee: "Bob",
       blockedReason: {
@@ -247,9 +246,6 @@ describe("TaskInspector", () => {
     fireEvent.change(screen.getByLabelText("Title"), {
       target: { value: "Updated task" },
     });
-    fireEvent.change(screen.getByLabelText("Scope"), {
-      target: { value: "Updated scope" },
-    });
     fireEvent.change(screen.getByLabelText("Status"), {
       target: { value: String(TaskStatus.CLOSED) },
     });
@@ -261,7 +257,6 @@ describe("TaskInspector", () => {
       id: task.id,
       kind: TaskKind.DEVELOPMENT,
       title: "Updated task",
-      scope: "Updated scope",
       status: TaskStatus.CLOSED,
       assignee: "Carol",
     });
@@ -439,7 +434,6 @@ describe("TaskInspector", () => {
   it("keeps archived task content readable without mutation controls", () => {
     const task = makeTask({
       title: "Archived task",
-      scope: "Historical scope",
       assignee: "Carol",
     });
     const blocker = makeTask({ id: "task-2", title: "Archived blocker" });
@@ -463,7 +457,6 @@ describe("TaskInspector", () => {
     );
 
     expect(screen.getByText("Archived task · read-only")).toBeInTheDocument();
-    expect(screen.getByText("Historical scope")).toBeInTheDocument();
     expect(screen.queryByText("Archived blocker")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "acme/nnx #42" })).toHaveAttribute(
       "target",

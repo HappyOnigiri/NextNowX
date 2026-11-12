@@ -88,9 +88,9 @@ func TestEnsureSampleDataCreatesFirstRunGraph(t *testing.T) {
 				t.Fatal(err)
 			}
 			if len(snapshot.Projects) != 1 || len(snapshot.Features) != 1 ||
-				len(snapshot.Tasks) != 6 || len(snapshot.Documents) != 2 {
+				len(snapshot.Tasks) != 6 || len(snapshot.Documents) != 8 {
 				t.Fatalf(
-					"projects=%d features=%d tasks=%d documents=%d, want 1/1/6/2",
+					"projects=%d features=%d tasks=%d documents=%d, want 1/1/6/8",
 					len(snapshot.Projects), len(snapshot.Features),
 					len(snapshot.Tasks), len(snapshot.Documents),
 				)

@@ -192,14 +192,12 @@ export const mutations = {
   createTask: (input: {
     featureId: string;
     title: string;
-    scope: string;
     assignee: string;
     kind?: TaskKind;
   }) => client.createTask(create(CreateTaskRequestSchema, input)),
   updateTask: (input: {
     id: string;
     title?: string;
-    scope?: string;
     status?: TaskStatus;
     kind?: TaskKind;
     assignee?: string;

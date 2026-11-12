@@ -462,7 +462,6 @@ func domainTask(value db.Task, featureID string) domain.Task {
 		FeatureID:        featureID,
 		StorageFeatureID: value.FeatureID,
 		Title:            value.Title,
-		Scope:            value.Scope,
 		Status:           domain.TaskStatus(value.Status),
 		Assignee:         value.Assignee,
 		CreatedAt:        parseTime(value.CreatedAt),

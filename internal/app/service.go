@@ -34,7 +34,7 @@ type Repository interface {
 	GetFeature(ctx context.Context, id string) (domain.Feature, error)
 	DeleteFeature(ctx context.Context, id string, cascade bool) error
 
-	CreateTask(ctx context.Context, featureID, title, scope, assignee string, kind domain.TaskKind) (domain.Task, error)
+	CreateTask(ctx context.Context, featureID, title, assignee string, kind domain.TaskKind) (domain.Task, error)
 	GetTask(ctx context.Context, id string) (domain.Task, error)
 	UpdateTask(ctx context.Context, task domain.Task) (domain.Task, error)
 	DeleteTask(ctx context.Context, id string, cascade bool) error
@@ -306,7 +306,7 @@ func (s *Service) DeleteFeature(ctx context.Context, id string, cascade bool) er
 
 func (s *Service) CreateTask(
 	ctx context.Context,
-	featureID, title, scope, assignee string,
+	featureID, title, assignee string,
 	kind domain.TaskKind,
 ) (domain.Task, error) {
 	feature, err := s.ResolveFeature(ctx, featureID)
@@ -329,7 +329,7 @@ func (s *Service) CreateTask(
 			"invalid task kind; use development or work",
 		)
 	}
-	return s.repository.CreateTask(ctx, feature.ID, title, strings.TrimSpace(scope), strings.TrimSpace(assignee), kind)
+	return s.repository.CreateTask(ctx, feature.ID, title, strings.TrimSpace(assignee), kind)
 }
 
 // UpdateTask は呼び出し側が指定した全フィールドを適用する。nil ポインタは未指定、
@@ -337,7 +337,7 @@ func (s *Service) CreateTask(
 func (s *Service) UpdateTask(
 	ctx context.Context,
 	id string,
-	title, scope *string,
+	title *string,
 	status *domain.TaskStatus,
 	assignee *string,
 	kind *domain.TaskKind,
@@ -351,9 +351,6 @@ func (s *Service) UpdateTask(
 	}
 	if title != nil {
 		task.Title = strings.TrimSpace(*title)
-	}
-	if scope != nil {
-		task.Scope = *scope
 	}
 	if status != nil && *status != "" {
 		task.Status = *status

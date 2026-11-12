@@ -41,16 +41,6 @@ export function TaskInspectorTaskForm({
           }}
         />
       </label>
-      <label>
-        {t("common.scope")}
-        <textarea
-          name="scope"
-          value={draft.scope}
-          onChange={(event) => {
-            setDraft({ ...draft, scope: event.target.value });
-          }}
-        />
-      </label>
       <TaskKindSelect
         value={draft.kind}
         hasPullRequest={hasPullRequest}
@@ -142,10 +132,6 @@ function TaskInspectorReadOnlyValues({ task }: { task: Task }) {
       <div>
         <dt>{t("common.title")}</dt>
         <dd>{task.title}</dd>
-      </div>
-      <div>
-        <dt>{t("common.scope")}</dt>
-        <dd>{task.scope || t("inspector.notSet")}</dd>
       </div>
       <div>
         <dt>{t("common.assignee")}</dt>

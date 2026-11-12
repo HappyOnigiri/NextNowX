@@ -5,7 +5,6 @@ import { useDomainMutation } from "../hooks";
 
 interface TaskDraft {
   title: string;
-  scope: string;
   status: TaskStatus;
   kind: TaskKind;
   assignee: string;
@@ -23,7 +22,6 @@ export interface TaskDraftController {
 function draftOf(task: Task): TaskDraft {
   return {
     title: task.title,
-    scope: task.scope,
     status: task.status,
     kind: task.kind,
     assignee: task.assignee,
@@ -41,7 +39,6 @@ export function useTaskDraft(task: Task): TaskDraftController {
     draft,
     dirty:
       draft.title !== saved.title ||
-      draft.scope !== saved.scope ||
       draft.status !== saved.status ||
       draft.kind !== saved.kind ||
       draft.assignee !== saved.assignee,

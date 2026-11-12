@@ -5,7 +5,6 @@ import { makePullRequest, makeTask } from "./factories";
 const task = makeTask({
   id: "T-7",
   title: "Ship API",
-  scope: "Acceptance boundary",
   assignee: "Bob",
 });
 const pullRequest = makePullRequest({
@@ -19,7 +18,6 @@ describe("matchesGraphSearch", () => {
   it.each([
     ["t-7", "id"],
     ["ship", "title"],
-    ["boundary", "scope"],
     ["bob", "assignee"],
   ])("matches %s from the task %s", (query) => {
     expect(matchesGraphSearch(task, undefined, query)).toBe(true);
@@ -48,14 +46,14 @@ describe("matchesGraphSearch", () => {
   });
 
   it("requires every space separated term, each from any field", () => {
-    expect(matchesGraphSearch(task, undefined, "ship boundary")).toBe(true);
+    expect(matchesGraphSearch(task, undefined, "ship api")).toBe(true);
     expect(matchesGraphSearch(task, undefined, "  ship   bob  ")).toBe(true);
     expect(matchesGraphSearch(task, pullRequest, "ship carol")).toBe(true);
     expect(matchesGraphSearch(task, undefined, "ship storage")).toBe(false);
   });
 
   it("splits on full-width spaces too", () => {
-    expect(matchesGraphSearch(task, undefined, "ship　boundary")).toBe(true);
+    expect(matchesGraphSearch(task, undefined, "ship　api")).toBe(true);
     expect(matchesGraphSearch(task, undefined, "ship　storage")).toBe(false);
   });
 

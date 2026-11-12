@@ -14,12 +14,12 @@ func japaneseSampleText() sampleDataText {
 		documentContent:    japaneseSampleDocument,
 		planContent:        japaneseSamplePlan,
 		tasks: []sampleTaskText{
-			{title: "計画を描く", scope: "この feature で何を届けるかを決める"},
-			{title: "作業環境を整える", scope: "道具とリポジトリを使える状態にする"},
-			{title: "中心の流れを作る", scope: "他のすべてが必要とする経路を実装する"},
-			{title: "ガイドを書く", scope: "使う人に向けてこの feature を説明する"},
-			{title: "UI を仕上げる", scope: "中心の流れの上に画面を仕上げる"},
-			{title: "リリースする", scope: "上の作業が入ったらリリースを切る"},
+			{title: "計画を描く", description: "この feature で何を届けるかを決める"},
+			{title: "作業環境を整える", description: "道具とリポジトリを使える状態にする"},
+			{title: "中心の流れを作る", description: "他のすべてが必要とする経路を実装する"},
+			{title: "ガイドを書く", description: "使う人に向けてこの feature を説明する"},
+			{title: "UI を仕上げる", description: "中心の流れの上に画面を仕上げる"},
+			{title: "リリースする", description: "上の作業が入ったらリリースを切る"},
 		},
 	}
 }

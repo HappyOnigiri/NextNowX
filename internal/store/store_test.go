@@ -65,8 +65,8 @@ func TestMigrationConstraintsAndRollback(t *testing.T) {
 	if err := database.DB().
 		QueryRowContext(ctx, `SELECT COUNT(*) FROM schema_migrations`).
 		Scan(&migrations); err != nil ||
-		migrations != 21 {
-		t.Fatalf("migration count=%d err=%v, want 21", migrations, err)
+		migrations != 22 {
+		t.Fatalf("migration count=%d err=%v, want 22", migrations, err)
 	}
 	var foreignKeys, journalMode int
 	var journal string
@@ -200,11 +200,11 @@ func TestPublicIDsAreTypedAndStorageIDsStayInternal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	firstTask, err := service.CreateTask(ctx, feature.ID, "First", "", "", "")
+	firstTask, err := service.CreateTask(ctx, feature.ID, "First", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	secondTask, err := service.CreateTask(ctx, feature.ID, "Second", "", "", "")
+	secondTask, err := service.CreateTask(ctx, feature.ID, "Second", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -643,8 +643,8 @@ func TestMigrationRepairsConflictingBranchVersions(t *testing.T) {
 	var migrationCount int
 	if err := database.DB().
 		QueryRowContext(ctx, `SELECT COUNT(*) FROM schema_migrations`).
-		Scan(&migrationCount); err != nil || migrationCount != 21 {
-		t.Fatalf("migration count=%d err=%v, want 21", migrationCount, err)
+		Scan(&migrationCount); err != nil || migrationCount != 22 {
+		t.Fatalf("migration count=%d err=%v, want 22", migrationCount, err)
 	}
 	var status string
 	if err := database.DB().
@@ -751,11 +751,11 @@ func TestMigrationAddsGitHubHostAndHostScopedUniqueness(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	firstTask, err := database.CreateTask(ctx, feature.ID, "GitHub.com PR", "", "", "")
+	firstTask, err := database.CreateTask(ctx, feature.ID, "GitHub.com PR", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	secondTask, err := database.CreateTask(ctx, feature.ID, "GHE PR", "", "", "")
+	secondTask, err := database.CreateTask(ctx, feature.ID, "GHE PR", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -862,7 +862,7 @@ func TestDroppedTaskStatusMigrationRecordIsRestored(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	task, err := service.CreateTask(ctx, feature.ID, "Ship", "", "", "")
+	task, err := service.CreateTask(ctx, feature.ID, "Ship", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -926,9 +926,9 @@ func TestCycleDuplicateAndSafeDeletion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	a, _ := service.CreateTask(ctx, feature.ID, "A", "", "", "")
-	b, _ := service.CreateTask(ctx, feature.ID, "B", "", "", "")
-	c, _ := service.CreateTask(ctx, feature.ID, "C", "", "", "")
+	a, _ := service.CreateTask(ctx, feature.ID, "A", "", "")
+	b, _ := service.CreateTask(ctx, feature.ID, "B", "", "")
+	c, _ := service.CreateTask(ctx, feature.ID, "C", "", "")
 	if _, err := service.AddDependency(ctx, a.ID, b.ID); err != nil {
 		t.Fatal(err)
 	}
@@ -962,8 +962,8 @@ func TestDuplicatePullRequestAndConcurrentWriters(t *testing.T) {
 	_, service := openTestService(t)
 	ctx := context.Background()
 	feature, _ := createFeature(ctx, service, "Concurrency", "")
-	a, _ := service.CreateTask(ctx, feature.ID, "A", "", "", "")
-	b, _ := service.CreateTask(ctx, feature.ID, "B", "", "", "")
+	a, _ := service.CreateTask(ctx, feature.ID, "A", "", "")
+	b, _ := service.CreateTask(ctx, feature.ID, "B", "", "")
 	if _, err := service.AttachPullRequest(ctx, a.ID, "https://github.com/acme/api/pull/42"); err != nil {
 		t.Fatal(err)
 	}
@@ -983,13 +983,7 @@ func TestDuplicatePullRequestAndConcurrentWriters(t *testing.T) {
 		wait.Add(1)
 		go func(index int) {
 			defer wait.Done()
-			_, err := service.CreateTask(
-				ctx,
-				feature.ID,
-				fmt.Sprintf("task-%02d", index),
-				"",
-				"", "",
-			)
+			_, err := service.CreateTask(ctx, feature.ID, fmt.Sprintf("task-%02d", index), "", "")
 			errorsCh <- err
 		}(i)
 	}
@@ -1023,13 +1017,7 @@ func TestValidateReportsCorruption(t *testing.T) {
 		t.Fatal(err)
 	}
 	for i := 0; i < 200; i++ {
-		if _, err := service.CreateTask(
-			ctx,
-			feature.ID,
-			fmt.Sprintf("task-%03d", i),
-			strings.Repeat("x", 256),
-			"", "",
-		); err != nil {
+		if _, err := service.CreateTask(ctx, feature.ID, fmt.Sprintf("task-%03d", i), "", ""); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -1079,18 +1067,18 @@ func TestUpdateClearsFieldsWhenExplicitlyEmpty(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	task, err := service.CreateTask(ctx, feature.ID, "Task", "initial scope", "mona", "")
+	task, err := service.CreateTask(ctx, feature.ID, "Task", "mona", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	empty := ""
-	updatedTask, err := service.UpdateTask(ctx, task.ID, nil, &empty, nil, &empty, nil)
+	updatedTask, err := service.UpdateTask(ctx, task.ID, nil, nil, &empty, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if updatedTask.Scope != "" || updatedTask.Assignee != "" {
-		t.Fatalf("scope=%q assignee=%q, want both cleared", updatedTask.Scope, updatedTask.Assignee)
+	if updatedTask.Assignee != "" {
+		t.Fatalf("assignee=%q, want cleared", updatedTask.Assignee)
 	}
 	if updatedTask.Title != "Task" {
 		t.Fatalf("omitted title was changed to %q", updatedTask.Title)
@@ -1187,14 +1175,14 @@ func TestConcurrentDependencyWritesDoNotLock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	blocker, err := service.CreateTask(ctx, feature.ID, "Blocker", "", "", "")
+	blocker, err := service.CreateTask(ctx, feature.ID, "Blocker", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	const writers = 16
 	blocked := make([]domain.Task, writers)
 	for i := range blocked {
-		task, err := service.CreateTask(ctx, feature.ID, fmt.Sprintf("blocked-%02d", i), "", "", "")
+		task, err := service.CreateTask(ctx, feature.ID, fmt.Sprintf("blocked-%02d", i), "", "")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1333,9 +1321,9 @@ func TestInitializeDemoCreatesCompleteShowcase(t *testing.T) {
 		}
 		references++
 	}
-	// feature のドキュメント 2 件と、active なプロジェクト上の共有チャーター。
-	if references != 3 || plans != 1 {
-		t.Errorf("documents: references=%d plans=%d, want 3 and 1", references, plans)
+	// 各 task の説明と feature の資料 2 件、active な project の共有チャーター。
+	if references != 128 || plans != 1 {
+		t.Errorf("documents: references=%d plans=%d, want 128 and 1", references, plans)
 	}
 	if !featuresByTitle["Cancelled experiment"].Archived {
 		t.Error("cancelled feature is not archived")
@@ -1463,10 +1451,10 @@ func TestSnapshotSurvivesOrphanedTask(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := service.CreateTask(ctx, feature.ID, "Kept", "", "", ""); err != nil {
+	if _, err := service.CreateTask(ctx, feature.ID, "Kept", "", ""); err != nil {
 		t.Fatal(err)
 	}
-	orphan, err := service.CreateTask(ctx, feature.ID, "Orphan", "", "", "")
+	orphan, err := service.CreateTask(ctx, feature.ID, "Orphan", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1502,7 +1490,7 @@ func TestTaskStatusOverridesAndAutomaticPRState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	prTask, err := service.CreateTask(ctx, feature.ID, "Ship API", "", "", "")
+	prTask, err := service.CreateTask(ctx, feature.ID, "Ship API", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1511,23 +1499,22 @@ func TestTaskStatusOverridesAndAutomaticPRState(t *testing.T) {
 		ctx,
 		prTask.ID,
 		nil,
-		nil,
 		&completed,
 		nil, nil,
 	)
 	if err != nil || updated.Status != domain.TaskStatusCompleted {
 		t.Fatalf("PR task completion override: task=%+v err=%v", updated, err)
 	}
-	manual, err := service.CreateTask(ctx, feature.ID, "Sign off", "", "", "")
+	manual, err := service.CreateTask(ctx, feature.ID, "Sign off", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := service.UpdateTask(ctx, manual.ID, nil, nil, &completed, nil, nil); err != nil {
+	if _, err := service.UpdateTask(ctx, manual.ID, nil, &completed, nil, nil); err != nil {
 		t.Fatalf("manual task completion: %v", err)
 	}
 
 	auto := domain.TaskStatusNotStarted
-	if _, err := service.UpdateTask(ctx, prTask.ID, nil, nil, &auto, nil, nil); err != nil {
+	if _, err := service.UpdateTask(ctx, prTask.ID, nil, &auto, nil, nil); err != nil {
 		t.Fatalf("clear PR task override: %v", err)
 	}
 	if _, err := service.AttachPullRequest(ctx, prTask.ID, "https://github.com/acme/api/pull/3"); err != nil {
@@ -1557,11 +1544,11 @@ func TestSyncByTaskID(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	target, err := service.CreateTask(ctx, feature.ID, "Target", "", "", "")
+	target, err := service.CreateTask(ctx, feature.ID, "Target", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	other, err := service.CreateTask(ctx, feature.ID, "Other", "", "", "")
+	other, err := service.CreateTask(ctx, feature.ID, "Other", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1616,7 +1603,7 @@ func TestImplementationPlanLifecycleAndCascade(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	task, err := service.CreateTask(ctx, feature.ID, "Design API", "", "", "")
+	task, err := service.CreateTask(ctx, feature.ID, "Design API", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1693,7 +1680,7 @@ func TestImplementationPlanLifecycleAndCascade(t *testing.T) {
 	if err := service.DeleteImplementationPlan(ctx, task.ID); domain.ErrorCode(err) != domain.DomainErrorCodeNotFound {
 		t.Fatalf("second plan deletion code=%s err=%v", domain.ErrorCode(err), err)
 	}
-	second, err := service.CreateTask(ctx, feature.ID, "Delete feature", "", "", "")
+	second, err := service.CreateTask(ctx, feature.ID, "Delete feature", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1733,11 +1720,11 @@ func TestSyncKeepsPartialCoreStateAndUsesItForDependencies(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	blocker, err := service.CreateTask(ctx, feature.ID, "Open PR", "", "", "")
+	blocker, err := service.CreateTask(ctx, feature.ID, "Open PR", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	blocked, err := service.CreateTask(ctx, feature.ID, "Dependent task", "", "", "")
+	blocked, err := service.CreateTask(ctx, feature.ID, "Dependent task", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1834,11 +1821,11 @@ func TestPullRequestURLCasingIsNotADistinctPullRequest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	first, err := service.CreateTask(ctx, feature.ID, "First", "", "", "")
+	first, err := service.CreateTask(ctx, feature.ID, "First", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, err := service.CreateTask(ctx, feature.ID, "Second", "", "", "")
+	second, err := service.CreateTask(ctx, feature.ID, "Second", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1863,7 +1850,7 @@ func TestDeletingWhatIsNotThereReportsNotFound(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	task, err := service.CreateTask(ctx, feature.ID, "Task", "", "", "")
+	task, err := service.CreateTask(ctx, feature.ID, "Task", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1891,7 +1878,7 @@ func TestGetPullRequestRoundTripAndNotFound(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	task, err := service.CreateTask(ctx, feature.ID, "Read pull request", "", "", "")
+	task, err := service.CreateTask(ctx, feature.ID, "Read pull request", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1998,7 +1985,7 @@ func TestStoreUpdateDocumentWritesOnlyRequestedFields(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	task, err := database.CreateTask(ctx, feature.ID, "Ship it", "", "", "")
+	task, err := database.CreateTask(ctx, feature.ID, "Ship it", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2051,7 +2038,7 @@ func TestStoreUpsertImplementationPlanKeepsExistingTitle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	task, err := database.CreateTask(ctx, feature.ID, "Ship it", "", "", "")
+	task, err := database.CreateTask(ctx, feature.ID, "Ship it", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -130,7 +130,6 @@ func protoTask(v domain.Task) *nnxv1.Task {
 		Id:                    v.ID,
 		FeatureId:             v.FeatureID,
 		Title:                 v.Title,
-		Scope:                 v.Scope,
 		Status:                protoTaskStatus(v.Status),
 		Assignee:              v.Assignee,
 		HasImplementationPlan: v.HasImplementationPlan,

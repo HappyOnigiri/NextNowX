@@ -18,7 +18,6 @@ nnx task update TASK_ID --status completed
       --assignee string   new assignee
   -h, --help              help for update
       --kind string       development or work
-      --scope string      new scope
       --status string     not_started, designing, in_progress, completed, or closed
       --title string      new title
 ```

@@ -182,13 +182,13 @@ func createFeatureWithTasks(
 	ctx := context.Background()
 	feature := newFeature(t, ctx, service, slug)
 	for index, value := range tasks {
-		task, err := service.CreateTask(ctx, feature.ID, fmt.Sprintf("Task %d", index+1), "", "", "")
+		task, err := service.CreateTask(ctx, feature.ID, fmt.Sprintf("Task %d", index+1), "", "")
 		if err != nil {
 			t.Fatal(err)
 		}
 		if value.status != domain.TaskStatusNotStarted {
 			status := value.status
-			if _, err := service.UpdateTask(ctx, task.ID, nil, nil, &status, nil, nil); err != nil {
+			if _, err := service.UpdateTask(ctx, task.ID, nil, &status, nil, nil); err != nil {
 				t.Fatal(err)
 			}
 		}

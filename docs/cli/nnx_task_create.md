@@ -19,7 +19,6 @@ nnx task create F-1 -- "-fix login redirect"
       --assignee string   assignee
   -h, --help              help for create
       --kind string       development or work (default "development")
-      --scope string      scope description
 ```
 
 ### Options inherited from parent commands

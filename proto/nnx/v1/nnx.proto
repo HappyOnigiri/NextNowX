@@ -525,8 +525,8 @@ message Task {
   string feature_id = 2;
   // title は人が読む task 名。
   string title = 3;
-  // scope は task が扱う作業内容を説明する。
-  string scope = 4;
+  reserved 4;
+  reserved "scope";
   reserved 5;
 
   // status は保存されたワークフロー制御用の値。
@@ -803,8 +803,8 @@ message CreateTaskRequest {
   string feature_id = 1;
   // title は必須の、人が読む task 名。
   string title = 2;
-  // scope は task が扱う作業内容を説明する。
-  string scope = 3;
+  reserved 3;
+  reserved "scope";
   reserved 4;
 
   // assignee は task の担当者で、任意。
@@ -826,8 +826,8 @@ message UpdateTaskRequest {
   string id = 1;
   // title は未設定なら変更なし、空文字列ならクリアを要求する。
   optional string title = 2;
-  // scope は未設定なら変更なし、空文字列ならクリアする。
-  optional string scope = 3;
+  reserved 3;
+  reserved "scope";
   // status は未設定なら変更なし、値があれば置き換える。
   optional TaskStatus status = 4;
   // assignee は未設定なら変更なし、空文字列ならクリアする。

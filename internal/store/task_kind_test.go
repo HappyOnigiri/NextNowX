@@ -22,13 +22,13 @@ func TestTaskKindMigrationDefaultsExistingTasksToDevelopment(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	task, err := service.CreateTask(ctx, feature.ID, "Existing task", "Scope", "Bob", "")
+	task, err := service.CreateTask(ctx, feature.ID, "Existing task", "Bob", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	// 種類を持たない移行前のスキーマとメタデータを再現する。
 	if _, err := database.DB().
-		ExecContext(ctx, `ALTER TABLE tasks DROP COLUMN kind; DELETE FROM schema_migrations WHERE version=21;`); err != nil {
+		ExecContext(ctx, `ALTER TABLE tasks DROP COLUMN kind; DELETE FROM schema_migrations WHERE version=22;`); err != nil {
 		t.Fatal(err)
 	}
 	if err := database.Close(); err != nil {
@@ -43,7 +43,7 @@ func TestTaskKindMigrationDefaultsExistingTasksToDevelopment(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Kind != domain.TaskKindDevelopment || got.Title != task.Title || got.Scope != task.Scope ||
+	if got.Kind != domain.TaskKindDevelopment || got.Title != task.Title ||
 		got.Assignee != task.Assignee ||
 		got.Status != task.Status ||
 		!got.CreatedAt.Equal(task.CreatedAt) {
@@ -58,7 +58,7 @@ func TestWorkTaskManualLifecycleAndKindChanges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	task, err := service.CreateTask(ctx, feature.ID, "Work", "", "", domain.TaskKindWork)
+	task, err := service.CreateTask(ctx, feature.ID, "Work", "", domain.TaskKindWork)
 	if err != nil || task.Kind != domain.TaskKindWork {
 		t.Fatalf("task=%+v err=%v", task, err)
 	}
@@ -76,7 +76,7 @@ func TestWorkTaskManualLifecycleAndKindChanges(t *testing.T) {
 		domain.TaskStatusCompleted,
 		domain.TaskStatusClosed,
 	} {
-		updated, err := service.UpdateTask(ctx, task.ID, nil, nil, &status, nil, nil)
+		updated, err := service.UpdateTask(ctx, task.ID, nil, &status, nil, nil)
 		if err != nil || updated.Status != status || updated.Kind != domain.TaskKindWork {
 			t.Fatalf("updated=%+v err=%v", updated, err)
 		}
@@ -89,15 +89,7 @@ func TestWorkTaskManualLifecycleAndKindChanges(t *testing.T) {
 		}
 	}
 	designing := domain.TaskStatusDesigning
-	if _, err := service.UpdateTask(
-		ctx,
-		task.ID,
-		nil,
-		nil,
-		&designing,
-		nil,
-		nil,
-	); domain.ErrorCode(
+	if _, err := service.UpdateTask(ctx, task.ID, nil, &designing, nil, nil); domain.ErrorCode(
 		err,
 	) != domain.DomainErrorCodeInvalidStatus {
 		t.Fatalf("designing err=%v", err)
@@ -112,42 +104,26 @@ func TestWorkTaskManualLifecycleAndKindChanges(t *testing.T) {
 		t.Fatalf("attach err=%v", err)
 	}
 	development := domain.TaskKindDevelopment
-	if _, err := service.UpdateTask(ctx, task.ID, nil, nil, &designing, nil, &development); err != nil {
+	if _, err := service.UpdateTask(ctx, task.ID, nil, &designing, nil, &development); err != nil {
 		t.Fatal(err)
 	}
 	work := domain.TaskKindWork
-	if _, err := service.UpdateTask(
-		ctx,
-		task.ID,
-		nil,
-		nil,
-		nil,
-		nil,
-		&work,
-	); domain.ErrorCode(
+	if _, err := service.UpdateTask(ctx, task.ID, nil, nil, nil, &work); domain.ErrorCode(
 		err,
 	) != domain.DomainErrorCodeInvalidStatus {
 		t.Fatalf("kind err=%v", err)
 	}
 	notStarted := domain.TaskStatusNotStarted
-	if _, err := service.UpdateTask(ctx, task.ID, nil, nil, &notStarted, nil, &work); err != nil {
+	if _, err := service.UpdateTask(ctx, task.ID, nil, &notStarted, nil, &work); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := service.UpdateTask(ctx, task.ID, nil, nil, nil, nil, &development); err != nil {
+	if _, err := service.UpdateTask(ctx, task.ID, nil, nil, nil, &development); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := service.AttachPullRequest(ctx, task.ID, "https://github.com/acme/api/pull/1"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := service.UpdateTask(
-		ctx,
-		task.ID,
-		nil,
-		nil,
-		nil,
-		nil,
-		&work,
-	); domain.ErrorCode(
+	if _, err := service.UpdateTask(ctx, task.ID, nil, nil, nil, &work); domain.ErrorCode(
 		err,
 	) != domain.DomainErrorCodePullRequestOnWorkTask {
 		t.Fatalf("linked kind err=%v", err)
@@ -155,7 +131,7 @@ func TestWorkTaskManualLifecycleAndKindChanges(t *testing.T) {
 	if err := service.DetachPullRequest(ctx, task.ID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := service.UpdateTask(ctx, task.ID, nil, nil, nil, nil, &work); err != nil {
+	if _, err := service.UpdateTask(ctx, task.ID, nil, nil, nil, &work); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -168,31 +144,16 @@ func TestInvalidTaskKindsAreRejected(t *testing.T) {
 		t.Fatal(err)
 	}
 	invalid := domain.TaskKind("invalid")
-	if _, err := service.CreateTask(
-		ctx,
-		feature.ID,
-		"Invalid",
-		"",
-		"",
-		invalid,
-	); domain.ErrorCode(
+	if _, err := service.CreateTask(ctx, feature.ID, "Invalid", "", invalid); domain.ErrorCode(
 		err,
 	) != domain.DomainErrorCodeInvalidTaskKind {
 		t.Fatalf("create err=%v", err)
 	}
-	task, err := service.CreateTask(ctx, feature.ID, "Default", "", "", "")
+	task, err := service.CreateTask(ctx, feature.ID, "Default", "", "")
 	if err != nil || task.Kind != domain.TaskKindDevelopment {
 		t.Fatalf("default=%+v err=%v", task, err)
 	}
-	if _, err := service.UpdateTask(
-		ctx,
-		task.ID,
-		nil,
-		nil,
-		nil,
-		nil,
-		&invalid,
-	); domain.ErrorCode(
+	if _, err := service.UpdateTask(ctx, task.ID, nil, nil, nil, &invalid); domain.ErrorCode(
 		err,
 	) != domain.DomainErrorCodeInvalidTaskKind {
 		t.Fatalf("update err=%v", err)

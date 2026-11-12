@@ -15,7 +15,6 @@ import { useCloseOnEscape } from "./useCloseOnEscape";
 interface CreateTaskInput {
   featureId: string;
   title: string;
-  scope: string;
   assignee: string;
   kind: TaskKind;
 }
@@ -45,7 +44,6 @@ export function CreateTaskDialog({
       await mutations.updateTask({
         id: created,
         title: input.title,
-        scope: input.scope,
         assignee: input.assignee,
         kind: input.kind,
       });
@@ -75,7 +73,6 @@ export function CreateTaskDialog({
       await createTask.mutateAsync({
         featureId,
         title: formValue(form, "title"),
-        scope: formValue(form, "scope"),
         assignee: formValue(form, "assignee"),
         kind: Number(formValue(form, "kind")),
       });
@@ -111,13 +108,6 @@ export function CreateTaskDialog({
             name="title"
             required
             placeholder={t("taskCreate.titlePlaceholder")}
-          />
-        </label>
-        <label>
-          {t("common.scope")}
-          <textarea
-            name="scope"
-            placeholder={t("taskCreate.scopePlaceholder")}
           />
         </label>
         <TaskKindSelect defaultValue={TaskKind.DEVELOPMENT} />

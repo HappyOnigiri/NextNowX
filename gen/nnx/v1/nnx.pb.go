@@ -2169,8 +2169,6 @@ type Task struct {
 	FeatureId string `protobuf:"bytes,2,opt,name=feature_id,json=featureId,proto3" json:"feature_id,omitempty"`
 	// title は人が読む task 名。
 	Title string `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
-	// scope は task が扱う作業内容を説明する。
-	Scope string `protobuf:"bytes,4,opt,name=scope,proto3" json:"scope,omitempty"`
 	// status は保存されたワークフロー制御用の値。
 	Status TaskStatus `protobuf:"varint,6,opt,name=status,proto3,enum=nnx.v1.TaskStatus" json:"status,omitempty"`
 	// assignee は担当者が割り当てられている場合のその人物。
@@ -2247,13 +2245,6 @@ func (x *Task) GetFeatureId() string {
 func (x *Task) GetTitle() string {
 	if x != nil {
 		return x.Title
-	}
-	return ""
-}
-
-func (x *Task) GetScope() string {
-	if x != nil {
-		return x.Scope
 	}
 	return ""
 }
@@ -3757,8 +3748,6 @@ type CreateTaskRequest struct {
 	FeatureId string `protobuf:"bytes,1,opt,name=feature_id,json=featureId,proto3" json:"feature_id,omitempty"`
 	// title は必須の、人が読む task 名。
 	Title string `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	// scope は task が扱う作業内容を説明する。
-	Scope string `protobuf:"bytes,3,opt,name=scope,proto3" json:"scope,omitempty"`
 	// assignee は task の担当者で、任意。
 	Assignee string `protobuf:"bytes,5,opt,name=assignee,proto3" json:"assignee,omitempty"`
 	// kind は未指定なら開発。
@@ -3807,13 +3796,6 @@ func (x *CreateTaskRequest) GetFeatureId() string {
 func (x *CreateTaskRequest) GetTitle() string {
 	if x != nil {
 		return x.Title
-	}
-	return ""
-}
-
-func (x *CreateTaskRequest) GetScope() string {
-	if x != nil {
-		return x.Scope
 	}
 	return ""
 }
@@ -3886,8 +3868,6 @@ type UpdateTaskRequest struct {
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// title は未設定なら変更なし、空文字列ならクリアを要求する。
 	Title *string `protobuf:"bytes,2,opt,name=title,proto3,oneof" json:"title,omitempty"`
-	// scope は未設定なら変更なし、空文字列ならクリアする。
-	Scope *string `protobuf:"bytes,3,opt,name=scope,proto3,oneof" json:"scope,omitempty"`
 	// status は未設定なら変更なし、値があれば置き換える。
 	Status *TaskStatus `protobuf:"varint,4,opt,name=status,proto3,enum=nnx.v1.TaskStatus,oneof" json:"status,omitempty"`
 	// assignee は未設定なら変更なし、空文字列ならクリアする。
@@ -3938,13 +3918,6 @@ func (x *UpdateTaskRequest) GetId() string {
 func (x *UpdateTaskRequest) GetTitle() string {
 	if x != nil && x.Title != nil {
 		return *x.Title
-	}
-	return ""
-}
-
-func (x *UpdateTaskRequest) GetScope() string {
-	if x != nil && x.Scope != nil {
-		return *x.Scope
 	}
 	return ""
 }
@@ -10440,13 +10413,12 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"\x0ftext_overridden\x18\x04 \x01(\bR\x0etextOverridden\x12)\n" +
 	"\x10color_overridden\x18\x05 \x01(\bR\x0fcolorOverridden\"K\n" +
 	"\x14TaskLabelAppearances\x123\n" +
-	"\x06values\x18\x01 \x03(\v2\x1b.nnx.v1.TaskLabelAppearanceR\x06values\"\xd2\x04\n" +
+	"\x06values\x18\x01 \x03(\v2\x1b.nnx.v1.TaskLabelAppearanceR\x06values\"\xc9\x04\n" +
 	"\x04Task\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
 	"feature_id\x18\x02 \x01(\tR\tfeatureId\x12\x14\n" +
-	"\x05title\x18\x03 \x01(\tR\x05title\x12\x14\n" +
-	"\x05scope\x18\x04 \x01(\tR\x05scope\x12*\n" +
+	"\x05title\x18\x03 \x01(\tR\x05title\x12*\n" +
 	"\x06status\x18\x06 \x01(\x0e2\x12.nnx.v1.TaskStatusR\x06status\x12\x1a\n" +
 	"\bassignee\x18\a \x01(\tR\bassignee\x12\x1d\n" +
 	"\n" +
@@ -10460,7 +10432,7 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"\x17has_implementation_plan\x18\r \x01(\bR\x15hasImplementationPlan\x127\n" +
 	"\x18pending_blocker_task_ids\x18\x0e \x03(\tR\x15pendingBlockerTaskIds\x129\n" +
 	"\fblock_labels\x18\x0f \x03(\x0e2\x16.nnx.v1.TaskBlockLabelR\vblockLabels\x12$\n" +
-	"\x04kind\x18\x10 \x01(\x0e2\x10.nnx.v1.TaskKindR\x04kindJ\x04\b\x05\x10\x06\"{\n" +
+	"\x04kind\x18\x10 \x01(\x0e2\x10.nnx.v1.TaskKindR\x04kindJ\x04\b\x04\x10\x05J\x04\b\x05\x10\x06R\x05scope\"{\n" +
 	"\n" +
 	"Dependency\x12&\n" +
 	"\x0fblocker_task_id\x18\x01 \x01(\tR\rblockerTaskId\x12&\n" +
@@ -10583,28 +10555,25 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"\x14DeleteFeatureRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\acascade\x18\x02 \x01(\bR\acascade\"\x17\n" +
-	"\x15DeleteFeatureResponse\"\xa6\x01\n" +
+	"\x15DeleteFeatureResponse\"\x9d\x01\n" +
 	"\x11CreateTaskRequest\x12\x1d\n" +
 	"\n" +
 	"feature_id\x18\x01 \x01(\tR\tfeatureId\x12\x14\n" +
-	"\x05title\x18\x02 \x01(\tR\x05title\x12\x14\n" +
-	"\x05scope\x18\x03 \x01(\tR\x05scope\x12\x1a\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12\x1a\n" +
 	"\bassignee\x18\x05 \x01(\tR\bassignee\x12$\n" +
-	"\x04kind\x18\x06 \x01(\x0e2\x10.nnx.v1.TaskKindR\x04kindJ\x04\b\x04\x10\x05\"6\n" +
+	"\x04kind\x18\x06 \x01(\x0e2\x10.nnx.v1.TaskKindR\x04kindJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05R\x05scope\"6\n" +
 	"\x12CreateTaskResponse\x12 \n" +
-	"\x04task\x18\x01 \x01(\v2\f.nnx.v1.TaskR\x04task\"\x8b\x02\n" +
+	"\x04task\x18\x01 \x01(\v2\f.nnx.v1.TaskR\x04task\"\xf3\x01\n" +
 	"\x11UpdateTaskRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x19\n" +
-	"\x05title\x18\x02 \x01(\tH\x00R\x05title\x88\x01\x01\x12\x19\n" +
-	"\x05scope\x18\x03 \x01(\tH\x01R\x05scope\x88\x01\x01\x12/\n" +
-	"\x06status\x18\x04 \x01(\x0e2\x12.nnx.v1.TaskStatusH\x02R\x06status\x88\x01\x01\x12\x1f\n" +
-	"\bassignee\x18\x05 \x01(\tH\x03R\bassignee\x88\x01\x01\x12)\n" +
-	"\x04kind\x18\x06 \x01(\x0e2\x10.nnx.v1.TaskKindH\x04R\x04kind\x88\x01\x01B\b\n" +
-	"\x06_titleB\b\n" +
-	"\x06_scopeB\t\n" +
+	"\x05title\x18\x02 \x01(\tH\x00R\x05title\x88\x01\x01\x12/\n" +
+	"\x06status\x18\x04 \x01(\x0e2\x12.nnx.v1.TaskStatusH\x01R\x06status\x88\x01\x01\x12\x1f\n" +
+	"\bassignee\x18\x05 \x01(\tH\x02R\bassignee\x88\x01\x01\x12)\n" +
+	"\x04kind\x18\x06 \x01(\x0e2\x10.nnx.v1.TaskKindH\x03R\x04kind\x88\x01\x01B\b\n" +
+	"\x06_titleB\t\n" +
 	"\a_statusB\v\n" +
 	"\t_assigneeB\a\n" +
-	"\x05_kind\"6\n" +
+	"\x05_kindJ\x04\b\x03\x10\x04R\x05scope\"6\n" +
 	"\x12UpdateTaskResponse\x12 \n" +
 	"\x04task\x18\x01 \x01(\v2\f.nnx.v1.TaskR\x04task\"=\n" +
 	"\x11DeleteTaskRequest\x12\x0e\n" +

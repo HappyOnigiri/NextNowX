@@ -189,7 +189,6 @@ function matchesText(
   const values = [
     task.id,
     task.title,
-    task.scope,
     task.assignee,
     feature.id,
     feature.title,
