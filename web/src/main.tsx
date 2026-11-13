@@ -14,6 +14,7 @@ import "./styles/project.css";
 import "./styles/shell.css";
 import "./styles/task-card.css";
 import "./styles/task-inspector.css";
+import "./styles/task-kind.css";
 import "./styles/task-search.css";
 import "./styles/theme.css";
 import "./styles/workspace.css";

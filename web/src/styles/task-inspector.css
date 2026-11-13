@@ -44,7 +44,7 @@
   gap: 4px;
 }
 
-/* The state opens the heading line, then the kind icon and the title. */
+/* 状態・種類・タイトルの順に並べ、一覧やグラフと同じ読み順にする。 */
 .inspector-heading-line {
   min-width: 0;
   display: flex;
@@ -361,10 +361,4 @@
     bottom: 8px;
     width: calc(100% - 16px);
   }
-}
-
-.inspector-heading h2 > svg {
-  margin-right: 8px;
-  color: var(--text-3);
-  vertical-align: -2px;
 }

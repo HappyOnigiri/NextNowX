@@ -11,13 +11,13 @@ import {
 import { useDomainMutation } from "../hooks";
 import { blockedReasonLabel } from "../i18n/domain";
 import { CopyableIdentifier } from "./CopyableIdentifier";
-import { EntityIcon } from "./EntityIcon";
 import { IconButton } from "./IconButton";
 import { MutationError } from "./MutationError";
 import { useTaskDraft } from "./taskDraft";
 import { PullRequestSection } from "./TaskInspectorPullRequest";
 import { ReferencesSection } from "./TaskInspectorReferences";
 import { TaskInspectorTaskForm } from "./TaskInspectorTaskForm";
+import { TaskKindLabel } from "./TaskKindLabel";
 import { type TaskNodeDocument } from "./TaskNode";
 import { TaskBlockLabels, TaskStatusBadge } from "./TaskStateBadges";
 import { DiscardChangesDialog, SaveButton } from "./UnsavedChanges";
@@ -78,10 +78,8 @@ function TaskInspectorHeader({
             kind={task.kind}
             appearances={appearances}
           />
-          <h2>
-            <EntityIcon kind="task" size={16} />
-            {task.title}
-          </h2>
+          <TaskKindLabel kind={task.kind} />
+          <h2>{task.title}</h2>
         </div>
         <CopyableIdentifier
           label={t("common.taskId")}

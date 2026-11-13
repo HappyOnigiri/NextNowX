@@ -1,0 +1,15 @@
+.task-kind-label {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-2);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.task-kind-label svg {
+  flex: 0 0 auto;
+}

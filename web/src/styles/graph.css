@@ -235,9 +235,17 @@
   color: var(--text);
 }
 
+.task-node-title {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 6px 0;
+}
+
 .task-node h3 {
   display: -webkit-box;
-  margin: 6px 0;
+  margin: 0;
+  min-width: 0;
   overflow: hidden;
   color: var(--text);
   font-size: var(--text-md);
@@ -273,14 +281,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-/* The kind icon rides inside the clamped title, so a long title still ends in
-   an ellipsis. It follows the assignee's glyph rule, which is less specific. */
-.task-node h3 > svg {
-  margin-right: 6px;
-  color: var(--text-3);
-  vertical-align: -2px;
 }
 
 /* 枠の高さは全ノード共通なので、アセットが少ないカードで伸ばすと中が間延び
