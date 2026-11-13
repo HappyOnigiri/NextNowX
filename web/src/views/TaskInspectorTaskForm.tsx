@@ -8,6 +8,7 @@ import {
 import { taskStatusLabel } from "../i18n/domain";
 import { MutationError } from "./MutationError";
 import { type TaskDraftController } from "./taskDraft";
+import { TaskKindLabel } from "./TaskKindLabel";
 import { TaskKindSelect } from "./TaskKindSelect";
 import { taskStatusLabelKey } from "./taskStatusLabelKey";
 
@@ -122,11 +123,7 @@ function TaskInspectorReadOnlyValues({ task }: { task: Task }) {
       <div>
         <dt>{t("common.kind")}</dt>
         <dd>
-          {t(
-            task.kind === TaskKind.WORK
-              ? "taskKind.work"
-              : "taskKind.development",
-          )}
+          <TaskKindLabel kind={task.kind} />
         </dd>
       </div>
       <div>

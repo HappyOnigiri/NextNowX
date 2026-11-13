@@ -20,6 +20,7 @@ import { CopyableIdentifier } from "./CopyableIdentifier";
 import { EntityIcon } from "./EntityIcon";
 import { IconButton } from "./IconButton";
 import { PullRequestFlags } from "./PullRequestFlags";
+import { TaskKindLabel } from "./TaskKindLabel";
 import { TaskPromptCopyButton } from "./TaskPromptCopyButton";
 import { TaskBlockLabels, TaskStatusBadge } from "./TaskStateBadges";
 import type { HiddenDependencies } from "./visibleGraph";
@@ -227,10 +228,10 @@ export function TaskNode({
           appearances={data.taskLabelAppearances}
         />
       </p>
-      <h3>
-        <EntityIcon kind="task" size={13} />
-        {data.title}
-      </h3>
+      <div className="task-node-title">
+        <TaskKindLabel kind={data.kind} />
+        <h3>{data.title}</h3>
+      </div>
       {/* 担当者はアセットではなくタイトルに属するので、責任を負う名前の
           すぐ下に置く。 */}
       {data.assignee && (

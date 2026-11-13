@@ -15,8 +15,16 @@ test("warns about a linked PR and saves Work with manual statuses after detachin
   await createFeature(page, `Task kind ${crypto.randomUUID()}`);
   await addTask(page, "Kind lifecycle");
   const node = page.locator(".task-node").filter({ hasText: "Kind lifecycle" });
+  await expect(node.locator(".task-kind-label")).toHaveText("Development");
+  const developmentSize = await node.evaluate((element) => ({
+    width: element.clientWidth,
+    height: element.clientHeight,
+  }));
   await node.getByRole("button", { name: "Edit Kind lifecycle" }).click();
   const inspector = page.getByRole("complementary", { name: "Task inspector" });
+  await expect(inspector.locator("header .task-kind-label")).toHaveText(
+    "Development",
+  );
   await expect(inspector.getByLabel("Kind", { exact: true })).toHaveValue("1");
   await inspector
     .getByPlaceholder("https://github.com/org/repo/pull/42")
@@ -46,6 +54,14 @@ test("warns about a linked PR and saves Work with manual statuses after detachin
   await expect(
     inspector.getByRole("button", { name: "Save task" }),
   ).toBeDisabled();
+  await expect(node.locator(".task-kind-label")).toHaveText("Work");
+  await expect(inspector.locator("header .task-kind-label")).toHaveText("Work");
+  expect(
+    await node.evaluate((element) => ({
+      width: element.clientWidth,
+      height: element.clientHeight,
+    })),
+  ).toEqual(developmentSize);
   await page.reload();
   await node.getByRole("button", { name: "Edit Kind lifecycle" }).click();
   await expect(inspector.getByLabel("Kind", { exact: true })).toHaveValue("2");

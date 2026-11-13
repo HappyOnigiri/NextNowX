@@ -8,6 +8,7 @@ import { isDependencyBlockedTask, isDormantTask } from "../task-attention";
 import { CopyableIdentifier } from "./CopyableIdentifier";
 import { EntityIcon, type EntityKind } from "./EntityIcon";
 import { PullRequestFlags } from "./PullRequestFlags";
+import { TaskKindLabel } from "./TaskKindLabel";
 import { TaskPromptCopyButton } from "./TaskPromptCopyButton";
 import { TaskBlockLabels, TaskStatusBadge } from "./TaskStateBadges";
 
@@ -52,7 +53,7 @@ export function TaskCard({
             kind={task.kind}
             appearances={feature?.taskLabelAppearances}
           />
-          <EntityIcon kind="task" size={15} />
+          <TaskKindLabel kind={task.kind} />
           <Link
             to="/features/$featureId"
             params={{ featureId: task.featureId }}
