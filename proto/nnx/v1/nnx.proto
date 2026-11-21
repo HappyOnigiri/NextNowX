@@ -246,7 +246,7 @@ enum DomainErrorCode {
   reserved "DOMAIN_ERROR_CODE_INVALID_SLUG";
   // DOMAIN_ERROR_CODE_INVALID_STATUS は feature か task のステータスが未対応であることを表す。
   DOMAIN_ERROR_CODE_INVALID_STATUS = 15;
-  // DOMAIN_ERROR_CODE_INVALID_TITLE は必須の feature か task のタイトルが空であることを表す。
+  // DOMAIN_ERROR_CODE_INVALID_TITLE は必須のタイトルかグループ名が空であることを表す。
   DOMAIN_ERROR_CODE_INVALID_TITLE = 16;
   // DOMAIN_ERROR_CODE_NOT_FOUND は要求されたレコードが存在しないことを表す。
   DOMAIN_ERROR_CODE_NOT_FOUND = 17;
@@ -287,6 +287,8 @@ enum DomainErrorCode {
   DOMAIN_ERROR_CODE_INVALID_TASK_KIND = 35;
   // DOMAIN_ERROR_CODE_PULL_REQUEST_ON_WORK_TASK は作業への PR 紐づけを拒否する。
   DOMAIN_ERROR_CODE_PULL_REQUEST_ON_WORK_TASK = 36;
+  // DOMAIN_ERROR_CODE_DUPLICATE_TASK_GROUP_NAME は同じ feature 内に同名のグループがあることを表す。
+  DOMAIN_ERROR_CODE_DUPLICATE_TASK_GROUP_NAME = 37;
 }
 
 // GitHubAuthMethodType は GitHub のトークンの取得方法を表す。
@@ -554,6 +556,8 @@ message Task {
   repeated TaskBlockLabel block_labels = 15;
   // kind はタスクの種類。
   TaskKind kind = 16;
+  // group_id は所属するグループの公開 ID。空文字列は未所属。
+  string group_id = 17;
 }
 
 // Dependency は 1 つの feature 内で blocker task から blocked task への有向辺を表す。
@@ -660,6 +664,8 @@ message Snapshot {
   repeated Task stale_tasks = 9;
   // projects は保存されたすべての project。
   repeated Project projects = 10;
+  // task_groups はタスクがまだ所属していないグループも含む。
+  repeated TaskGroup task_groups = 11;
 }
 
 // GetSnapshotRequest は現在の正規化データと導出キューを要求する。
@@ -811,6 +817,8 @@ message CreateTaskRequest {
   string assignee = 5;
   // kind は未指定なら開発。
   TaskKind kind = 6;
+  // group_id が空文字列なら未所属で作る。
+  string group_id = 7;
 }
 
 // CreateTaskResponse は作成された task を返す。
@@ -834,6 +842,8 @@ message UpdateTaskRequest {
   optional string assignee = 5;
   // kind は未指定なら変更しない。
   optional TaskKind kind = 6;
+  // group_id は省略すると所属を維持し、空文字列なら解除する。
+  optional string group_id = 7;
 }
 
 // UpdateTaskResponse は更新後の task を返す。
@@ -852,6 +862,53 @@ message DeleteTaskRequest {
 
 // DeleteTaskResponse は task が削除されたことを示す。
 message DeleteTaskResponse {}
+
+// TaskGroup は 1 つの feature 内でタスクをまとめる。
+message TaskGroup {
+  // id は G-<number> 形式の公開安定識別子。
+  string id = 1;
+  // feature_id は所属先の feature の公開 ID。
+  string feature_id = 2;
+  // name は同じ feature 内で一意の表示名。
+  string name = 3;
+}
+
+// CreateTaskGroupRequest はグループの所属先と名前を指定する。
+message CreateTaskGroupRequest {
+  // feature_id は所属先の feature の公開 ID。
+  string feature_id = 1;
+  // name は前後の空白を除いた上で保存する。
+  string name = 2;
+}
+
+// CreateTaskGroupResponse は作成済みのグループを返す。
+message CreateTaskGroupResponse {
+  // task_group は公開 ID を持つ作成済みのグループ。
+  TaskGroup task_group = 1;
+}
+
+// RenameTaskGroupRequest は既存のグループの名前を更新する。
+message RenameTaskGroupRequest {
+  // id は更新するグループの公開 ID。
+  string id = 1;
+  // name は前後の空白を除いた上で保存する。
+  string name = 2;
+}
+
+// RenameTaskGroupResponse は改名したグループを返す。
+message RenameTaskGroupResponse {
+  // task_group は新しい名前を持つグループ。
+  TaskGroup task_group = 1;
+}
+
+// DeleteTaskGroupRequest は所属を解除してグループを削除する。
+message DeleteTaskGroupRequest {
+  // id は削除するグループの公開 ID。
+  string id = 1;
+}
+
+// DeleteTaskGroupResponse は削除の成功を表す。
+message DeleteTaskGroupResponse {}
 
 // AddDependencyRequest は同じ feature 内に依存の辺を作る。
 message AddDependencyRequest {
@@ -1864,6 +1921,12 @@ service NNXService {
   rpc UpdateTask(UpdateTaskRequest) returns (UpdateTaskResponse);
   // DeleteTask は cascade の指定に従って task を削除する。
   rpc DeleteTask(DeleteTaskRequest) returns (DeleteTaskResponse);
+  // CreateTaskGroup は feature 内にグループを作成する。
+  rpc CreateTaskGroup(CreateTaskGroupRequest) returns (CreateTaskGroupResponse);
+  // RenameTaskGroup はグループの名前を更新する。
+  rpc RenameTaskGroup(RenameTaskGroupRequest) returns (RenameTaskGroupResponse);
+  // DeleteTaskGroup はグループを削除し、所属タスクを未所属にする。
+  rpc DeleteTaskGroup(DeleteTaskGroupRequest) returns (DeleteTaskGroupResponse);
   // AddDependency は循環を作らない場合に、同じ feature 内の依存を追加する。
   rpc AddDependency(AddDependencyRequest) returns (AddDependencyResponse);
   // RemoveDependency は既存の依存の辺を取り除く。

@@ -273,6 +273,7 @@ func (s *Store) CreateTask(
 	ctx context.Context,
 	featureID, title, assignee string,
 	kind domain.TaskKind,
+	groupID string,
 ) (domain.Task, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -284,6 +285,9 @@ func (s *Store) CreateTask(
 	if err != nil {
 		return domain.Task{}, mapNotFound(err, "feature", featureID)
 	}
+	if err := validateTaskGroupAssignment(ctx, q, feature.ID, groupID); err != nil {
+		return domain.Task{}, err
+	}
 	publicID, err := nextPublicID(ctx, q, "task", taskPublicIDPrefix)
 	if err != nil {
 		return domain.Task{}, err
@@ -293,6 +297,7 @@ func (s *Store) CreateTask(
 		kind = domain.TaskKindDevelopment
 	}
 	params := db.CreateTaskParams{
+		GroupID:   nullString(groupID),
 		Kind:      string(kind),
 		ID:        uuid.NewString(),
 		PublicID:  publicID,
@@ -323,30 +328,43 @@ func (s *Store) GetTask(ctx context.Context, id string) (domain.Task, error) {
 	return domainTask(value, publicFeatureID(ctx, q, value.FeatureID)), nil
 }
 
-func (s *Store) UpdateTask(ctx context.Context, task domain.Task) (domain.Task, error) {
-	storageID := task.StorageID
-	if storageID == "" {
-		value, err := db.New(s.db).GetTaskByPublicID(ctx, task.ID)
-		if err != nil {
-			return domain.Task{}, mapNotFound(err, "task", task.ID)
+func (s *Store) UpdateTask(ctx context.Context, task domain.Task, groupID *string) (domain.Task, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return domain.Task{}, err
+	}
+	defer func() { _ = tx.Rollback() }()
+	q := db.New(tx)
+	current, err := q.GetTaskByPublicID(ctx, task.ID)
+	if err != nil {
+		return domain.Task{}, mapNotFound(err, "task", task.ID)
+	}
+	group := current.GroupID
+	if groupID != nil {
+		if err := validateTaskGroupAssignment(ctx, q, current.FeatureID, *groupID); err != nil {
+			return domain.Task{}, err
 		}
-		storageID = value.ID
+		group = nullString(*groupID)
 	}
 	params := db.UpdateTaskParams{
+		GroupID:   group,
 		Kind:      string(task.Kind),
 		Title:     task.Title,
 		Status:    string(task.Status),
 		Assignee:  task.Assignee,
 		UpdatedAt: timestamp(s.now()),
-		ID:        storageID,
+		ID:        current.ID,
 	}
-	q := db.New(s.db)
 	value, err := q.
 		UpdateTask(ctx, params)
 	if err != nil {
 		return domain.Task{}, mapNotFound(err, "task", task.ID)
 	}
-	return domainTask(value, publicFeatureID(ctx, q, value.FeatureID)), nil
+	result := domainTask(value, publicFeatureID(ctx, q, value.FeatureID))
+	if err := tx.Commit(); err != nil {
+		return domain.Task{}, err
+	}
+	return result, nil
 }
 
 func (s *Store) GetImplementationPlan(ctx context.Context, taskID string) (domain.Document, error) {
@@ -568,8 +586,15 @@ func (s *Store) DeleteFeature(ctx context.Context, id string, cascade bool) erro
 		Scan(&documentCount); err != nil {
 		return err
 	}
-	if (len(tasks) > 0 || documentCount > 0) && !cascade {
-		return domain.NewError(domain.DomainErrorCodeReferencesExist, "feature has tasks or documents; pass --cascade")
+	hasGroups, err := q.FeatureHasTaskGroups(ctx, storageID)
+	if err != nil {
+		return err
+	}
+	if (len(tasks) > 0 || documentCount > 0 || hasGroups) && !cascade {
+		return domain.NewError(
+			domain.DomainErrorCodeReferencesExist,
+			"feature has tasks, groups, or documents; pass --cascade",
+		)
 	}
 	if cascade {
 		if err := deleteFeatureContents(ctx, q, storageID); err != nil {
@@ -971,12 +996,21 @@ func (s *Store) DeleteDocument(ctx context.Context, id string) error {
 }
 
 func (s *Store) Snapshot(ctx context.Context) (domain.Snapshot, error) {
-	q := db.New(s.db)
+	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return domain.Snapshot{}, err
+	}
+	defer func() { _ = tx.Rollback() }()
+	q := db.New(tx)
 	projects, err := q.ListProjects(ctx)
 	if err != nil {
 		return domain.Snapshot{}, err
 	}
 	features, err := q.ListFeatures(ctx)
+	if err != nil {
+		return domain.Snapshot{}, err
+	}
+	groups, err := q.ListTaskGroups(ctx)
 	if err != nil {
 		return domain.Snapshot{}, err
 	}
@@ -1001,6 +1035,7 @@ func (s *Store) Snapshot(ctx context.Context) (domain.Snapshot, error) {
 		return domain.Snapshot{}, err
 	}
 	result := domain.Snapshot{
+		TaskGroups:   make([]domain.TaskGroup, len(groups)),
 		Projects:     make([]domain.Project, len(projects)),
 		Features:     make([]domain.Feature, len(features)),
 		Tasks:        make([]domain.Task, len(tasks)),
@@ -1016,6 +1051,9 @@ func (s *Store) Snapshot(ctx context.Context) (domain.Snapshot, error) {
 	}
 	for i, row := range features {
 		result.Features[i] = domainFeature(row, projectIDs[row.ProjectID])
+	}
+	for i, row := range groups {
+		result.TaskGroups[i] = domainTaskGroup(row, featureIDs[row.FeatureID])
 	}
 	for i, row := range tasks {
 		result.Tasks[i] = domainTask(row, featureIDs[row.FeatureID])

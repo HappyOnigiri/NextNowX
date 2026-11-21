@@ -59,9 +59,27 @@ WHERE id=? RETURNING *;
 -- name: DeleteFeature :exec
 DELETE FROM features WHERE id=?;
 
+-- name: CreateTaskGroup :one
+INSERT INTO task_groups (public_id, feature_id, name) VALUES (?, ?, ?) RETURNING *;
+
+-- name: GetTaskGroup :one
+SELECT * FROM task_groups WHERE public_id = ?;
+
+-- name: ListTaskGroups :many
+SELECT * FROM task_groups ORDER BY name, public_id;
+
+-- name: FeatureHasTaskGroups :one
+SELECT EXISTS(SELECT 1 FROM task_groups WHERE feature_id = ?);
+
+-- name: RenameTaskGroup :one
+UPDATE task_groups SET name = ? WHERE public_id = ? RETURNING *;
+
+-- name: DeleteTaskGroup :execrows
+DELETE FROM task_groups WHERE public_id = ?;
+
 -- name: CreateTask :one
-INSERT INTO tasks (id, public_id, feature_id, title, status, assignee, created_at, updated_at, kind)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *;
+INSERT INTO tasks (id, public_id, feature_id, title, status, assignee, created_at, updated_at, kind, group_id)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *;
 
 -- name: GetTask :one
 SELECT * FROM tasks WHERE id=?;
@@ -76,7 +94,9 @@ SELECT * FROM tasks ORDER BY created_at, id;
 SELECT * FROM tasks WHERE feature_id=? ORDER BY created_at, id;
 
 -- name: UpdateTask :one
-UPDATE tasks SET title=?, status=?, assignee=?, updated_at=?, kind=? WHERE id=? RETURNING *;
+UPDATE tasks SET title=?, status=?, assignee=?, updated_at=?, kind=?,
+  group_id=?
+WHERE id=? RETURNING *;
 
 -- name: DeleteTask :exec
 DELETE FROM tasks WHERE id=?;

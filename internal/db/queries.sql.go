@@ -295,20 +295,21 @@ func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (P
 }
 
 const createTask = `-- name: CreateTask :one
-INSERT INTO tasks (id, public_id, feature_id, title, status, assignee, created_at, updated_at, kind)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, feature_id, title, status, assignee, created_at, updated_at, public_id, kind
+INSERT INTO tasks (id, public_id, feature_id, title, status, assignee, created_at, updated_at, kind, group_id)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, feature_id, title, status, assignee, created_at, updated_at, public_id, kind, group_id
 `
 
 type CreateTaskParams struct {
-	ID        string `json:"id"`
-	PublicID  string `json:"public_id"`
-	FeatureID string `json:"feature_id"`
-	Title     string `json:"title"`
-	Status    string `json:"status"`
-	Assignee  string `json:"assignee"`
-	CreatedAt string `json:"created_at"`
-	UpdatedAt string `json:"updated_at"`
-	Kind      string `json:"kind"`
+	ID        string         `json:"id"`
+	PublicID  string         `json:"public_id"`
+	FeatureID string         `json:"feature_id"`
+	Title     string         `json:"title"`
+	Status    string         `json:"status"`
+	Assignee  string         `json:"assignee"`
+	CreatedAt string         `json:"created_at"`
+	UpdatedAt string         `json:"updated_at"`
+	Kind      string         `json:"kind"`
+	GroupID   sql.NullString `json:"group_id"`
 }
 
 func (q *Queries) CreateTask(ctx context.Context, arg CreateTaskParams) (Task, error) {
@@ -322,6 +323,7 @@ func (q *Queries) CreateTask(ctx context.Context, arg CreateTaskParams) (Task, e
 		arg.CreatedAt,
 		arg.UpdatedAt,
 		arg.Kind,
+		arg.GroupID,
 	)
 	var i Task
 	err := row.Scan(
@@ -334,7 +336,25 @@ func (q *Queries) CreateTask(ctx context.Context, arg CreateTaskParams) (Task, e
 		&i.UpdatedAt,
 		&i.PublicID,
 		&i.Kind,
+		&i.GroupID,
 	)
+	return i, err
+}
+
+const createTaskGroup = `-- name: CreateTaskGroup :one
+INSERT INTO task_groups (public_id, feature_id, name) VALUES (?, ?, ?) RETURNING public_id, feature_id, name
+`
+
+type CreateTaskGroupParams struct {
+	PublicID  string `json:"public_id"`
+	FeatureID string `json:"feature_id"`
+	Name      string `json:"name"`
+}
+
+func (q *Queries) CreateTaskGroup(ctx context.Context, arg CreateTaskGroupParams) (TaskGroup, error) {
+	row := q.db.QueryRowContext(ctx, createTaskGroup, arg.PublicID, arg.FeatureID, arg.Name)
+	var i TaskGroup
+	err := row.Scan(&i.PublicID, &i.FeatureID, &i.Name)
 	return i, err
 }
 
@@ -478,6 +498,18 @@ func (q *Queries) DeleteTask(ctx context.Context, id string) error {
 	return err
 }
 
+const deleteTaskGroup = `-- name: DeleteTaskGroup :execrows
+DELETE FROM task_groups WHERE public_id = ?
+`
+
+func (q *Queries) DeleteTaskGroup(ctx context.Context, publicID string) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteTaskGroup, publicID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const deleteTasksForFeature = `-- name: DeleteTasksForFeature :exec
 DELETE FROM tasks WHERE feature_id=?
 `
@@ -485,6 +517,17 @@ DELETE FROM tasks WHERE feature_id=?
 func (q *Queries) DeleteTasksForFeature(ctx context.Context, featureID string) error {
 	_, err := q.db.ExecContext(ctx, deleteTasksForFeature, featureID)
 	return err
+}
+
+const featureHasTaskGroups = `-- name: FeatureHasTaskGroups :one
+SELECT EXISTS(SELECT 1 FROM task_groups WHERE feature_id = ?)
+`
+
+func (q *Queries) FeatureHasTaskGroups(ctx context.Context, featureID string) (bool, error) {
+	row := q.db.QueryRowContext(ctx, featureHasTaskGroups, featureID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
 }
 
 const getDocument = `-- name: GetDocument :one
@@ -711,7 +754,7 @@ func (q *Queries) GetPullRequestByTask(ctx context.Context, taskID string) (Pull
 }
 
 const getTask = `-- name: GetTask :one
-SELECT id, feature_id, title, status, assignee, created_at, updated_at, public_id, kind FROM tasks WHERE id=?
+SELECT id, feature_id, title, status, assignee, created_at, updated_at, public_id, kind, group_id FROM tasks WHERE id=?
 `
 
 func (q *Queries) GetTask(ctx context.Context, id string) (Task, error) {
@@ -727,12 +770,13 @@ func (q *Queries) GetTask(ctx context.Context, id string) (Task, error) {
 		&i.UpdatedAt,
 		&i.PublicID,
 		&i.Kind,
+		&i.GroupID,
 	)
 	return i, err
 }
 
 const getTaskByPublicID = `-- name: GetTaskByPublicID :one
-SELECT id, feature_id, title, status, assignee, created_at, updated_at, public_id, kind FROM tasks WHERE public_id=?
+SELECT id, feature_id, title, status, assignee, created_at, updated_at, public_id, kind, group_id FROM tasks WHERE public_id=?
 `
 
 func (q *Queries) GetTaskByPublicID(ctx context.Context, publicID string) (Task, error) {
@@ -748,7 +792,19 @@ func (q *Queries) GetTaskByPublicID(ctx context.Context, publicID string) (Task,
 		&i.UpdatedAt,
 		&i.PublicID,
 		&i.Kind,
+		&i.GroupID,
 	)
+	return i, err
+}
+
+const getTaskGroup = `-- name: GetTaskGroup :one
+SELECT public_id, feature_id, name FROM task_groups WHERE public_id = ?
+`
+
+func (q *Queries) GetTaskGroup(ctx context.Context, publicID string) (TaskGroup, error) {
+	row := q.db.QueryRowContext(ctx, getTaskGroup, publicID)
+	var i TaskGroup
+	err := row.Scan(&i.PublicID, &i.FeatureID, &i.Name)
 	return i, err
 }
 
@@ -1124,8 +1180,35 @@ func (q *Queries) ListPullRequests(ctx context.Context) ([]PullRequest, error) {
 	return items, nil
 }
 
+const listTaskGroups = `-- name: ListTaskGroups :many
+SELECT public_id, feature_id, name FROM task_groups ORDER BY name, public_id
+`
+
+func (q *Queries) ListTaskGroups(ctx context.Context) ([]TaskGroup, error) {
+	rows, err := q.db.QueryContext(ctx, listTaskGroups)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TaskGroup{}
+	for rows.Next() {
+		var i TaskGroup
+		if err := rows.Scan(&i.PublicID, &i.FeatureID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listTasks = `-- name: ListTasks :many
-SELECT id, feature_id, title, status, assignee, created_at, updated_at, public_id, kind FROM tasks ORDER BY created_at, id
+SELECT id, feature_id, title, status, assignee, created_at, updated_at, public_id, kind, group_id FROM tasks ORDER BY created_at, id
 `
 
 func (q *Queries) ListTasks(ctx context.Context) ([]Task, error) {
@@ -1147,6 +1230,7 @@ func (q *Queries) ListTasks(ctx context.Context) ([]Task, error) {
 			&i.UpdatedAt,
 			&i.PublicID,
 			&i.Kind,
+			&i.GroupID,
 		); err != nil {
 			return nil, err
 		}
@@ -1162,7 +1246,7 @@ func (q *Queries) ListTasks(ctx context.Context) ([]Task, error) {
 }
 
 const listTasksByFeature = `-- name: ListTasksByFeature :many
-SELECT id, feature_id, title, status, assignee, created_at, updated_at, public_id, kind FROM tasks WHERE feature_id=? ORDER BY created_at, id
+SELECT id, feature_id, title, status, assignee, created_at, updated_at, public_id, kind, group_id FROM tasks WHERE feature_id=? ORDER BY created_at, id
 `
 
 func (q *Queries) ListTasksByFeature(ctx context.Context, featureID string) ([]Task, error) {
@@ -1184,6 +1268,7 @@ func (q *Queries) ListTasksByFeature(ctx context.Context, featureID string) ([]T
 			&i.UpdatedAt,
 			&i.PublicID,
 			&i.Kind,
+			&i.GroupID,
 		); err != nil {
 			return nil, err
 		}
@@ -1213,6 +1298,22 @@ func (q *Queries) RemoveDependency(ctx context.Context, arg RemoveDependencyPara
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const renameTaskGroup = `-- name: RenameTaskGroup :one
+UPDATE task_groups SET name = ? WHERE public_id = ? RETURNING public_id, feature_id, name
+`
+
+type RenameTaskGroupParams struct {
+	Name     string `json:"name"`
+	PublicID string `json:"public_id"`
+}
+
+func (q *Queries) RenameTaskGroup(ctx context.Context, arg RenameTaskGroupParams) (TaskGroup, error) {
+	row := q.db.QueryRowContext(ctx, renameTaskGroup, arg.Name, arg.PublicID)
+	var i TaskGroup
+	err := row.Scan(&i.PublicID, &i.FeatureID, &i.Name)
+	return i, err
 }
 
 const startGitHubSync = `-- name: StartGitHubSync :exec
@@ -1397,16 +1498,19 @@ func (q *Queries) UpdateProject(ctx context.Context, arg UpdateProjectParams) (P
 }
 
 const updateTask = `-- name: UpdateTask :one
-UPDATE tasks SET title=?, status=?, assignee=?, updated_at=?, kind=? WHERE id=? RETURNING id, feature_id, title, status, assignee, created_at, updated_at, public_id, kind
+UPDATE tasks SET title=?, status=?, assignee=?, updated_at=?, kind=?,
+  group_id=?
+WHERE id=? RETURNING id, feature_id, title, status, assignee, created_at, updated_at, public_id, kind, group_id
 `
 
 type UpdateTaskParams struct {
-	Title     string `json:"title"`
-	Status    string `json:"status"`
-	Assignee  string `json:"assignee"`
-	UpdatedAt string `json:"updated_at"`
-	Kind      string `json:"kind"`
-	ID        string `json:"id"`
+	Title     string         `json:"title"`
+	Status    string         `json:"status"`
+	Assignee  string         `json:"assignee"`
+	UpdatedAt string         `json:"updated_at"`
+	Kind      string         `json:"kind"`
+	GroupID   sql.NullString `json:"group_id"`
+	ID        string         `json:"id"`
 }
 
 func (q *Queries) UpdateTask(ctx context.Context, arg UpdateTaskParams) (Task, error) {
@@ -1416,6 +1520,7 @@ func (q *Queries) UpdateTask(ctx context.Context, arg UpdateTaskParams) (Task, e
 		arg.Assignee,
 		arg.UpdatedAt,
 		arg.Kind,
+		arg.GroupID,
 		arg.ID,
 	)
 	var i Task
@@ -1429,6 +1534,7 @@ func (q *Queries) UpdateTask(ctx context.Context, arg UpdateTaskParams) (Task, e
 		&i.UpdatedAt,
 		&i.PublicID,
 		&i.Kind,
+		&i.GroupID,
 	)
 	return i, err
 }

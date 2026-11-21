@@ -10,6 +10,7 @@ import {
   PullRequestSchema,
   SnapshotSchema,
   TaskDisplayState,
+  TaskGroupSchema,
   TaskKind,
   TaskSchema,
   TaskStatus,
@@ -20,6 +21,7 @@ import {
   type PullRequest,
   type Snapshot,
   type Task,
+  type TaskGroup,
 } from "../src/gen/nnx/v1/nnx_pb";
 
 const featureDefaults = {
@@ -91,6 +93,17 @@ export function makeTask(
   overrides: MessageInitShape<typeof TaskSchema> = {},
 ): Task {
   return create(TaskSchema, { ...taskDefaults, ...overrides });
+}
+
+export function makeTaskGroup(
+  overrides: MessageInitShape<typeof TaskGroupSchema> = {},
+): TaskGroup {
+  return create(TaskGroupSchema, {
+    id: "group-1",
+    featureId: "feature-1",
+    name: "Checkout",
+    ...overrides,
+  });
 }
 
 export function makeDependency(

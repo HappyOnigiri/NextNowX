@@ -85,7 +85,7 @@ func createTaskForAttach(t *testing.T, service *app.Service, title string) domai
 	t.Helper()
 	ctx := context.Background()
 	feature := newFeature(t, ctx, service, title)
-	task, err := service.CreateTask(ctx, feature.ID, title, "", "")
+	task, err := service.CreateTask(ctx, feature.ID, title, "", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}

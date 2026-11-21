@@ -16,6 +16,7 @@ nnx task update TASK_ID --status completed
 
 ```
       --assignee string   new assignee
+      --group string      task group ID; pass an empty string to clear
   -h, --help              help for update
       --kind string       development or work
       --status string     not_started, designing, in_progress, completed, or closed

@@ -8,6 +8,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TaskKind } from "../src/gen/nnx/v1/nnx_pb";
 import { CreateTaskDialog } from "../src/views/CreateTaskDialog";
+import { makeTaskGroup } from "./factories";
 
 const dialogMocks = vi.hoisted(() => ({
   mutation: {
@@ -86,6 +87,26 @@ describe("CreateTaskDialog", () => {
       assignee: "Carol",
     });
     expect(dialogMocks.addDependency).not.toHaveBeenCalled();
+  });
+
+  it("sends the selected group when creating a task", async () => {
+    const group = makeTaskGroup();
+    render(
+      <CreateTaskDialog
+        featureId={group.featureId}
+        groups={[group]}
+        onClose={vi.fn()}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Task group"), {
+      target: { value: group.id },
+    });
+    submitForm({ title: "Grouped task" });
+    await waitFor(() => {
+      expect(dialogMocks.createTask).toHaveBeenCalledWith(
+        expect.objectContaining({ groupId: group.id }),
+      );
+    });
   });
 
   it("adds the dependency after creating the task", async () => {
@@ -193,6 +214,7 @@ describe("CreateTaskDialog", () => {
     submitForm({ title: "Implement refunds" });
     await waitFor(() => {
       expect(dialogMocks.updateTask).toHaveBeenCalledWith({
+        groupId: "",
         id: "task-new",
         kind: TaskKind.DEVELOPMENT,
         title: "Implement refunds",

@@ -37,6 +37,9 @@ const apiMocks = vi.hoisted(() => {
     createFeature: vi.fn(),
     updateFeature: vi.fn(),
     deleteFeature: vi.fn(),
+    createTaskGroup: vi.fn(),
+    renameTaskGroup: vi.fn(),
+    deleteTaskGroup: vi.fn(),
     createTask: vi.fn(),
     updateTask: vi.fn(),
     deleteTask: vi.fn(),
@@ -101,6 +104,26 @@ describe("RPC API wrappers", () => {
     apiMocks.client.getSnapshot.mockResolvedValueOnce({ snapshot: undefined });
     await expect(getSnapshot()).rejects.toThrow(
       "The server returned an empty snapshot.",
+    );
+  });
+
+  it("wraps task group mutations and sends an explicit empty member update", async () => {
+    await mutations.createTaskGroup({ featureId: "F-1", name: "Checkout" });
+    await mutations.renameTaskGroup({ id: "G-1", name: "Delivery" });
+    await mutations.deleteTaskGroup("G-1");
+    await mutations.updateTask({ id: "T-1", groupId: "" });
+
+    expect(apiMocks.client.createTaskGroup).toHaveBeenCalledWith(
+      expect.objectContaining({ featureId: "F-1", name: "Checkout" }),
+    );
+    expect(apiMocks.client.renameTaskGroup).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "G-1", name: "Delivery" }),
+    );
+    expect(apiMocks.client.deleteTaskGroup).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "G-1" }),
+    );
+    expect(apiMocks.client.updateTask).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "T-1", groupId: "" }),
     );
   });
 

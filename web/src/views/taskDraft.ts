@@ -8,6 +8,7 @@ interface TaskDraft {
   status: TaskStatus;
   kind: TaskKind;
   assignee: string;
+  groupId?: string | undefined;
 }
 
 export interface TaskDraftController {
@@ -35,9 +36,12 @@ export function useTaskDraft(task: Task): TaskDraftController {
   const updateTask = useDomainMutation(mutations.updateTask);
   const [draft, setDraft] = useState(() => draftOf(task));
   const saved = draftOf(task);
+  const { groupId, ...fields } = draft;
+  const groupChanged = groupId !== undefined && groupId !== task.groupId;
   return {
     draft,
     dirty:
+      groupChanged ||
       draft.title !== saved.title ||
       draft.status !== saved.status ||
       draft.kind !== saved.kind ||
@@ -46,7 +50,23 @@ export function useTaskDraft(task: Task): TaskDraftController {
     error: updateTask.error,
     setDraft,
     save: () => {
-      updateTask.mutate({ id: task.id, ...draft });
+      const input = { id: task.id, ...fields };
+      if (!groupChanged) {
+        updateTask.mutate(input);
+        return;
+      }
+      updateTask.mutate(
+        { ...input, groupId },
+        {
+          onSuccess: () => {
+            setDraft((current) =>
+              current.groupId === groupId
+                ? { ...current, groupId: undefined }
+                : current,
+            );
+          },
+        },
+      );
     },
   };
 }

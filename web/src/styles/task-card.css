@@ -175,3 +175,19 @@
 .task-card-pr .pr-flag svg {
   color: inherit;
 }
+
+.task-card-group {
+  min-width: 0;
+  padding: clamp(6px, 1.5vw, 12px);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+}
+
+.task-card-group > h2 {
+  margin: 0 0 8px;
+  padding-inline: 4px;
+  color: var(--text-2);
+  font-size: var(--text-sm);
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}

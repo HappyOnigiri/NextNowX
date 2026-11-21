@@ -172,6 +172,10 @@
     display: none;
   }
 
+  .workspace-actions > .workspace-task-groups {
+    display: inline-flex;
+  }
+
   .document-references-trigger {
     display: inline-flex;
   }
@@ -193,6 +197,17 @@
   /* The switch stays reachable at this width; only its wording gives way, and
      the accessible name and tooltip on the control carry it instead. */
   .hide-completed-toggle span {
+    display: none;
+  }
+}
+
+@media (width <= 420px) {
+  .workspace-add-task {
+    width: 32px;
+    padding-inline: 0;
+  }
+
+  .workspace-add-task .icon-button-label {
     display: none;
   }
 }

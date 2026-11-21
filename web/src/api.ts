@@ -10,12 +10,14 @@ import {
   AttachPullRequestRequestSchema,
   CreateFeatureRequestSchema,
   CreateProjectRequestSchema,
+  CreateTaskGroupRequestSchema,
   CreateTaskRequestSchema,
   DeleteDocumentRequestSchema,
   DeleteFeatureRequestSchema,
   DeleteGitHubAuthMethodRequestSchema,
   DeleteGitHubHostRequestSchema,
   DeleteProjectRequestSchema,
+  DeleteTaskGroupRequestSchema,
   DeleteTaskRequestSchema,
   DetachPullRequestRequestSchema,
   DocumentKind,
@@ -32,6 +34,7 @@ import {
   NNXService,
   ReadDocumentContentRequestSchema,
   RemoveDependencyRequestSchema,
+  RenameTaskGroupRequestSchema,
   ReorderGitHubAuthMethodsRequestSchema,
   SelectLocalFileRequestSchema,
   SkipUpdateVersionRequestSchema,
@@ -189,17 +192,25 @@ export const mutations = {
     client.deleteFeature(
       create(DeleteFeatureRequestSchema, { id, cascade: true }),
     ),
+  createTaskGroup: (input: { featureId: string; name: string }) =>
+    client.createTaskGroup(create(CreateTaskGroupRequestSchema, input)),
+  renameTaskGroup: (input: { id: string; name: string }) =>
+    client.renameTaskGroup(create(RenameTaskGroupRequestSchema, input)),
+  deleteTaskGroup: (id: string) =>
+    client.deleteTaskGroup(create(DeleteTaskGroupRequestSchema, { id })),
   createTask: (input: {
     featureId: string;
     title: string;
     assignee: string;
     kind?: TaskKind;
+    groupId?: string;
   }) => client.createTask(create(CreateTaskRequestSchema, input)),
   updateTask: (input: {
     id: string;
     title?: string;
     status?: TaskStatus;
     kind?: TaskKind;
+    groupId?: string;
     assignee?: string;
   }) => client.updateTask(create(UpdateTaskRequestSchema, input)),
   deleteTask: (id: string) =>

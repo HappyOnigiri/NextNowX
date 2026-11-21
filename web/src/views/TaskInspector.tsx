@@ -6,6 +6,7 @@ import {
   TaskKind,
   type PullRequest,
   type Task,
+  type TaskGroup,
   type TaskLabelAppearances,
 } from "../gen/nnx/v1/nnx_pb";
 import { useDomainMutation } from "../hooks";
@@ -25,6 +26,7 @@ import { DiscardChangesDialog, SaveButton } from "./UnsavedChanges";
 export interface TaskInspectorProps {
   task: Task;
   tasks: Task[];
+  groups?: TaskGroup[];
   pullRequest: PullRequest | undefined;
   documents: TaskNodeDocument[];
   appearances?: TaskLabelAppearances | undefined;
@@ -102,6 +104,7 @@ export function TaskInspector({
   task,
   tasks,
   pullRequest,
+  groups = [],
   documents,
   appearances,
   onPreview,
@@ -140,6 +143,7 @@ export function TaskInspector({
       <TaskInspectorTaskForm
         task={task}
         controller={controller}
+        groups={groups}
         hasPullRequest={!!pullRequest}
         appearances={appearances}
         readOnly={readOnly}

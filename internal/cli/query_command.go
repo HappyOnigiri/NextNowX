@@ -61,7 +61,10 @@ func (s *state) graphCommand() *cobra.Command {
 					deps = append(deps, dep)
 				}
 			}
-			return s.write(map[string]any{"feature": feature, "tasks": tasks, "dependencies": deps},
+			return s.write(map[string]any{
+				"feature": feature, "tasks": tasks, "dependencies": deps,
+				"task_groups": featureTaskGroups(snapshot.TaskGroups, feature.ID),
+			},
 				renderGraphWithAppearances(feature, tasks, deps, featureAppearances(snapshot)))
 		},
 	}
@@ -199,6 +202,7 @@ func queueLabel(name string) string {
 
 func normalizeSnapshotCollections(snapshot domain.Snapshot) domain.Snapshot {
 	snapshot.Projects = nonNilSlice(snapshot.Projects)
+	snapshot.TaskGroups = nonNilSlice(snapshot.TaskGroups)
 	snapshot.Features = nonNilSlice(snapshot.Features)
 	snapshot.Tasks = nonNilSlice(snapshot.Tasks)
 	snapshot.Dependencies = nonNilSlice(snapshot.Dependencies)

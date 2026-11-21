@@ -34,9 +34,19 @@ type Repository interface {
 	GetFeature(ctx context.Context, id string) (domain.Feature, error)
 	DeleteFeature(ctx context.Context, id string, cascade bool) error
 
-	CreateTask(ctx context.Context, featureID, title, assignee string, kind domain.TaskKind) (domain.Task, error)
+	CreateTaskGroup(ctx context.Context, featureID, name string) (domain.TaskGroup, error)
+	GetTaskGroup(ctx context.Context, id string) (domain.TaskGroup, error)
+	RenameTaskGroup(ctx context.Context, group domain.TaskGroup) (domain.TaskGroup, error)
+	DeleteTaskGroup(ctx context.Context, id string) error
+
+	CreateTask(
+		ctx context.Context,
+		featureID, title, assignee string,
+		kind domain.TaskKind,
+		groupID string,
+	) (domain.Task, error)
 	GetTask(ctx context.Context, id string) (domain.Task, error)
-	UpdateTask(ctx context.Context, task domain.Task) (domain.Task, error)
+	UpdateTask(ctx context.Context, task domain.Task, groupID *string) (domain.Task, error)
 	DeleteTask(ctx context.Context, id string, cascade bool) error
 
 	GetImplementationPlan(ctx context.Context, taskID string) (domain.Document, error)
@@ -308,6 +318,7 @@ func (s *Service) CreateTask(
 	ctx context.Context,
 	featureID, title, assignee string,
 	kind domain.TaskKind,
+	groupID string,
 ) (domain.Task, error) {
 	feature, err := s.ResolveFeature(ctx, featureID)
 	if err != nil {
@@ -329,7 +340,7 @@ func (s *Service) CreateTask(
 			"invalid task kind; use development or work",
 		)
 	}
-	return s.repository.CreateTask(ctx, feature.ID, title, strings.TrimSpace(assignee), kind)
+	return s.repository.CreateTask(ctx, feature.ID, title, strings.TrimSpace(assignee), kind, groupID)
 }
 
 // UpdateTask は呼び出し側が指定した全フィールドを適用する。nil ポインタは未指定、
@@ -341,6 +352,7 @@ func (s *Service) UpdateTask(
 	status *domain.TaskStatus,
 	assignee *string,
 	kind *domain.TaskKind,
+	groupID *string,
 ) (domain.Task, error) {
 	task, err := s.repository.GetTask(ctx, id)
 	if err != nil {
@@ -400,7 +412,7 @@ func (s *Service) UpdateTask(
 			}
 		}
 	}
-	return s.repository.UpdateTask(ctx, task)
+	return s.repository.UpdateTask(ctx, task, groupID)
 }
 
 func (s *Service) DeleteTask(ctx context.Context, id string, cascade bool) error {

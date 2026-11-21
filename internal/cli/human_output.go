@@ -215,6 +215,7 @@ func renderTaskDetailWithAppearances(
 			{"Feature", task.FeatureID},
 			{"Title", task.Title},
 			{"Kind", string(task.Kind)},
+			{"Group", displayValue(task.GroupID)},
 			{"Status", string(task.Status)},
 			{"Display state", taskDisplayLabel(task, appearances)},
 			{"Ready", yesNo(task.Ready)},

@@ -109,15 +109,22 @@ type PullRequest struct {
 }
 
 type Task struct {
-	ID        string `json:"id"`
-	FeatureID string `json:"feature_id"`
-	Title     string `json:"title"`
-	Status    string `json:"status"`
-	Assignee  string `json:"assignee"`
-	CreatedAt string `json:"created_at"`
-	UpdatedAt string `json:"updated_at"`
+	ID        string         `json:"id"`
+	FeatureID string         `json:"feature_id"`
+	Title     string         `json:"title"`
+	Status    string         `json:"status"`
+	Assignee  string         `json:"assignee"`
+	CreatedAt string         `json:"created_at"`
+	UpdatedAt string         `json:"updated_at"`
+	PublicID  string         `json:"public_id"`
+	Kind      string         `json:"kind"`
+	GroupID   sql.NullString `json:"group_id"`
+}
+
+type TaskGroup struct {
 	PublicID  string `json:"public_id"`
-	Kind      string `json:"kind"`
+	FeatureID string `json:"feature_id"`
+	Name      string `json:"name"`
 }
 
 type UpdateCheckState struct {

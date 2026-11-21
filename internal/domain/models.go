@@ -210,7 +210,14 @@ const (
 	TaskKindWork        TaskKind = "work"
 )
 
+type TaskGroup struct {
+	ID        string `json:"id"`
+	FeatureID string `json:"feature_id"`
+	Name      string `json:"name"`
+}
+
 type Task struct {
+	GroupID               string            `json:"group_id"`
 	Kind                  TaskKind          `json:"kind"`
 	ID                    string            `json:"id"`
 	StorageID             string            `json:"-"`
@@ -324,6 +331,7 @@ type Document struct {
 }
 
 type Snapshot struct {
+	TaskGroups         []TaskGroup   `json:"task_groups"`
 	Projects           []Project     `json:"projects"`
 	Features           []Feature     `json:"features"`
 	Tasks              []Task        `json:"tasks"`

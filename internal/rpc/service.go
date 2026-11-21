@@ -20,7 +20,16 @@ type Service interface {
 	UpdateFeature(ctx context.Context, id string, update domain.FeatureUpdate) (domain.Feature, error)
 	DeleteFeature(ctx context.Context, id string, cascade bool) error
 
-	CreateTask(ctx context.Context, featureID, title, assignee string, kind domain.TaskKind) (domain.Task, error)
+	CreateTaskGroup(ctx context.Context, featureID, name string) (domain.TaskGroup, error)
+	RenameTaskGroup(ctx context.Context, id, name string) (domain.TaskGroup, error)
+	DeleteTaskGroup(ctx context.Context, id string) error
+
+	CreateTask(
+		ctx context.Context,
+		featureID, title, assignee string,
+		kind domain.TaskKind,
+		groupID string,
+	) (domain.Task, error)
 	UpdateTask(
 		ctx context.Context,
 		id string,
@@ -28,6 +37,7 @@ type Service interface {
 		status *domain.TaskStatus,
 		assignee *string,
 		kind *domain.TaskKind,
+		groupID *string,
 	) (domain.Task, error)
 	DeleteTask(ctx context.Context, id string, cascade bool) error
 

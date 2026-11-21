@@ -19,6 +19,7 @@ import {
   makePullRequest,
   makeSnapshot,
   makeTask,
+  makeTaskGroup,
 } from "./factories";
 
 const workspaceMocks = vi.hoisted(() => ({
@@ -32,6 +33,7 @@ const workspaceMocks = vi.hoisted(() => ({
     error: null as Error | null,
   })),
   api: {
+    deleteTaskGroup: vi.fn(),
     sync: vi.fn(),
     updateFeature: vi.fn(),
     deleteFeature: vi.fn(),
@@ -569,6 +571,7 @@ describe("FeatureWorkspace", () => {
       "References",
       "Refresh",
       "Copy batch prompt",
+      "Task groups",
       "Add task",
       "Edit feature",
     ]);
@@ -815,4 +818,26 @@ describe("FeatureWorkspace", () => {
     expect(screen.queryByText("Archived · read-only")).not.toBeInTheDocument();
     expect(screen.getByText("Open project")).toBeInTheDocument();
   });
+});
+
+it("opens the task groups dialog with the groups belonging to this feature", () => {
+  workspaceMocks.snapshot.data = makeSnapshot({
+    features: [makeFeature()],
+    taskGroups: [
+      makeTaskGroup(),
+      makeTaskGroup({
+        id: "group-2",
+        featureId: "feature-2",
+        name: "Other group",
+      }),
+    ],
+  });
+  render(<FeatureWorkspace />);
+  fireEvent.click(screen.getByRole("button", { name: "Task groups" }));
+  const dialog = screen.getByRole("dialog", { name: "Task groups" });
+  expect(within(dialog).getByText("Checkout")).toBeInTheDocument();
+  expect(within(dialog).queryByText("Other group")).not.toBeInTheDocument();
+  fireEvent.keyDown(window, { key: "Escape" });
+  expect(dialog).not.toBeInTheDocument();
+  cleanup();
 });

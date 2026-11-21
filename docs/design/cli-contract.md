@@ -29,6 +29,13 @@ JSON の `status`・`display_state`・`block_labels` は安定値を保つ。
 
 task の JSON は種類を `kind`（`development` または `work`）で返す。`task create` の `--kind` は省略すると `development`、`task update` では省略すると種類を維持する。
 
+タスクグループには `G-<number>` 形式の公開 ID があり、`task group create`・`list`・`rename`・`delete` で扱う。
+`task create` の `--group GROUP_ID` は同じ feature のグループを指定し、省略時は未所属で作成する。
+`task update` では `--group` を省略すると所属を維持し、空文字列を渡すと所属を解除する。
+タスクの JSON は `group_id` を返し、未所属は空文字列で表す。
+`task group list --json` と `graph --json` は対象 feature の `task_groups` を、`snapshot --json` は全 feature の `task_groups` を返す。
+各グループは `id`、`feature_id`、`name` を持つ。グループの一覧は名前順で、所属するタスクがないグループも含む。
+
 変更操作は非対話のままにし、人とコーディングエージェントが同じ操作面を使えるようにする。
 変更対象が存在しない場合は、成功した no-op として報告せず失敗させる。
 参照されたデータを破壊的にたどる操作には、明示的な cascade の指定を必要とする。

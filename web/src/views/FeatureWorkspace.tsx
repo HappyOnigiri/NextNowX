@@ -2,6 +2,7 @@ import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import {
   ArrowLeft,
   ClipboardList,
+  FolderOpen,
   Pencil,
   Plus,
   RefreshCw,
@@ -19,6 +20,7 @@ import type {
   PullRequest,
   Snapshot,
   Task,
+  TaskGroup,
 } from "../gen/nnx/v1/nnx_pb";
 import { useDomainMutation, useSnapshot } from "../hooks";
 import { featureStatusLabel, featureStatusToken } from "../i18n/domain";
@@ -39,6 +41,7 @@ import { matchesGraphSearch } from "./graphSearch";
 import { IconButton } from "./IconButton";
 import { MarkdownPreview } from "./MarkdownPreview";
 import { StatusBadge } from "./StatusBadge";
+import { TaskGroupsDialog } from "./TaskGroupsDialog";
 import { TaskInspector } from "./TaskInspector";
 import { type TaskNodeDocument } from "./TaskNode";
 import { useCloseOnEscape } from "./useCloseOnEscape";
@@ -66,6 +69,7 @@ export function FeatureWorkspace() {
   const snapshot = useSnapshot();
   const [selected, setSelected] = useState<string>();
   const [taskDraft, setTaskDraft] = useState<TaskDraft>();
+  const [showTaskGroups, setShowTaskGroups] = useState(false);
   const [showFeatureEdit, setShowFeatureEdit] = useState(false);
   const [showBatchPrompt, setShowBatchPrompt] = useState(false);
   const [previewDocument, setPreviewDocument] = useState<TaskNodeDocument>();
@@ -81,13 +85,8 @@ export function FeatureWorkspace() {
   const data = snapshot.data;
   const feature = data?.features.find((item) => item.id === featureId);
   const project = data?.projects.find((item) => item.id === feature?.projectId);
-  const {
-    tasks,
-    dependencies,
-    pullRequests,
-    documentsByTask,
-    featureDocuments,
-  } = useFeatureWorkspaceData(data, featureId);
+  const workspaceData = useFeatureWorkspaceData(data, featureId);
+  const { tasks, dependencies, pullRequests } = workspaceData;
   const visible = useVisibleGraph(
     tasks,
     dependencies,
@@ -102,6 +101,7 @@ export function FeatureWorkspace() {
     previewDocument !== undefined ||
     documentTarget !== undefined ||
     showFeatureEdit ||
+    showTaskGroups ||
     showBatchPrompt;
   useGraphSearchShortcut(Boolean(feature) && !overlayOpen, search.open);
   // 開いている作成ダイアログは開き直しても置き換えない。背景のツールバーへ
@@ -127,11 +127,11 @@ export function FeatureWorkspace() {
   const selectedTask = visible.tasks.find((task) => task.id === selected);
   return (
     <WorkspaceContent
+      {...workspaceData}
       feature={feature}
       featureId={featureId}
       project={project}
       projects={data.projects}
-      tasks={tasks}
       visibleTasks={visible.tasks}
       visibleDependencies={visible.dependencies}
       hiddenDependencies={visible.hiddenDependencies}
@@ -139,14 +139,13 @@ export function FeatureWorkspace() {
       hideCompleted={hideCompleted}
       onHideCompletedChange={changeHideCompleted}
       search={search}
-      pullRequests={pullRequests}
-      documentsByTask={documentsByTask}
-      featureDocuments={featureDocuments}
       selectedTask={selectedTask}
       previewDocument={previewDocument}
       documentTarget={documentTarget}
       taskDraft={taskDraft}
       showFeatureEdit={showFeatureEdit}
+      showTaskGroups={showTaskGroups}
+      onTaskGroupsChange={setShowTaskGroups}
       showBatchPrompt={showBatchPrompt}
       syncPending={sync.isPending}
       onSync={() => {
@@ -234,6 +233,11 @@ function useFeatureWorkspaceData(
     () => data?.tasks.filter((task) => task.featureId === featureId) ?? [],
     [data, featureId],
   );
+  const groups = useMemo(
+    () =>
+      data?.taskGroups.filter((group) => group.featureId === featureId) ?? [],
+    [data, featureId],
+  );
   const taskIds = useMemo(() => new Set(tasks.map((task) => task.id)), [tasks]);
   const dependencies = useMemo(
     () =>
@@ -267,6 +271,7 @@ function useFeatureWorkspaceData(
     [data, featureId],
   );
   return {
+    groups,
     tasks,
     dependencies,
     pullRequests,
@@ -382,6 +387,7 @@ interface WorkspaceContentProps {
   featureId: string;
   project: Project | undefined;
   projects: Project[];
+  groups: TaskGroup[];
   tasks: Task[];
   visibleTasks: Task[];
   visibleDependencies: Dependency[];
@@ -398,6 +404,8 @@ interface WorkspaceContentProps {
   documentTarget: DocumentTarget | undefined;
   taskDraft: TaskDraft | undefined;
   showFeatureEdit: boolean;
+  showTaskGroups: boolean;
+  onTaskGroupsChange: (open: boolean) => void;
   showBatchPrompt: boolean;
   syncPending: boolean;
   onSync: () => void;
@@ -445,6 +453,7 @@ function WorkspaceContent(props: WorkspaceContentProps) {
             key={props.selectedTask.id}
             task={props.selectedTask}
             tasks={props.tasks}
+            groups={props.groups}
             pullRequest={props.pullRequests.get(props.selectedTask.id)}
             documents={props.documentsByTask.get(props.selectedTask.id) ?? []}
             appearances={props.feature.taskLabelAppearances}
@@ -532,9 +541,21 @@ function FeatureWorkspaceHead({
         />
         {!readOnly && (
           <IconButton
+            icon={FolderOpen}
+            iconOnly
+            label={t("taskGroups.manage")}
+            className="workspace-task-groups"
+            onClick={() => {
+              props.onTaskGroupsChange(true);
+            }}
+          />
+        )}
+        {!readOnly && (
+          <IconButton
             icon={Plus}
             label={t("workspace.addTask")}
             variant="primary"
+            className="workspace-add-task"
             onClick={() => {
               props.onCreateTask();
             }}
@@ -714,22 +735,30 @@ function TaskCreateOverlay({
   draft,
   featureId,
   tasks,
+  groups,
   onClose,
 }: {
   draft: TaskDraft;
   featureId: string;
   tasks: Task[];
+  groups: TaskGroup[];
   onClose: () => void;
 }) {
   const dependency = draft.dependency;
-  if (!dependency)
-    return <CreateTaskDialog featureId={featureId} onClose={onClose} />;
-  const title = tasks.find((task) => task.id === dependency.taskId)?.title;
+  const title = tasks.find((task) => task.id === dependency?.taskId)?.title;
   return (
     <CreateTaskDialog
       featureId={featureId}
+      groups={groups}
       onClose={onClose}
-      dependency={{ value: dependency, title: title ?? dependency.taskId }}
+      {...(dependency
+        ? {
+            dependency: {
+              value: dependency,
+              title: title ?? dependency.taskId,
+            },
+          }
+        : {})}
     />
   );
 }
@@ -764,7 +793,18 @@ function WorkspaceOverlays({ props }: { props: WorkspaceContentProps }) {
           draft={props.taskDraft}
           featureId={props.featureId}
           tasks={props.tasks}
+          groups={props.groups}
           onClose={props.onCloseTask}
+        />
+      )}
+      {props.showTaskGroups && !props.feature.readOnly && (
+        <TaskGroupsDialog
+          key={props.featureId}
+          featureId={props.featureId}
+          groups={props.groups}
+          onClose={() => {
+            props.onTaskGroupsChange(false);
+          }}
         />
       )}
       {props.showFeatureEdit && (
