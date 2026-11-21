@@ -196,7 +196,9 @@ export const mutations = {
   renameTaskGroup: (input: { id: string; name: string }) =>
     client.renameTaskGroup(create(RenameTaskGroupRequestSchema, input)),
   deleteTaskGroup: (id: string) =>
-    client.deleteTaskGroup(create(DeleteTaskGroupRequestSchema, { id })),
+    client.deleteTaskGroup(
+      create(DeleteTaskGroupRequestSchema, { id, cascade: true }),
+    ),
   createTask: (input: {
     featureId: string;
     title: string;

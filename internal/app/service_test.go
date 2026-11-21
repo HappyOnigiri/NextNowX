@@ -55,7 +55,7 @@ func (repositoryStub) RenameTaskGroup(context.Context, domain.TaskGroup) (domain
 	return domain.TaskGroup{}, errors.New("unexpected RenameTaskGroup call")
 }
 
-func (repositoryStub) DeleteTaskGroup(context.Context, string) error {
+func (repositoryStub) DeleteTaskGroup(context.Context, string, bool) error {
 	return errors.New("unexpected DeleteTaskGroup call")
 }
 

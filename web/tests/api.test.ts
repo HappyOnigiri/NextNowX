@@ -120,7 +120,7 @@ describe("RPC API wrappers", () => {
       expect.objectContaining({ id: "G-1", name: "Delivery" }),
     );
     expect(apiMocks.client.deleteTaskGroup).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "G-1" }),
+      expect.objectContaining({ id: "G-1", cascade: true }),
     );
     expect(apiMocks.client.updateTask).toHaveBeenCalledWith(
       expect.objectContaining({ id: "T-1", groupId: "" }),

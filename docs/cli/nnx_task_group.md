@@ -21,7 +21,7 @@ Manage task groups in a feature
 
 * [nnx task](nnx_task.md)	 - List tasks or show one by ID
 * [nnx task group create](nnx_task_group_create.md)	 - Create a task group
-* [nnx task group delete](nnx_task_group_delete.md)	 - Delete a group and ungroup its tasks
+* [nnx task group delete](nnx_task_group_delete.md)	 - Delete a group and ungroup its tasks; --cascade deletes its references
 * [nnx task group list](nnx_task_group_list.md)	 - List task groups in a feature
 * [nnx task group rename](nnx_task_group_rename.md)	 - Rename a task group
 

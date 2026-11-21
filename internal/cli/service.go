@@ -50,7 +50,7 @@ type Service interface {
 
 	CreateTaskGroup(ctx context.Context, featureID, name string) (domain.TaskGroup, error)
 	RenameTaskGroup(ctx context.Context, id, name string) (domain.TaskGroup, error)
-	DeleteTaskGroup(ctx context.Context, id string) error
+	DeleteTaskGroup(ctx context.Context, id string, cascade bool) error
 
 	CreateTask(
 		ctx context.Context,

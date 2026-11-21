@@ -37,7 +37,7 @@ type Repository interface {
 	CreateTaskGroup(ctx context.Context, featureID, name string) (domain.TaskGroup, error)
 	GetTaskGroup(ctx context.Context, id string) (domain.TaskGroup, error)
 	RenameTaskGroup(ctx context.Context, group domain.TaskGroup) (domain.TaskGroup, error)
-	DeleteTaskGroup(ctx context.Context, id string) error
+	DeleteTaskGroup(ctx context.Context, id string, cascade bool) error
 
 	CreateTask(
 		ctx context.Context,

@@ -56,12 +56,30 @@ func (s *Store) RenameTaskGroup(ctx context.Context, group domain.TaskGroup) (do
 	return domainTaskGroup(row, group.FeatureID), nil
 }
 
-func (s *Store) DeleteTaskGroup(ctx context.Context, id string) error {
-	count, err := db.New(s.db).DeleteTaskGroup(ctx, id)
-	if err == nil && count == 0 {
-		err = sql.ErrNoRows
+func (s *Store) DeleteTaskGroup(ctx context.Context, id string, cascade bool) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
 	}
-	return mapNotFound(err, "task group", id)
+	defer func() { _ = tx.Rollback() }()
+	q := db.New(tx)
+	if !cascade {
+		hasDocuments, err := q.TaskGroupHasDocuments(ctx, sql.NullString{String: id, Valid: true})
+		if err != nil {
+			return err
+		}
+		if hasDocuments {
+			return domain.NewError(domain.DomainErrorCodeReferencesExist, "task group has documents; pass --cascade")
+		}
+	}
+	count, err := q.DeleteTaskGroup(ctx, id)
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		return mapNotFound(sql.ErrNoRows, "task group", id)
+	}
+	return tx.Commit()
 }
 
 func validateTaskGroupAssignment(ctx context.Context, q *db.Queries, featureID, groupID string) error {

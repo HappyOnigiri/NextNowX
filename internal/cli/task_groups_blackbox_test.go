@@ -133,4 +133,11 @@ func TestBlackBoxGroupDocumentCommands(t *testing.T) {
 	if actual := list(group); len(actual) != 1 || actual[0].ID != added.ID {
 		t.Fatalf("filtered documents after archiving = %+v, want %s", actual, added.ID)
 	}
+	run("feature", "unarchive", feature)
+	requireError("references_exist", "task", "group", "delete", group)
+	if actual := list(group); len(actual) != 1 || actual[0].ID != added.ID {
+		t.Fatalf("filtered documents after rejected delete = %+v, want %s", actual, added.ID)
+	}
+	run("task", "group", "delete", group, "--cascade")
+	requireError("not_found", "document", "get", added.ID)
 }

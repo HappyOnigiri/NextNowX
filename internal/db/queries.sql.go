@@ -1337,6 +1337,17 @@ func (q *Queries) StartGitHubSync(ctx context.Context, arg StartGitHubSyncParams
 	return err
 }
 
+const taskGroupHasDocuments = `-- name: TaskGroupHasDocuments :one
+SELECT EXISTS(SELECT 1 FROM documents WHERE group_id = ?)
+`
+
+func (q *Queries) TaskGroupHasDocuments(ctx context.Context, groupID sql.NullString) (bool, error) {
+	row := q.db.QueryRowContext(ctx, taskGroupHasDocuments, groupID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const updateDocument = `-- name: UpdateDocument :one
 UPDATE documents SET
   kind = CASE WHEN CAST(?1 AS INTEGER) = 1 THEN ?2 ELSE kind END,

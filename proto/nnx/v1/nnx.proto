@@ -907,6 +907,8 @@ message RenameTaskGroupResponse {
 message DeleteTaskGroupRequest {
   // id は削除するグループの公開 ID。
   string id = 1;
+  // cascade はグループに添付された資料も削除する。
+  bool cascade = 2;
 }
 
 // DeleteTaskGroupResponse は削除の成功を表す。

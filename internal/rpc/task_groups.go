@@ -35,7 +35,7 @@ func (h *Handler) DeleteTaskGroup(
 	ctx context.Context,
 	req *connect.Request[nnxv1.DeleteTaskGroupRequest],
 ) (*connect.Response[nnxv1.DeleteTaskGroupResponse], error) {
-	if err := h.service.DeleteTaskGroup(ctx, req.Msg.GetId()); err != nil {
+	if err := h.service.DeleteTaskGroup(ctx, req.Msg.GetId(), req.Msg.GetCascade()); err != nil {
 		return nil, rpcError(err)
 	}
 	return connect.NewResponse(&nnxv1.DeleteTaskGroupResponse{}), nil

@@ -39,17 +39,28 @@ func (s *state) taskGroupCommand() *cobra.Command {
 				return s.write(group, renderMessage("Renamed task group %s.", group.ID))
 			},
 		},
-		&cobra.Command{
-			Use: "delete GROUP_ID", Short: "Delete a group and ungroup its tasks", Args: cobra.ExactArgs(1),
-			Example: "nnx task group delete G-1",
-			RunE: func(cmd *cobra.Command, args []string) error {
-				if err := s.service.DeleteTaskGroup(cmd.Context(), args[0]); err != nil {
-					return err
-				}
-				return s.write(map[string]string{"deleted": args[0]}, renderMessage("Deleted task group %s.", args[0]))
-			},
-		},
+		s.taskGroupDeleteCommand(),
 	)
+	return command
+}
+
+func (s *state) taskGroupDeleteCommand() *cobra.Command {
+	var cascade bool
+	command := &cobra.Command{
+		Use:   "delete GROUP_ID",
+		Short: "Delete a group and ungroup its tasks; --cascade deletes its references",
+		Long: "Delete a group and ungroup its tasks. " +
+			"If the group has attached references, --cascade is required to delete them.",
+		Example: "nnx task group delete G-1 --cascade",
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := s.service.DeleteTaskGroup(cmd.Context(), args[0], cascade); err != nil {
+				return err
+			}
+			return s.write(map[string]string{"deleted": args[0]}, renderMessage("Deleted task group %s.", args[0]))
+		},
+	}
+	command.Flags().BoolVar(&cascade, "cascade", false, "delete the group's attached references")
 	return command
 }
 

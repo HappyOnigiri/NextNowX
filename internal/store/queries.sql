@@ -77,6 +77,9 @@ UPDATE task_groups SET name = ? WHERE public_id = ? RETURNING *;
 -- name: DeleteTaskGroup :execrows
 DELETE FROM task_groups WHERE public_id = ?;
 
+-- name: TaskGroupHasDocuments :one
+SELECT EXISTS(SELECT 1 FROM documents WHERE group_id = ?);
+
 -- name: CreateTask :one
 INSERT INTO tasks (id, public_id, feature_id, title, status, assignee, created_at, updated_at, kind, group_id)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *;

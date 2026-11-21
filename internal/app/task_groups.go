@@ -34,12 +34,12 @@ func (s *Service) RenameTaskGroup(ctx context.Context, id, name string) (domain.
 	return s.repository.RenameTaskGroup(ctx, group)
 }
 
-func (s *Service) DeleteTaskGroup(ctx context.Context, id string) error {
+func (s *Service) DeleteTaskGroup(ctx context.Context, id string, cascade bool) error {
 	group, err := s.writableTaskGroup(ctx, id)
 	if err != nil {
 		return err
 	}
-	return s.repository.DeleteTaskGroup(ctx, group.ID)
+	return s.repository.DeleteTaskGroup(ctx, group.ID, cascade)
 }
 
 func (s *Service) writableTaskGroup(ctx context.Context, id string) (domain.TaskGroup, error) {

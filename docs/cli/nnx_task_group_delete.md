@@ -1,6 +1,10 @@
 ## nnx task group delete
 
-Delete a group and ungroup its tasks
+Delete a group and ungroup its tasks; --cascade deletes its references
+
+### Synopsis
+
+Delete a group and ungroup its tasks. If the group has attached references, --cascade is required to delete them.
 
 ```
 nnx task group delete GROUP_ID [flags]
@@ -9,13 +13,14 @@ nnx task group delete GROUP_ID [flags]
 ### Examples
 
 ```
-nnx task group delete G-1
+nnx task group delete G-1 --cascade
 ```
 
 ### Options
 
 ```
-  -h, --help   help for delete
+      --cascade   delete the group's attached references
+  -h, --help      help for delete
 ```
 
 ### Options inherited from parent commands

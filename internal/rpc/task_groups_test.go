@@ -231,7 +231,11 @@ func TestRPCGroupDocuments(t *testing.T) {
 	}
 	setArchived(false)
 	deleteGroup := connect.NewRequest(&nnxv1.DeleteTaskGroupRequest{Id: groupID})
-	if _, err := client.DeleteTaskGroup(ctx, deleteGroup); err != nil {
+	if _, err := client.DeleteTaskGroup(ctx, deleteGroup); connect.CodeOf(err) != connect.CodeFailedPrecondition {
+		t.Fatalf("delete without cascade err=%v", err)
+	}
+	deleteWithCascade := connect.NewRequest(&nnxv1.DeleteTaskGroupRequest{Id: groupID, Cascade: true})
+	if _, err := client.DeleteTaskGroup(ctx, deleteWithCascade); err != nil {
 		t.Fatal(err)
 	}
 	getDocument := connect.NewRequest(&nnxv1.GetDocumentRequest{Id: id})

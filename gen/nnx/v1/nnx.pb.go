@@ -4400,7 +4400,9 @@ func (x *RenameTaskGroupResponse) GetTaskGroup() *TaskGroup {
 type DeleteTaskGroupRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// id は削除するグループの公開 ID。
-	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// cascade はグループに添付された資料も削除する。
+	Cascade       bool `protobuf:"varint,2,opt,name=cascade,proto3" json:"cascade,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4440,6 +4442,13 @@ func (x *DeleteTaskGroupRequest) GetId() string {
 		return x.Id
 	}
 	return ""
+}
+
+func (x *DeleteTaskGroupRequest) GetCascade() bool {
+	if x != nil {
+		return x.Cascade
+	}
+	return false
 }
 
 // DeleteTaskGroupResponse は削除の成功を表す。
@@ -11011,9 +11020,10 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"\x04name\x18\x02 \x01(\tR\x04name\"K\n" +
 	"\x17RenameTaskGroupResponse\x120\n" +
 	"\n" +
-	"task_group\x18\x01 \x01(\v2\x11.nnx.v1.TaskGroupR\ttaskGroup\"(\n" +
+	"task_group\x18\x01 \x01(\v2\x11.nnx.v1.TaskGroupR\ttaskGroup\"B\n" +
 	"\x16DeleteTaskGroupRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\x19\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
+	"\acascade\x18\x02 \x01(\bR\acascade\"\x19\n" +
 	"\x17DeleteTaskGroupResponse\"f\n" +
 	"\x14AddDependencyRequest\x12&\n" +
 	"\x0fblocker_task_id\x18\x01 \x01(\tR\rblockerTaskId\x12&\n" +

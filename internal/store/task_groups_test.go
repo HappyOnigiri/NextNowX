@@ -87,7 +87,8 @@ func TestTaskGroupsFollowFeatureAndProjectCascade(t *testing.T) {
 		if err != nil || len(snapshot.TaskGroups) != 0 {
 			t.Fatalf("groups after cascade=%+v err=%v", snapshot.TaskGroups, err)
 		}
-		if err := service.DeleteTaskGroup(ctx, group.ID); domain.ErrorCode(err) != domain.DomainErrorCodeNotFound {
+		err = service.DeleteTaskGroup(ctx, group.ID, false)
+		if domain.ErrorCode(err) != domain.DomainErrorCodeNotFound {
 			t.Fatalf("group delete after cascade: %v", err)
 		}
 	}
@@ -108,7 +109,7 @@ func TestTaskUpdateWithoutGroupPreservesCurrentMembership(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := service.DeleteTaskGroup(ctx, group.ID); err != nil {
+	if err := service.DeleteTaskGroup(ctx, group.ID, false); err != nil {
 		t.Fatal(err)
 	}
 	task.Title = "Renamed task"
