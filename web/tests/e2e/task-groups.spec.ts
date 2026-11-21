@@ -1,5 +1,10 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { createFeature, e2eBaseURL, guardBrowserErrors } from "./helpers";
+import {
+  createFeature,
+  e2eBaseURL,
+  guardBrowserErrors,
+  settleGraph,
+} from "./helpers";
 
 test.use({ baseURL: e2eBaseURL });
 guardBrowserErrors();
@@ -59,6 +64,7 @@ test("manages membership and shows the same ordered group frames in search and r
 
   const hidden = `Filtered member ${prefix}`;
   await addTask(page, hidden, name);
+  await page.getByRole("link", { name, exact: true }).click();
   let inspector = await openInspector(page, hidden);
   await inspector.getByLabel("Status").selectOption({ label: "Completed" });
   await inspector.getByRole("button", { name: "Save task" }).click();
@@ -66,18 +72,33 @@ test("manages membership and shows the same ordered group frames in search and r
     inspector.getByRole("button", { name: "Save task" }),
   ).toBeDisabled();
 
+  await page.getByRole("link", { name: "Back to feature" }).click();
   await addTask(page, looseFirst);
   await addTask(page, groupedFirst, name);
   await addTask(page, looseSecond);
   await addTask(page, groupedSecond);
   inspector = await openInspector(page, groupedSecond);
-  const save = inspector.getByRole("button", { name: "Save task" });
-  const select = inspector.getByLabel("Task group");
-  for (const value of [name, empty, "Ungrouped", name]) {
-    await select.selectOption({ label: value });
-    await save.click();
-    await expect(save).toBeDisabled();
-  }
+  await inspector.getByLabel("Task group").selectOption({ label: empty });
+  await inspector.getByRole("button", { name: "Save task" }).click();
+  await expect(
+    inspector.getByRole("button", { name: "Save task" }),
+  ).toBeDisabled();
+  await inspector.getByRole("button", { name: "Close inspector" }).click();
+  await settleGraph(page);
+  await page.locator(".react-flow__controls-fitview").click();
+  await settleGraph(page);
+  await page.getByRole("link", { name: empty, exact: true }).click();
+  inspector = await openInspector(page, groupedSecond);
+  await inspector.getByLabel("Task group").selectOption({ label: "Ungrouped" });
+  await inspector.getByRole("button", { name: "Save task" }).click();
+  await expect(inspector).toHaveCount(0);
+  await page.getByRole("link", { name: "Back to feature" }).click();
+  inspector = await openInspector(page, groupedSecond);
+  await inspector.getByLabel("Task group").selectOption({ label: name });
+  await inspector.getByRole("button", { name: "Save task" }).click();
+  await expect(
+    page.locator(".graph-group-row").getByText(groupedSecond, { exact: true }),
+  ).toBeVisible();
 
   await createFeature(page, `Second feature ${prefix}`);
   manager = await openGroups(page);
@@ -137,10 +158,10 @@ test("manages membership and shows the same ordered group frames in search and r
     exact: true,
   });
   await expect(
-    renamedGroup.getByRole("link", { name: groupedFirst, exact: true }),
+    renamedGroup.getByText(groupedFirst, { exact: true }),
   ).toBeVisible();
   await expect(
-    renamedGroup.getByRole("link", { name: groupedSecond, exact: true }),
+    renamedGroup.getByText(groupedSecond, { exact: true }),
   ).toBeVisible();
 
   await page.goto(featureURL);
@@ -180,14 +201,105 @@ async function assertGroupedList(
   for (const [index, titles] of expected.entries()) {
     const entry = entries.nth(index);
     for (const title of titles)
-      await expect(
-        entry.getByRole("link", { name: title, exact: true }),
-      ).toHaveCount(1);
+      await expect(entry.getByText(title, { exact: true })).toHaveCount(1);
     if (titles.length === 2) {
-      await expect(entry.locator(".task-card-title a")).toHaveText(titles);
+      await expect(entry.locator(".task-group-row-title")).toHaveText(titles);
       await expect(
         entry.getByRole("heading", { name, exact: true }),
       ).toBeVisible();
     }
   }
+}
+
+test("opens a compact group as a graph and keeps cross-group dependencies on their task rows", async ({
+  page,
+}) => {
+  await createFeature(page, `Grouped graph ${crypto.randomUUID()}`);
+  const manager = await openGroups(page);
+  await addGroup(manager, "Checkout flow");
+  await addGroup(manager, "Delivery flow");
+  await addGroup(manager, "Empty group");
+  await manager.getByRole("button", { name: "Close", exact: true }).click();
+  await addTask(page, "Collect inputs", "Checkout flow");
+  await addTask(page, "Deliver inputs", "Delivery flow");
+  await addTask(page, "Publish inputs", "Checkout flow");
+  await addTask(page, "Ungrouped task");
+
+  const stage = page.locator(".graph-stage");
+  const cards = stage.locator(".task-node");
+  const rows = stage.locator(".graph-group-row");
+  await expect(cards).toHaveCount(1);
+  await expect(rows).toHaveCount(3);
+  await expect(stage.locator(".graph-task-group")).toHaveCount(2);
+  const collect = await graphTaskId(stage, "Collect inputs");
+  const deliver = await graphTaskId(stage, "Deliver inputs");
+  const publish = await graphTaskId(stage, "Publish inputs");
+
+  // タスク単位では DAG でも、グループ単位では往復になる依存を作る。
+  for (const [blockerTaskId, blockedTaskId] of [
+    [collect, deliver],
+    [deliver, publish],
+    [collect, publish],
+  ]) {
+    const response = await page.request.post(
+      "/nnx.v1.NNXService/AddDependency",
+      {
+        headers: { "Connect-Protocol-Version": "1" },
+        data: { blockerTaskId, blockedTaskId },
+      },
+    );
+    expect(response.ok()).toBe(true);
+  }
+  await page.reload();
+  await settleGraph(page);
+  await expect(stage.locator(".react-flow__edge")).toHaveCount(2);
+  await expect(
+    stage.locator(`.react-flow__edge[data-id="${collect}-${deliver}"]`),
+  ).toBeVisible();
+  await expect(
+    stage.locator(`.react-flow__edge[data-id="${deliver}-${publish}"]`),
+  ).toBeVisible();
+  const checkout = stage.getByRole("link", { name: "Checkout flow" });
+  await checkout.click();
+  await expect(
+    page.getByRole("heading", { name: "Checkout flow" }),
+  ).toBeVisible();
+  await expect(cards).toHaveCount(2);
+  await expect(rows).toHaveCount(0);
+  await expect(
+    stage.locator(`.react-flow__edge[data-id="${collect}-${publish}"]`),
+  ).toBeVisible();
+  await expect(stage.getByText("Deliver inputs", { exact: true })).toHaveCount(
+    0,
+  );
+  await page.reload();
+  await expect(cards).toHaveCount(2);
+
+  await page.getByRole("button", { name: "Add task", exact: true }).click();
+  await expect(
+    page
+      .getByRole("combobox", { name: "Task group" })
+      .locator("option:checked"),
+  ).toHaveText("Checkout flow");
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.getByRole("link", { name: "Back to feature" }).click();
+  await expect(rows).toHaveCount(3);
+
+  await page.keyboard.press("ControlOrMeta+f");
+  await page
+    .getByRole("textbox", { name: "Search tasks on this graph" })
+    .fill("Publish inputs");
+  await expect(rows).toHaveCount(1);
+  await expect(stage.locator(".graph-task-group")).toHaveCount(1);
+});
+
+async function graphTaskId(stage: Locator, title: string) {
+  const id = await stage
+    .locator(".react-flow__node")
+    .filter({
+      has: stage.page().getByText(title, { exact: true }),
+    })
+    .getAttribute("data-id");
+  if (!id) throw new Error(`Task ID missing for ${title}`);
+  return id;
 }

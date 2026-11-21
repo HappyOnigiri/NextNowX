@@ -20,6 +20,7 @@ import { CopyableIdentifier } from "./CopyableIdentifier";
 import { EntityIcon } from "./EntityIcon";
 import { IconButton } from "./IconButton";
 import { PullRequestFlags } from "./PullRequestFlags";
+import { TaskGroupRow } from "./TaskGroupRow";
 import { TaskKindLabel } from "./TaskKindLabel";
 import { TaskPromptCopyButton } from "./TaskPromptCopyButton";
 import { TaskBlockLabels, TaskStatusBadge } from "./TaskStateBadges";
@@ -42,6 +43,7 @@ const emptyPorts: TaskNodePort[] = [];
 
 interface TaskNodeData extends Record<string, unknown> {
   title: string;
+  compact?: boolean;
   assignee: string;
   state: TaskDisplayState;
   kind?: TaskKind;
@@ -163,6 +165,24 @@ export function TaskNode({
   useEffect(() => {
     updateNodeInternals(id);
   }, [id, incomingPorts, outgoingPorts, updateNodeInternals]);
+
+  if (data.compact) {
+    return (
+      <div className="graph-group-row">
+        <TaskEdgePorts
+          incoming={incomingPorts}
+          outgoing={outgoingPorts}
+          isConnectable={isConnectable}
+        />
+        <TaskGroupRow
+          state={data.state}
+          kind={data.kind}
+          appearances={data.taskLabelAppearances}
+          title={data.title}
+        />
+      </div>
+    );
+  }
 
   return (
     <div

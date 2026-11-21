@@ -26,6 +26,7 @@ interface CreateTaskInput {
 interface CreateTaskDialogProps {
   featureId: string;
   groups?: TaskGroup[];
+  defaultGroupId?: string | undefined;
   onClose: () => void;
   dependency?: { value: PendingDependency; title: string };
 }
@@ -33,6 +34,7 @@ interface CreateTaskDialogProps {
 export function CreateTaskDialog({
   featureId,
   groups = [],
+  defaultGroupId,
   onClose,
   dependency,
 }: CreateTaskDialogProps) {
@@ -118,7 +120,7 @@ export function CreateTaskDialog({
           />
         </label>
         <TaskKindSelect defaultValue={TaskKind.DEVELOPMENT} />
-        <TaskGroupSelect groups={groups} />
+        <TaskGroupSelect groups={groups} defaultValue={defaultGroupId} />
         <label>
           {t("common.assignee")}
           <input

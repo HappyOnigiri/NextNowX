@@ -166,9 +166,11 @@ describe("TaskSearch view", () => {
     if (!first || !second) throw new Error("Both group frames must be present");
     expect(rest).toHaveLength(0);
     expect(within(first).getAllByRole("listitem")).toHaveLength(2);
+    expect(within(first).queryByRole("button")).not.toBeInTheDocument();
     expect(
-      within(second).getByRole("link", { name: "Other feature" }),
-    ).toBeInTheDocument();
+      within(first).getAllByRole("img", { name: "not started" }),
+    ).toHaveLength(2);
+    expect(within(second).getByText("Other feature")).toBeInTheDocument();
     expect(results.children).toHaveLength(4);
     expect(results.children[0]).toHaveTextContent("Ungrouped first");
     expect(results.children[1]).toHaveTextContent(

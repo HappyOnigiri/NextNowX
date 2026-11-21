@@ -69,7 +69,7 @@ describe("TaskNode", () => {
       positionAbsoluteX: 0,
       positionAbsoluteY: 0,
     } as NodeProps<TaskFlowNode>;
-    const { container } = render(
+    const { container, rerender } = render(
       <ReactFlowProvider>
         <TaskNode {...props} />
       </ReactFlowProvider>,
@@ -138,6 +138,21 @@ describe("TaskNode", () => {
     );
     fireEvent.click(addReference);
     expect(onAddReference).toHaveBeenCalledWith(addReference);
+
+    rerender(
+      <ReactFlowProvider>
+        <TaskNode {...props} data={{ ...props.data, compact: true }} />
+      </ReactFlowProvider>,
+    );
+    expect(screen.getByText("Merge billing schema")).toBeInTheDocument();
+    expect(
+      container.querySelector(".graph-group-row .status-badge"),
+    ).toBeInTheDocument();
+    expect(container.querySelectorAll(".task-edge-port")).toHaveLength(2);
+    expect(screen.queryByText("Carol")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Copy Task ID" }),
+    ).not.toBeInTheDocument();
   });
 
   it("labels the inspector action as view-only for archived tasks", () => {

@@ -7,6 +7,7 @@ import {
   makeDocument,
   makePullRequest,
   makeTask,
+  makeTaskGroup,
 } from "./factories";
 
 const layoutMocks = vi.hoisted(() => ({
@@ -126,6 +127,69 @@ describe("useGraphLayout", () => {
 
     unmount();
     expect(layoutMocks.terminateWorker).toHaveBeenCalledOnce();
+  });
+
+  it("positions group members as rows and routes an edge from the member's port", async () => {
+    const group = makeTaskGroup();
+    const options = {
+      tasks: [
+        makeTask({ id: "task-2", title: "Second", groupId: group.id }),
+        makeTask({ id: "task-1", title: "First", groupId: group.id }),
+        makeTask({ id: "task-3", title: "External" }),
+      ],
+      groups: [group, makeTaskGroup({ id: "empty", name: "Empty" })],
+      dependencies: [
+        makeDependency({ blockerTaskId: "task-2", blockedTaskId: "task-3" }),
+      ],
+      pullRequests: new Map(),
+      documentsByTask: new Map(),
+      onEditTask: vi.fn(),
+      onPreviewDocument: vi.fn(),
+    };
+    layoutMocks.layout.mockResolvedValue({
+      children: [
+        { id: group.id, x: 10, y: 20, width: 336, height: 120 },
+        { id: "task-3", x: 460, y: 30 },
+      ],
+      edges: [
+        {
+          id: "task-2-task-3",
+          sections: [
+            { startPoint: { x: 346, y: 114 }, endPoint: { x: 460, y: 120 } },
+          ],
+        },
+      ],
+    });
+    const { result } = renderHook(() => useGraphLayout(options));
+    await waitFor(() => {
+      expect(result.current.nodes).toHaveLength(3);
+    });
+    expect(layoutMocks.layout).toHaveBeenCalledWith(
+      expect.objectContaining({
+        children: [
+          expect.objectContaining({ id: group.id, width: 336, height: 120 }),
+          expect.objectContaining({ id: "task-3" }),
+        ],
+        edges: [
+          {
+            id: "task-2-task-3",
+            sources: ["task-2:EAST"],
+            targets: ["task-3"],
+          },
+        ],
+      }),
+    );
+    expect(result.current.frames).toEqual([
+      { group, x: 10, y: 20, width: 336, height: 120 },
+    ]);
+    expect(result.current.nodes.slice(0, 2)).toMatchObject([
+      { id: "task-1", position: { x: 10, y: 60 }, data: { compact: true } },
+      { id: "task-2", position: { x: 10, y: 96 }, data: { compact: true } },
+    ]);
+    expect(result.current.nodes[2]?.data.compact).toBe(false);
+    expect(result.current.edgeRoutes.get("task-2-task-3")?.sourcePortTop).toBe(
+      18,
+    );
   });
 
   it("keeps the owner in a node label when the feature spans owners", async () => {

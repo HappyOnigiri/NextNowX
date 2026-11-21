@@ -4,6 +4,7 @@ import {
   Controls,
   MarkerType,
   ReactFlow,
+  ViewportPortal,
   type AriaLabelConfig,
   type Connection,
   type Edge,
@@ -26,6 +27,7 @@ import type {
   Dependency,
   PullRequest,
   Task,
+  TaskGroup,
   TaskLabelAppearances,
 } from "../gen/nnx/v1/nnx_pb";
 import { useDomainMutation } from "../hooks";
@@ -47,6 +49,11 @@ import {
 } from "./dependencyGraph";
 import { IconButton } from "./IconButton";
 import { MutationError } from "./MutationError";
+import {
+  graphOverviewDependencies,
+  type TaskGroupFrame,
+} from "./taskGroupGraphLayout";
+import { TaskGroupLink } from "./TaskGroupLink";
 import { TaskNode, type TaskFlowNode, type TaskNodeDocument } from "./TaskNode";
 import { useGraphLayout } from "./useGraphLayout";
 import {
@@ -469,13 +476,15 @@ function useCenterOnNodes(
   graphZoom: React.RefObject<number>,
 ) {
   // 中央寄せはユーザーのパン位置を奪うので、表示するタスクの集合が変わった
-  // ときだけ行う。ステータス更新や同期では今の視点を保つ。
+  // ときや、概要の行と個別カードを切り替えたときに行う。
   const centeredKey = useRef<string>(undefined);
   useEffect(() => {
     if (!nodes.length || !flow) return;
     // キーはレイアウト済みのノードから作る。tasks から作ると座標が入る前に
     // 走り、古い座標で寄せてしまう。
-    const key = nodes.map((node) => node.id).join("\n");
+    const key = nodes
+      .map(({ id, data }) => (data.compact ? `${id}:row` : id))
+      .join("\n");
     if (key === centeredKey.current) return;
     centeredKey.current = key;
     const bounds = flow.getNodesBounds(nodes);
@@ -495,6 +504,7 @@ function useCenterOnNodes(
 interface FeatureGraphProps {
   tasks: Task[];
   dependencies: Dependency[];
+  groups?: TaskGroup[];
   pullRequests: Map<string, PullRequest>;
   documentsByTask: Map<string, TaskNodeDocument[]>;
   hiddenDependencies?: Map<string, HiddenDependencies>;
@@ -510,7 +520,8 @@ interface FeatureGraphProps {
 
 export function FeatureGraph({
   tasks,
-  dependencies,
+  dependencies: allDependencies,
+  groups,
   pullRequests,
   documentsByTask,
   hiddenDependencies = emptyHiddenDependencies,
@@ -528,13 +539,18 @@ export function FeatureGraph({
     useState<ReactFlowInstance<TaskFlowNode, DependencyFlowEdge>>();
   const [initialGraphZoom] = useState(readGraphZoom);
   const graphZoom = useRef(initialGraphZoom);
+  const dependencies = useMemo(
+    () => graphOverviewDependencies(tasks, allDependencies, groups),
+    [tasks, allDependencies, groups],
+  );
   const connections = useDependencyConnections(readOnly, onCreateTask, flow);
   const selection = useDependencySelection(dependencies);
   const taskTitle = useTaskTitle(tasks);
-  const { edgeRoutes, nodes, layoutError, layoutPending, retryLayout } =
+  const { edgeRoutes, frames, nodes, layoutError, layoutPending, retryLayout } =
     useGraphLayout({
       tasks,
       dependencies,
+      groups,
       pullRequests,
       documentsByTask,
       hiddenDependencies,
@@ -574,6 +590,7 @@ export function FeatureGraph({
         hiddenTaskCount={hiddenTaskCount}
         searching={searching}
         nodes={nodes}
+        frames={frames}
         edges={edges}
         initialGraphZoom={initialGraphZoom}
         onInit={setFlow}
@@ -658,6 +675,7 @@ interface GraphCanvasProps {
   hiddenTaskCount: number;
   searching: boolean;
   nodes: TaskFlowNode[];
+  frames: TaskGroupFrame[];
   edges: DependencyFlowEdge[];
   initialGraphZoom: number;
   onInit: (
@@ -706,6 +724,7 @@ function GraphCanvas({
   hiddenTaskCount,
   searching,
   nodes,
+  frames,
   edges,
   initialGraphZoom,
   onInit,
@@ -781,7 +800,22 @@ function GraphCanvas({
             size={1}
             color="var(--border)"
           />
-          <Controls showInteractive={false} />
+          <GraphTaskGroups frames={frames} />
+          <Controls
+            showInteractive={false}
+            {...(frames.length > 0
+              ? {
+                  fitViewOptions: {
+                    padding: {
+                      top: "72px",
+                      bottom: "24px",
+                      left: "24px",
+                      right: "24px",
+                    },
+                  },
+                }
+              : {})}
+          />
         </ReactFlow>
       </HoveredEdgeContext.Provider>
       {connectionError && (
@@ -799,6 +833,25 @@ function GraphCanvas({
         readOnly={readOnly}
       />
     </div>
+  );
+}
+
+function GraphTaskGroups({ frames }: { frames: TaskGroupFrame[] }) {
+  return (
+    <ViewportPortal>
+      {frames.map(({ group, x, y, width, height }) => (
+        <div
+          key={group.id}
+          className="graph-task-group"
+          style={{ left: x, top: y, width, height }}
+        >
+          <TaskGroupLink
+            group={group}
+            className="graph-task-group-link nopan"
+          />
+        </div>
+      ))}
+    </ViewportPortal>
   );
 }
 

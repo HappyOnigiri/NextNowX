@@ -7,15 +7,32 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DomainErrorCode, ErrorDetailSchema } from "../src/gen/nnx/v1/nnx_pb";
 import { FeatureGraph } from "../src/views/FeatureGraph";
-import { makeDependency, makeTask } from "./factories";
+import { makeDependency, makeTask, makeTaskGroup } from "./factories";
 import {
   graphMocks,
   resetGraphMocks,
   type ConnectionStateStub,
 } from "./featureGraphHarness";
+
+vi.mock("@tanstack/react-router", () => ({
+  Link: ({
+    children,
+    params,
+    search,
+  }: {
+    children: ReactNode;
+    params: { featureId: string };
+    search: { group: string };
+  }) => (
+    <a href={`/features/${params.featureId}?group=${search.group}`}>
+      {children}
+    </a>
+  ),
+}));
 
 vi.mock("../src/api", async () =>
   (await import("./featureGraphHarness")).apiMock(),
@@ -35,7 +52,6 @@ vi.mock("../src/hooks", async () =>
 
 describe("FeatureGraph", () => {
   afterEach(cleanup);
-
   beforeEach(resetGraphMocks);
 
   it("hides the React Flow attribution", () => {
@@ -58,6 +74,7 @@ describe("FeatureGraph", () => {
     const blocker = makeTask({ id: "blocker", title: "Blocker task" });
     const blocked = makeTask({ id: "blocked", title: "Blocked task" });
     graphMocks.useGraphLayout.mockReturnValue({
+      frames: [],
       edgeRoutes: new Map(),
       nodes: [],
       layoutError: undefined,
@@ -433,6 +450,7 @@ describe("FeatureGraph", () => {
       blockedTaskId: "blocked",
     });
     graphMocks.useGraphLayout.mockReturnValue({
+      frames: [],
       edgeRoutes: new Map([
         [
           "blocker-blocked",
@@ -827,8 +845,9 @@ describe("FeatureGraph", () => {
   it("builds dependency edges, persists zoom, and retries a failed layout", () => {
     const retryLayout = vi.fn();
     graphMocks.useGraphLayout.mockReturnValue({
+      frames: [],
       edgeRoutes: new Map(),
-      nodes: [makeTask()],
+      nodes: [{ id: "task-1", data: {} }],
       layoutError: { message: undefined },
       retryLayout,
     });
@@ -862,9 +881,46 @@ describe("FeatureGraph", () => {
     expect(retryLayout).toHaveBeenCalledOnce();
   });
 
+  it("links a compact group and draws only external dependencies in the overview", () => {
+    const group = makeTaskGroup();
+    graphMocks.useGraphLayout.mockReturnValue({
+      frames: [{ group, x: 0, y: 12, width: 336, height: 88 }],
+      edgeRoutes: new Map(),
+      nodes: [],
+      layoutPending: false,
+    });
+    render(
+      <FeatureGraph
+        tasks={[
+          makeTask({ id: "task-1", groupId: group.id }),
+          makeTask({ id: "task-2", groupId: group.id }),
+          makeTask({ id: "task-3" }),
+        ]}
+        dependencies={[
+          makeDependency(),
+          makeDependency({ blockerTaskId: "task-2", blockedTaskId: "task-3" }),
+        ]}
+        groups={[group]}
+        pullRequests={new Map()}
+        documentsByTask={new Map()}
+        onEditTask={vi.fn()}
+        onPreviewDocument={vi.fn()}
+        onCreateTask={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("link", { name: group.name })).toHaveAttribute(
+      "href",
+      `/features/${group.featureId}?group=${group.id}`,
+    );
+    expect(graphMocks.edges.map((edge) => edge["id"])).toEqual([
+      "task-2-task-3",
+    ]);
+  });
+
   it("centers the viewport only when the visible tasks change", () => {
     function layoutWith(nodes: unknown[]) {
       graphMocks.useGraphLayout.mockReturnValue({
+        frames: [],
         edgeRoutes: new Map(),
         nodes,
         layoutError: undefined,
@@ -885,20 +941,20 @@ describe("FeatureGraph", () => {
       );
     }
     layoutWith([]);
+    const firstNode = { id: "task-1", data: {} };
     const view = render(graph());
     expect(graphMocks.flow.setCenter).not.toHaveBeenCalled();
 
-    layoutWith([makeTask()]);
+    layoutWith([firstNode]);
     view.rerender(graph());
     expect(graphMocks.flow.setCenter).toHaveBeenCalledOnce();
 
-    // 同じタスクにステータスが届いただけなら配列は作り直されるが、視点は
-    // ユーザーが置いた場所に残す。
-    layoutWith([makeTask()]);
+    // ステータスだけが変わった場合は視点を維持する。
+    layoutWith([{ ...firstNode, data: { status: "ready" } }]);
     view.rerender(graph());
     expect(graphMocks.flow.setCenter).toHaveBeenCalledOnce();
 
-    layoutWith([makeTask(), makeTask({ id: "task-2" })]);
+    layoutWith([firstNode, { id: "task-2", data: {} }]);
     view.rerender(graph());
     expect(graphMocks.flow.setCenter).toHaveBeenCalledTimes(2);
   });
@@ -919,8 +975,9 @@ describe("FeatureGraph", () => {
       />
     );
     graphMocks.useGraphLayout.mockReturnValue({
+      frames: [],
       edgeRoutes: new Map(),
-      nodes: [makeTask()],
+      nodes: [{ id: "task-1", data: {} }],
       layoutError: { message: "worker unavailable" },
       retryLayout,
     });
@@ -931,8 +988,9 @@ describe("FeatureGraph", () => {
     expect(retryLayout).toHaveBeenCalledOnce();
     // やり直しが同じタスク集合を返しても、視点は動かさない。
     graphMocks.useGraphLayout.mockReturnValue({
+      frames: [],
       edgeRoutes: new Map(),
-      nodes: [makeTask()],
+      nodes: [{ id: "task-1", data: {} }],
       layoutError: undefined,
       retryLayout,
     });

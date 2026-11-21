@@ -27,6 +27,8 @@ const indexRoute = createRoute({
 const featureRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/features/$featureId",
+  validateSearch: (search: Record<string, unknown>): { group?: string } =>
+    typeof search["group"] === "string" ? { group: search["group"] } : {},
   component: FeatureWorkspace,
 });
 const projectsRoute = createRoute({

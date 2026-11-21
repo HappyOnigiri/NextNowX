@@ -26,6 +26,7 @@ const workspaceMocks = vi.hoisted(() => ({
   navigate: vi.fn().mockResolvedValue(undefined),
   snapshot: { data: undefined as Snapshot | undefined, isPending: false },
   hookIndex: 0,
+  groupId: undefined as string | undefined,
   mutations: Array.from({ length: 5 }, () => ({
     mutate: vi.fn(),
     mutateAsync: vi.fn().mockResolvedValue({}),
@@ -59,6 +60,7 @@ vi.mock("@tanstack/react-router", () => ({
   ),
   useNavigate: () => workspaceMocks.navigate,
   useParams: () => ({ featureId: "feature-1" }),
+  useSearch: () => ({ group: workspaceMocks.groupId }),
 }));
 vi.mock("../src/api", () => ({
   mutations: workspaceMocks.api,
@@ -840,4 +842,22 @@ it("opens the task groups dialog with the groups belonging to this feature", () 
   fireEvent.keyDown(window, { key: "Escape" });
   expect(dialog).not.toBeInTheDocument();
   cleanup();
+});
+
+it("opens the selected group with a graph restricted to its tasks", () => {
+  workspaceMocks.groupId = "group-1";
+  workspaceMocks.snapshot.data = makeSnapshot({
+    features: [makeFeature()],
+    tasks: [makeTask({ groupId: "group-1" }), makeTask({ id: "task-2" })],
+    taskGroups: [makeTaskGroup()],
+    dependencies: [makeDependency()],
+  });
+  render(<FeatureWorkspace />);
+  expect(screen.getByRole("heading", { name: "Checkout" })).toBeInTheDocument();
+  expect(
+    screen.getByRole("link", { name: "Back to feature" }),
+  ).toBeInTheDocument();
+  expect(screen.getByTestId("mock-graph-tasks")).toHaveTextContent(/^task-1$/);
+  cleanup();
+  workspaceMocks.groupId = undefined;
 });

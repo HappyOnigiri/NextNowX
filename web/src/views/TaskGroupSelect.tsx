@@ -4,10 +4,12 @@ import type { TaskGroup } from "../gen/nnx/v1/nnx_pb";
 export function TaskGroupSelect({
   groups,
   value,
+  defaultValue,
   onChange,
 }: {
   groups: TaskGroup[];
   value?: string;
+  defaultValue?: string | undefined;
   onChange?: (value: string) => void;
 }) {
   const { t } = useTranslation();
@@ -18,6 +20,7 @@ export function TaskGroupSelect({
       <select
         name="group"
         value={value}
+        defaultValue={defaultValue}
         onChange={(event) => onChange?.(event.target.value)}
       >
         <option value="">{t("taskGroups.ungrouped")}</option>

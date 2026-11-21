@@ -586,3 +586,37 @@ span.node-hidden-dependency svg {
 .node-hidden-dependency path + path {
   stroke-dasharray: none;
 }
+
+.graph-task-group {
+  position: absolute;
+  z-index: -1;
+  box-sizing: border-box;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  pointer-events: none;
+}
+
+.graph-task-group-link {
+  justify-content: space-between;
+  padding: 9px 12px;
+  color: var(--text);
+  font-weight: 650;
+  pointer-events: auto;
+}
+
+.graph-task-group-link .task-group-link-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.graph-task-group-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.graph-group-row {
+  height: 100%;
+  padding: 0 10px;
+}

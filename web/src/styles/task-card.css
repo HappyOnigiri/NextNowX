@@ -191,3 +191,40 @@
   font-weight: 650;
   overflow-wrap: anywhere;
 }
+
+.task-group-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.task-group-link-icon {
+  flex: 0 0 auto;
+}
+
+.task-group-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.task-group-row {
+  display: grid;
+  grid-template-columns: fit-content(8rem) minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-height: 36px;
+  border-top: 1px solid var(--border);
+}
+
+.task-group-row .status-badge {
+  max-width: 100%;
+  justify-self: start;
+}
+
+.task-group-row-title {
+  overflow: hidden;
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

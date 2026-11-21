@@ -2,6 +2,7 @@ export const tasks = {
   en: {
     taskGroups: {
       manage: "Task groups",
+      backToFeature: "Back to feature",
       field: "Task group",
       ungrouped: "Ungrouped",
       unavailable: "Group no longer available",
@@ -50,6 +51,7 @@ export const tasks = {
   ja: {
     taskGroups: {
       manage: "タスクグループ",
+      backToFeature: "フィーチャーに戻る",
       field: "タスクグループ",
       ungrouped: "未所属",
       unavailable: "グループが見つかりません",
