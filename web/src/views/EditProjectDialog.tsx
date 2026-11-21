@@ -29,8 +29,7 @@ import { useCloseOnEscape } from "./useCloseOnEscape";
 
 interface EditProjectDialogProps {
   project: Project;
-  // referenceCount は連鎖削除の対象、つまりプロジェクト自身のドキュメント数。
-  // 配下の feature は削除ではなく所属解除なので、確認が示すこの数には含めない。
+  // referenceCount はプロジェクトに直接添付された資料の件数。
   referenceCount: number;
   onClose: () => void;
   onDeleted: () => void;

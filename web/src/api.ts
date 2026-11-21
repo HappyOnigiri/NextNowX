@@ -163,8 +163,7 @@ export const mutations = {
     };
     taskLabelOverrides?: TaskLabelOverridesUpdate;
   }) => client.updateProject(create(UpdateProjectRequestSchema, input)),
-  // cascade は project の feature を削除せず切り離すので、WebUI に必要な形は
-  // これだけ。
+  // 削除の確認後に、配下のフィーチャーとその内容もまとめて削除する。
   deleteProject: (id: string) =>
     client.deleteProject(
       create(DeleteProjectRequestSchema, { id, cascade: true }),

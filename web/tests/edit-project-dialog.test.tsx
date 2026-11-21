@@ -157,7 +157,7 @@ describe("EditProjectDialog", () => {
     });
   });
 
-  it("confirms the archive and states that features are released on delete", async () => {
+  it("confirms before archiving a project", async () => {
     const onClose = vi.fn();
     render(
       <EditProjectDialog
@@ -180,7 +180,7 @@ describe("EditProjectDialog", () => {
     });
   });
 
-  it("releases features when the delete is confirmed", async () => {
+  it("warns that deleting a project also deletes features and task groups", async () => {
     const onDeleted = vi.fn();
     render(
       <EditProjectDialog
@@ -193,7 +193,9 @@ describe("EditProjectDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "Delete project" }));
     expect(
       screen.getByRole("dialog", { name: "Delete Delivery?" }),
-    ).toHaveTextContent("Its features are kept");
+    ).toHaveTextContent(
+      "all its features, including their tasks, task groups, and references",
+    );
     fireEvent.click(screen.getByRole("button", { name: "Delete permanently" }));
     await waitFor(() => {
       expect(onDeleted).toHaveBeenCalledOnce();
