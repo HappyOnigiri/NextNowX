@@ -185,11 +185,9 @@ test("manages membership and shows the same ordered group frames in search and r
   await page.setViewportSize({ width: 1280, height: 844 });
   await settleGraph(page);
   await page.locator(".react-flow__controls-fitview").click();
-  await page
-    .getByRole("button", { name: `Rename ${name}`, exact: true })
-    .click();
+  await page.getByRole("button", { name: `Edit ${name}`, exact: true }).click();
   const edit = page.getByRole("dialog", {
-    name: `Rename ${name}`,
+    name: `Edit ${name}`,
     exact: true,
   });
   await edit.getByLabel("Group name", { exact: true }).fill(renamed);
@@ -212,13 +210,23 @@ test("manages membership and shows the same ordered group frames in search and r
   await page.goto(featureURL);
   await settleGraph(page);
   await page.locator(".react-flow__controls-fitview").click();
-  await page.getByRole("button", { name: `Delete ${renamed}` }).click();
-  await page
-    .getByRole("dialog", { name: `Delete ${renamed}` })
-    .getByRole("button", { name: "Delete group" })
-    .click();
   await expect(
     page.getByRole("button", { name: `Delete ${renamed}` }),
+  ).toHaveCount(0);
+  const editRenamed = page.getByRole("dialog", { name: `Edit ${renamed}` });
+  await page.getByRole("button", { name: `Edit ${renamed}` }).click();
+  const deleteGroup = editRenamed.getByRole("button", { name: "Delete group" });
+  await deleteGroup.click();
+  const deletion = page.getByRole("dialog", { name: `Delete ${renamed}` });
+  await expect(deletion).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(deletion).toHaveCount(0);
+  await expect(deleteGroup).toBeFocused();
+  await deleteGroup.click();
+  await deletion.getByRole("button", { name: "Delete group" }).click();
+  await expect(editRenamed).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: renamed, exact: true }),
   ).toHaveCount(0);
   await page.goto(search);
   await expect(renamedGroup).toHaveCount(0);
@@ -630,7 +638,11 @@ test("attaches a group reference and opens it from the group card", async ({
   await expect(groupReferences).toBeHidden();
   await expect(showReferences).toBeFocused();
 
-  await group.getByRole("button", { name: "Delete Rollout" }).click();
+  await group.getByRole("button", { name: "Edit Rollout" }).click();
+  await page
+    .getByRole("dialog", { name: "Edit Rollout" })
+    .getByRole("button", { name: "Delete group" })
+    .click();
   const deletion = page.getByRole("dialog", { name: "Delete Rollout" });
   await expect(deletion).toContainText("Group references will be deleted");
   await deletion.getByRole("button", { name: "Delete group" }).click();

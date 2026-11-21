@@ -1,5 +1,5 @@
 import { ViewportPortal } from "@xyflow/react";
-import { Paperclip, Pencil, Trash2 } from "lucide-react";
+import { Paperclip, Pencil } from "lucide-react";
 import type { Ref } from "react";
 import { useTranslation } from "react-i18next";
 import type { TaskGroup } from "../gen/nnx/v1/nnx_pb";
@@ -8,7 +8,7 @@ import { taskGroupWidth, type TaskGroupFrame } from "./taskGroupGraphLayout";
 import { TaskGroupLink } from "./TaskGroupLink";
 
 export interface GroupAction {
-  type: "references" | "rename" | "delete";
+  type: "references" | "edit";
   group: TaskGroup;
 }
 
@@ -97,27 +97,16 @@ function GraphTaskGroupHeader({
         />
       )}
       {onGroupAction && !readOnly && (
-        <>
-          <IconButton
-            icon={Pencil}
-            iconOnly
-            size="compact"
-            label={t("taskGroups.renameGroup", { name: group.name })}
-            onClick={() => {
-              onGroupAction({ type: "rename", group });
-            }}
-          />
-          <IconButton
-            icon={Trash2}
-            iconOnly
-            size="compact"
-            variant="danger"
-            label={t("taskGroups.deleteGroup", { name: group.name })}
-            onClick={() => {
-              onGroupAction({ type: "delete", group });
-            }}
-          />
-        </>
+        <IconButton
+          icon={Pencil}
+          iconOnly
+          size="compact"
+          aria-haspopup="dialog"
+          label={t("taskGroups.editGroup", { name: group.name })}
+          onClick={() => {
+            onGroupAction({ type: "edit", group });
+          }}
+        />
       )}
     </div>
   );

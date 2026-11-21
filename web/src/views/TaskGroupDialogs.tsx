@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 import { useEffect, useId, useRef, useState, type SyntheticEvent } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -35,6 +35,8 @@ export function TaskGroupNameDialog({
   const baseline = group?.name ?? "";
   const [name, setName] = useState(baseline);
   const [discarding, setDiscarding] = useState(false);
+  const [confirmingDeletion, setConfirmingDeletion] = useState(false);
+  const covered = discarding || confirmingDeletion;
   const trimmed = name.trim();
   const duplicate = groups.some(
     (other) => other.id !== group?.id && other.name === trimmed,
@@ -69,13 +71,13 @@ export function TaskGroupNameDialog({
           role="dialog"
           aria-modal="true"
           aria-labelledby={titleId}
-          inert={discarding}
-          aria-hidden={discarding || undefined}
+          inert={covered}
+          aria-hidden={covered || undefined}
         >
           <header>
             <h2 id={titleId}>
               {group
-                ? t("taskGroups.renameGroup", { name: group.name })
+                ? t("taskGroups.editGroup", { name: group.name })
                 : t("taskGroups.create")}
             </h2>
           </header>
@@ -98,21 +100,18 @@ export function TaskGroupNameDialog({
               </p>
             )}
             <MutationError error={save.error} />
-            <footer>
-              <IconButton
-                icon={X}
-                label={t("common.cancel")}
-                disabled={save.isPending}
-                onClick={requestClose}
-              />
-              <SaveButton
-                type="submit"
-                label={t(group ? "taskGroups.rename" : "taskGroups.create")}
-                dirty={canSave}
-                pending={save.isPending}
-                busy={save.isPending}
-              />
-            </footer>
+            <TaskGroupNameActions
+              canSave={canSave}
+              pending={save.isPending}
+              onCancel={requestClose}
+              onDelete={
+                group
+                  ? () => {
+                      setConfirmingDeletion(true);
+                    }
+                  : undefined
+              }
+            />
           </form>
         </section>
       </div>
@@ -124,17 +123,70 @@ export function TaskGroupNameDialog({
           onConfirm={onClose}
         />
       )}
+      {group && confirmingDeletion && (
+        <DeleteTaskGroupDialog
+          group={group}
+          onCancel={() => {
+            setConfirmingDeletion(false);
+          }}
+          onDeleted={onClose}
+        />
+      )}
     </>,
     document.body,
   );
 }
 
-export function DeleteTaskGroupDialog({
+function TaskGroupNameActions({
+  canSave,
+  pending,
+  onCancel,
+  onDelete,
+}: {
+  canSave: boolean;
+  pending: boolean;
+  onCancel: () => void;
+  onDelete: (() => void) | undefined;
+}) {
+  const { t } = useTranslation();
+  return (
+    <footer>
+      {onDelete && (
+        <IconButton
+          className="task-group-delete"
+          icon={Trash2}
+          aria-haspopup="dialog"
+          label={t("taskGroups.delete")}
+          variant="danger"
+          disabled={pending}
+          onClick={onDelete}
+        />
+      )}
+      <IconButton
+        icon={X}
+        label={t("common.cancel")}
+        disabled={pending}
+        onClick={onCancel}
+      />
+      <SaveButton
+        type="submit"
+        label={t(onDelete ? "taskGroups.rename" : "taskGroups.create")}
+        dirty={canSave}
+        pending={pending}
+        busy={pending}
+      />
+    </footer>
+  );
+}
+
+function DeleteTaskGroupDialog({
   group,
-  onClose,
+  onCancel,
+  onDeleted,
 }: {
   group: TaskGroup;
-  onClose: () => void;
+  onCancel: () => void;
+  onDeleted: () => void;
 }) {
   const { t } = useTranslation();
   const remove = useDomainMutation(mutations.deleteTaskGroup);
@@ -146,9 +198,9 @@ export function DeleteTaskGroupDialog({
       danger
       pending={remove.isPending}
       error={remove.error}
-      onCancel={onClose}
+      onCancel={onCancel}
       onConfirm={() => {
-        remove.mutate(group.id, { onSuccess: onClose });
+        remove.mutate(group.id, { onSuccess: onDeleted });
       }}
     />
   );
@@ -177,8 +229,6 @@ export function TaskGroupOverlay({
       />
     );
   if (readOnly) return null;
-  if (action.type === "delete")
-    return <DeleteTaskGroupDialog group={group} onClose={onClose} />;
   return (
     <TaskGroupNameDialog
       featureId={group.featureId}

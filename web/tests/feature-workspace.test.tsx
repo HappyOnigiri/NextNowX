@@ -140,11 +140,8 @@ vi.mock("../src/views/FeatureGraph", () => ({
           >
             View references for {group.name}
           </button>
-          <button onClick={() => onGroupAction?.({ type: "rename", group })}>
+          <button onClick={() => onGroupAction?.({ type: "edit", group })}>
             Edit {group.name}
-          </button>
-          <button onClick={() => onGroupAction?.({ type: "delete", group })}>
-            Delete {group.name}
           </button>
         </div>
       ))}
@@ -849,7 +846,7 @@ describe("FeatureWorkspace", () => {
   });
 });
 
-it("opens rename and deletion from group cards belonging to this feature", () => {
+it("opens editing for this feature's groups and returns to it after canceling deletion", () => {
   workspaceMocks.snapshot.data = makeSnapshot({
     features: [makeFeature()],
     taskGroups: [
@@ -874,13 +871,14 @@ it("opens rename and deletion from group cards belonging to this feature", () =>
   expect(screen.queryByText("Edit Checkout")).not.toBeInTheDocument();
   fireEvent.click(groupToggle);
   fireEvent.click(screen.getByRole("button", { name: "Edit Checkout" }));
-  const rename = screen.getByRole("dialog", { name: "Rename Checkout" });
-  fireEvent.keyDown(window, { key: "Escape" });
-  expect(rename).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Delete Checkout" }));
+  const edit = screen.getByRole("dialog", { name: "Edit Checkout" });
+  fireEvent.click(within(edit).getByRole("button", { name: "Delete group" }));
   const deletion = screen.getByRole("dialog", { name: "Delete Checkout" });
   fireEvent.click(within(deletion).getByRole("button", { name: "Cancel" }));
   expect(deletion).not.toBeInTheDocument();
+  expect(edit).toBeVisible();
+  fireEvent.keyDown(window, { key: "Escape" });
+  expect(edit).not.toBeInTheDocument();
   cleanup();
 });
 

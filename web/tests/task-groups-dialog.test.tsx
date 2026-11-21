@@ -10,10 +10,7 @@ import {
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { GraphTaskGroups } from "../src/views/GraphTaskGroups";
-import {
-  DeleteTaskGroupDialog,
-  TaskGroupNameDialog,
-} from "../src/views/TaskGroupDialogs";
+import { TaskGroupNameDialog } from "../src/views/TaskGroupDialogs";
 import { TaskGroupSelect } from "../src/views/TaskGroupSelect";
 import { makeTaskGroup } from "./factories";
 
@@ -59,6 +56,9 @@ it("adds a group from the select menu and selects the trimmed result", async () 
   fireEvent.change(select, { target: { value: "new" } });
   const name = screen.getByRole("textbox", { name: "Group name" });
   const create = screen.getByRole("button", { name: "Create group" });
+  expect(
+    screen.queryByRole("button", { name: "Delete group" }),
+  ).not.toBeInTheDocument();
   fireEvent.change(name, { target: { value: "   " } });
   expect(create).toBeDisabled();
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
@@ -123,43 +123,60 @@ it("renames a group and rejects duplicate names", async () => {
   });
 });
 
-it("deletes only after confirmation", async () => {
+it("deletes from the edit dialog only after confirmation", async () => {
   const group = makeTaskGroup();
   const onClose = vi.fn();
   mocks.deleteTaskGroup.mockResolvedValue({});
   renderWithMutations(
-    <DeleteTaskGroupDialog group={group} onClose={onClose} />,
+    <TaskGroupNameDialog
+      featureId={group.featureId}
+      group={group}
+      groups={[group]}
+      onSaved={vi.fn()}
+      onClose={onClose}
+    />,
   );
+  const draft = screen.getByRole("textbox", { name: "Group name" });
+  fireEvent.change(draft, { target: { value: "Launch" } });
+  const deleteGroup = screen.getByRole("button", { name: "Delete group" });
+  fireEvent.click(deleteGroup);
   const dialog = screen.getByRole("dialog", { name: `Delete ${group.name}` });
   expect(dialog).toHaveTextContent("Group references will be deleted");
   fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
   expect(mocks.deleteTaskGroup).not.toHaveBeenCalled();
-  fireEvent.click(within(dialog).getByRole("button", { name: "Delete group" }));
+  expect(onClose).not.toHaveBeenCalled();
+  expect(draft).toHaveValue("Launch");
+  fireEvent.click(deleteGroup);
+  fireEvent.click(
+    within(
+      screen.getByRole("dialog", { name: `Delete ${group.name}` }),
+    ).getByRole("button", { name: "Delete group" }),
+  );
   await waitFor(() => {
+    expect(mocks.deleteTaskGroup).toHaveBeenCalledOnce();
     expect(mocks.deleteTaskGroup.mock.calls[0]?.[0]).toBe(group.id);
-    expect(onClose).toHaveBeenCalledTimes(2);
+    expect(onClose).toHaveBeenCalledOnce();
   });
+  expect(mocks.renameTaskGroup).not.toHaveBeenCalled();
 });
 
-it("dispatches references, rename, and delete actions from the group card", () => {
+it("offers references and editing on the group card without a delete button", () => {
   const group = makeTaskGroup();
   const onGroupAction = vi.fn();
   const frames = [{ group, x: 0, y: 0, width: 336, height: 48 }];
   const { rerender } = render(
     <GraphTaskGroups frames={frames} onGroupAction={onGroupAction} />,
   );
-  fireEvent.click(screen.getByRole("button", { name: `Rename ${group.name}` }));
-  expect(onGroupAction).toHaveBeenLastCalledWith({ type: "rename", group });
-  fireEvent.click(screen.getByRole("button", { name: `Delete ${group.name}` }));
-  expect(onGroupAction).toHaveBeenLastCalledWith({ type: "delete", group });
+  fireEvent.click(screen.getByRole("button", { name: `Edit ${group.name}` }));
+  expect(onGroupAction).toHaveBeenLastCalledWith({ type: "edit", group });
+  expect(
+    screen.queryByRole("button", { name: /Delete/ }),
+  ).not.toBeInTheDocument();
   rerender(
     <GraphTaskGroups frames={frames} onGroupAction={onGroupAction} readOnly />,
   );
   expect(
-    screen.queryByRole("button", { name: `Rename ${group.name}` }),
-  ).not.toBeInTheDocument();
-  expect(
-    screen.queryByRole("button", { name: `Delete ${group.name}` }),
+    screen.queryByRole("button", { name: `Edit ${group.name}` }),
   ).not.toBeInTheDocument();
   fireEvent.click(
     screen.getByRole("button", { name: `Group references for ${group.name}` }),

@@ -7,6 +7,10 @@
   flex-wrap: wrap;
 }
 
+.task-group-delete {
+  margin-inline-end: auto;
+}
+
 .task-group-references-header {
   display: flex;
   justify-content: space-between;
