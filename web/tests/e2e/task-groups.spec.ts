@@ -74,7 +74,27 @@ test("manages membership and shows the same ordered group frames in search and r
   const hidden = `Filtered member ${prefix}`;
   await addTask(page, hidden);
   await groupTask(page, hidden, name);
-  await page.getByRole("link", { name, exact: true }).click();
+  const cardTitle = page.getByRole("link", { name, exact: true });
+  const cardHeader = page
+    .locator(".graph-task-group")
+    .locator(".graph-task-group-header");
+  await expect(cardHeader).toHaveCount(1);
+  await assertWrappedGroupTitle(
+    cardTitle.locator(".task-group-link-name"),
+    name,
+  );
+  const headerBox = await cardHeader.boundingBox();
+  const rowBox = await page.locator(".graph-group-row").boundingBox();
+  expect(
+    headerBox && rowBox && rowBox.y >= headerBox.y + headerBox.height - 1,
+  ).toBe(true);
+
+  await cardTitle.click();
+  const wideViewport = page.viewportSize();
+  await page.setViewportSize({ width: 390, height: 844 });
+  const detailTitle = page.getByRole("heading", { name, exact: true });
+  await assertWrappedGroupTitle(detailTitle, name);
+  if (wideViewport) await page.setViewportSize(wideViewport);
   let inspector = await openInspector(page, hidden);
   await inspector.getByLabel("Status").selectOption({ label: "Completed" });
   await inspector.getByRole("button", { name: "Save task" }).click();
@@ -210,6 +230,29 @@ test("manages membership and shows the same ordered group frames in search and r
   ).toBeVisible();
   await expect(results.getByRole("list", { name, exact: true })).toHaveCount(1);
 });
+
+async function assertWrappedGroupTitle(title: Locator, name: string) {
+  await expect(title).toBeVisible();
+  await expect(title).toHaveText(name);
+  const layout = await title.evaluate((element) => {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    const bounds = element.getBoundingClientRect();
+    const lines = [...range.getClientRects()];
+    return {
+      lineCount: lines.length,
+      fits: lines.every(
+        (line) =>
+          line.left >= bounds.left - 1 &&
+          line.right <= bounds.right + 1 &&
+          line.top >= bounds.top - 1 &&
+          line.bottom <= bounds.bottom + 1,
+      ),
+    };
+  });
+  expect(layout.lineCount).toBeGreaterThan(1);
+  expect(layout.fits).toBe(true);
+}
 
 async function assertGroupedList(
   list: Locator,

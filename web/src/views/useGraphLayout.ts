@@ -5,7 +5,7 @@ import type {
 } from "elkjs/lib/elk-api.js";
 import ELK from "elkjs/lib/elk-api.js";
 import elkWorkerUrl from "elkjs/lib/elk-worker.min.js?url";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type RefObject } from "react";
 import type {
   PullRequest,
   Task,
@@ -29,6 +29,7 @@ interface GraphLayoutOptions {
   tasks: Task[];
   dependencies: GraphDependency[];
   groups?: TaskGroup[] | undefined;
+  groupHeaderMeasurements?: RefObject<HTMLDivElement | null> | undefined;
   pullRequests: Map<string, PullRequest>;
   documentsByTask: Map<string, TaskNodeDocument[]>;
   hiddenDependencies?: Map<string, HiddenDependencies>;
@@ -92,6 +93,7 @@ function isSameLayoutRequest(
     completed?.tasks === requested.tasks &&
     completed.dependencies === requested.dependencies &&
     completed.groups === requested.groups &&
+    completed.groupHeaderMeasurements === requested.groupHeaderMeasurements &&
     completed.pullRequests === requested.pullRequests &&
     completed.documentsByTask === requested.documentsByTask &&
     completed.hiddenDependencies === requested.hiddenDependencies &&
@@ -311,10 +313,27 @@ function readLayout(
   return { edgeRoutes, frames, nodes };
 }
 
+// 計測用のヘッダーはキャンバスの外にあり、ズームに依存しない。
+function readGroupHeaderHeights(
+  measurements: HTMLDivElement | null | undefined,
+) {
+  const heights = new Map<string, number>();
+  for (const header of measurements?.querySelectorAll<HTMLElement>(
+    "[data-group-id]",
+  ) ?? []) {
+    const id = header.dataset["groupId"];
+    const height = header.offsetHeight;
+    // タスク行の起点には、カード上辺の枠線も含める。
+    if (id && height > 0) heights.set(id, height + 1);
+  }
+  return heights;
+}
+
 export function useGraphLayout({
   tasks,
   dependencies,
   groups,
+  groupHeaderMeasurements,
   pullRequests,
   documentsByTask,
   hiddenDependencies = emptyHiddenDependencies,
@@ -341,6 +360,7 @@ export function useGraphLayout({
       tasks,
       dependencies,
       groups,
+      groupHeaderMeasurements,
       pullRequests,
       documentsByTask,
       hiddenDependencies,
@@ -355,6 +375,7 @@ export function useGraphLayout({
       tasks,
       dependencies,
       groups,
+      groupHeaderMeasurements,
       pullRequests,
       documentsByTask,
       hiddenDependencies,
@@ -410,6 +431,7 @@ export function useGraphLayout({
       raw,
       dependencies,
       layoutRequest.groups ?? [],
+      readGroupHeaderHeights(layoutRequest.groupHeaderMeasurements?.current),
     );
     elk
       ?.layout(buildLayoutGraph(grouping.children, grouping.edges))

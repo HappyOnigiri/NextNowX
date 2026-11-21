@@ -198,6 +198,12 @@
   gap: 6px;
 }
 
+.task-group-link-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
 .task-group-link-icon {
   flex: 0 0 auto;
 }

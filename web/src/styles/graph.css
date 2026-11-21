@@ -590,19 +590,32 @@ span.node-hidden-dependency svg {
 .graph-task-group {
   position: absolute;
   z-index: -1;
-  box-sizing: border-box;
-  border: 1px solid var(--border-strong);
   border-radius: 6px;
   background: var(--surface);
+  pointer-events: none;
+}
+
+.graph-task-group,
+.graph-task-group-measurement {
+  box-sizing: border-box;
+  border: 1px solid var(--border-strong);
+}
+
+.graph-task-group-measurements {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
   pointer-events: none;
 }
 
 .graph-task-group-header {
   display: flex;
   align-items: center;
-  height: 39px;
+  min-height: 39px;
   gap: 4px;
-  padding-inline: 12px 6px;
+  padding: 6px 6px 6px 12px;
   pointer-events: auto;
 }
 
@@ -613,12 +626,6 @@ span.node-hidden-dependency svg {
   color: var(--text);
   font-weight: 650;
   pointer-events: auto;
-}
-
-.graph-task-group-link .task-group-link-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .graph-task-group-link:hover {

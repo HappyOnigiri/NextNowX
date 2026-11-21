@@ -46,7 +46,11 @@ import {
   type DependencyFlowEdge,
   type PendingDependency,
 } from "./dependencyGraph";
-import { GraphTaskGroups, type GroupAction } from "./GraphTaskGroups";
+import {
+  GraphTaskGroupMeasurements,
+  GraphTaskGroups,
+  type GroupAction,
+} from "./GraphTaskGroups";
 import { IconButton } from "./IconButton";
 import { MutationError } from "./MutationError";
 import {
@@ -553,6 +557,7 @@ export function FeatureGraph({
     useState<ReactFlowInstance<GraphFlowNode, DependencyFlowEdge>>();
   const [initialGraphZoom] = useState(readGraphZoom);
   const graphZoom = useRef(initialGraphZoom);
+  const groupHeaderMeasurements = useRef<HTMLDivElement>(null);
   const dependencies = useMemo(
     () => graphOverviewDependencies(tasks, allDependencies, groups),
     [tasks, allDependencies, groups],
@@ -565,6 +570,7 @@ export function FeatureGraph({
       tasks,
       dependencies,
       groups,
+      groupHeaderMeasurements,
       pullRequests,
       documentsByTask,
       hiddenDependencies,
@@ -605,6 +611,7 @@ export function FeatureGraph({
         searching={searching}
         nodes={nodes}
         frames={frames}
+        groupHeaders={{ groups, ref: groupHeaderMeasurements }}
         onGroupAction={onGroupAction}
         edges={edges}
         initialGraphZoom={initialGraphZoom}
@@ -691,6 +698,10 @@ interface GraphCanvasProps {
   searching: boolean;
   nodes: GraphFlowNode[];
   frames: TaskGroupFrame[];
+  groupHeaders: Pick<
+    React.ComponentProps<typeof GraphTaskGroupMeasurements>,
+    "groups" | "ref"
+  >;
   onGroupAction: ((action: GroupAction) => void) | undefined;
   edges: DependencyFlowEdge[];
   initialGraphZoom: number;
@@ -741,6 +752,7 @@ function GraphCanvas({
   searching,
   nodes,
   frames,
+  groupHeaders,
   onGroupAction,
   edges,
   initialGraphZoom,
@@ -777,6 +789,11 @@ function GraphCanvas({
       data-testid="feature-graph"
       aria-busy={graphBusy}
     >
+      <GraphTaskGroupMeasurements
+        {...groupHeaders}
+        onGroupAction={onGroupAction}
+        readOnly={readOnly}
+      />
       <HoveredEdgeContext.Provider value={hoveredEdgeId}>
         <ReactFlow<GraphFlowNode, DependencyFlowEdge>
           ariaLabelConfig={ariaLabelConfig}

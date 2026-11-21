@@ -129,10 +129,16 @@ describe("useGraphLayout", () => {
     expect(layoutMocks.terminateWorker).toHaveBeenCalledOnce();
   });
 
-  it("positions group members as rows and routes an edge from the group card", async () => {
+  it("positions group members and routes edges using the measured group header", async () => {
     const group = makeTaskGroup();
     const empty = makeTaskGroup({ id: "empty", name: "Empty" });
+    const measurements = document.createElement("div");
+    const measuredHeader = document.createElement("div");
+    measuredHeader.dataset["groupId"] = group.id;
+    Object.defineProperty(measuredHeader, "offsetHeight", { value: 81 });
+    measurements.append(measuredHeader);
     const options = {
+      groupHeaderMeasurements: { current: measurements },
       tasks: [
         makeTask({ id: "task-2", title: "Second", groupId: group.id }),
         makeTask({ id: "task-1", title: "First", groupId: group.id }),
@@ -149,7 +155,7 @@ describe("useGraphLayout", () => {
     };
     layoutMocks.layout.mockResolvedValue({
       children: [
-        { id: group.id, x: 10, y: 20, width: 336, height: 120 },
+        { id: group.id, x: 10, y: 20, width: 336, height: 162 },
         { id: "task-3", x: 460, y: 30 },
         { id: empty.id, x: 10, y: 200, width: 336, height: 48 },
       ],
@@ -157,7 +163,7 @@ describe("useGraphLayout", () => {
         {
           id: `${group.id}-task-3`,
           sections: [
-            { startPoint: { x: 346, y: 114 }, endPoint: { x: 460, y: 120 } },
+            { startPoint: { x: 346, y: 148 }, endPoint: { x: 460, y: 120 } },
           ],
         },
       ],
@@ -169,7 +175,7 @@ describe("useGraphLayout", () => {
     expect(layoutMocks.layout).toHaveBeenCalledWith(
       expect.objectContaining({
         children: [
-          expect.objectContaining({ id: group.id, width: 336, height: 120 }),
+          expect.objectContaining({ id: group.id, width: 336, height: 162 }),
           expect.objectContaining({ id: "task-3" }),
           expect.objectContaining({ id: empty.id, width: 336, height: 48 }),
         ],
@@ -183,23 +189,23 @@ describe("useGraphLayout", () => {
       }),
     );
     expect(result.current.frames).toEqual([
-      { group, x: 10, y: 20, width: 336, height: 120 },
+      { group, x: 10, y: 20, width: 336, height: 162 },
       { group: empty, x: 10, y: 200, width: 336, height: 48 },
     ]);
     expect(result.current.nodes.slice(0, 2)).toMatchObject([
-      { id: "task-1", position: { x: 10, y: 60 }, data: { compact: true } },
-      { id: "task-2", position: { x: 10, y: 96 }, data: { compact: true } },
+      { id: "task-1", position: { x: 10, y: 102 }, data: { compact: true } },
+      { id: "task-2", position: { x: 10, y: 138 }, data: { compact: true } },
     ]);
     expect(result.current.nodes[2]?.data).toMatchObject({ compact: false });
     expect(result.current.nodes[3]).toMatchObject({
       id: group.id,
       type: "taskGroup",
       position: { x: 10, y: 20 },
-      data: { outgoingPorts: [{ top: 94 }] },
+      data: { outgoingPorts: [{ top: 128 }] },
     });
     expect(
       result.current.edgeRoutes.get(`${group.id}-task-3`)?.sourcePortTop,
-    ).toBe(94);
+    ).toBe(128);
   });
 
   it("keeps the owner in a node label when the feature spans owners", async () => {

@@ -2,7 +2,7 @@ import type { ElkNode } from "elkjs/lib/elk-api.js";
 import type { Dependency, Task, TaskGroup } from "../gen/nnx/v1/nnx_pb";
 import { dependencyEdgeId } from "./dependencyGraph";
 
-const groupWidth = 336;
+export const taskGroupWidth = 336;
 const headerHeight = 40;
 const rowHeight = 36;
 const bottomPadding = 8;
@@ -59,6 +59,7 @@ export function buildTaskGroupLayout(
   nodes: GroupLayoutNode[],
   dependencies: GraphDependency[],
   groupList: TaskGroup[],
+  headerHeights?: ReadonlyMap<string, number>,
 ) {
   const groups = new Map(groupList.map((group) => [group.id, group]));
   const containers = new Map<string, ElkNode>();
@@ -76,14 +77,14 @@ export function buildTaskGroupLayout(
     if (!container) {
       container = {
         id: groupId,
-        width: groupWidth,
-        height: headerHeight + bottomPadding,
+        width: taskGroupWidth,
+        height: (headerHeights?.get(groupId) ?? headerHeight) + bottomPadding,
       };
       containers.set(groupId, container);
       children.push(container);
     }
     const top = (container.height ?? 0) - bottomPadding;
-    rows.set(id, { groupId, top, width: groupWidth, height: rowHeight });
+    rows.set(id, { groupId, top, width: taskGroupWidth, height: rowHeight });
     container.height = top + rowHeight + bottomPadding;
   }
 
@@ -91,8 +92,8 @@ export function buildTaskGroupLayout(
     if (!containers.has(group.id)) {
       children.push({
         id: group.id,
-        width: groupWidth,
-        height: headerHeight + bottomPadding,
+        width: taskGroupWidth,
+        height: (headerHeights?.get(group.id) ?? headerHeight) + bottomPadding,
       });
     }
   }
