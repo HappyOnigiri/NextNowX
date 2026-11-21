@@ -1,11 +1,18 @@
-import { Link, useNavigate, useParams } from "@tanstack/react-router";
+import {
+  Link,
+  useNavigate,
+  useParams,
+  useSearch,
+} from "@tanstack/react-router";
 import {
   ArrowLeft,
   ClipboardList,
+  Group,
   Pencil,
   Plus,
   RefreshCw,
   Search,
+  Ungroup,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -19,12 +26,15 @@ import type {
   PullRequest,
   Snapshot,
   Task,
+  TaskGroup,
 } from "../gen/nnx/v1/nnx_pb";
 import { useDomainMutation, useSnapshot } from "../hooks";
 import { featureStatusLabel, featureStatusToken } from "../i18n/domain";
 import {
   readHideCompletedTasks,
+  readShowTaskGroups,
   writeHideCompletedTasks,
+  writeShowTaskGroups,
 } from "../i18n/settings";
 import { BatchPromptDialog } from "./BatchPromptDialog";
 import { CopyableIdentifier } from "./CopyableIdentifier";
@@ -36,9 +46,11 @@ import { EditFeatureDialog } from "./EditFeatureDialog";
 import { EntityIcon } from "./EntityIcon";
 import { FeatureGraph } from "./FeatureGraph";
 import { matchesGraphSearch } from "./graphSearch";
+import type { GroupAction } from "./GraphTaskGroups";
 import { IconButton } from "./IconButton";
 import { MarkdownPreview } from "./MarkdownPreview";
 import { StatusBadge } from "./StatusBadge";
+import { TaskGroupOverlay } from "./TaskGroupDialogs";
 import { TaskInspector } from "./TaskInspector";
 import { type TaskNodeDocument } from "./TaskNode";
 import { useCloseOnEscape } from "./useCloseOnEscape";
@@ -46,7 +58,6 @@ import {
   emptyHiddenDependencies,
   hideTasks,
   isFinishedTask,
-  type HiddenDependencies,
   type VisibleGraph,
 } from "./visibleGraph";
 
@@ -62,10 +73,13 @@ interface TaskDraft {
 
 export function FeatureWorkspace() {
   const { featureId } = useParams({ from: "/features/$featureId" });
+  const { group: groupId, task: taskId } = useSearch({
+    from: "/features/$featureId",
+  });
   const navigate = useNavigate();
   const snapshot = useSnapshot();
-  const [selected, setSelected] = useState<string>();
   const [taskDraft, setTaskDraft] = useState<TaskDraft>();
+  const [groupAction, setGroupAction] = useState<GroupAction>();
   const [showFeatureEdit, setShowFeatureEdit] = useState(false);
   const [showBatchPrompt, setShowBatchPrompt] = useState(false);
   const [previewDocument, setPreviewDocument] = useState<TaskNodeDocument>();
@@ -81,19 +95,22 @@ export function FeatureWorkspace() {
   const data = snapshot.data;
   const feature = data?.features.find((item) => item.id === featureId);
   const project = data?.projects.find((item) => item.id === feature?.projectId);
-  const {
-    tasks,
-    dependencies,
-    pullRequests,
-    documentsByTask,
-    featureDocuments,
-  } = useFeatureWorkspaceData(data, featureId);
+  const workspaceData = useFeatureWorkspaceData(data, featureId);
+  const { groups, tasks, dependencies, pullRequests } = workspaceData;
+  const openGroup = groups.find((group) => group.id === groupId);
+  const scope = openGroup?.id;
+  const { selected, openInspector, closeInspector } = useTaskInspectorSelection(
+    featureId,
+    scope,
+    taskId,
+  );
   const visible = useVisibleGraph(
     tasks,
     dependencies,
     pullRequests,
     hideCompleted,
     search.query,
+    scope,
   );
   // Cmd/Ctrl+F はブラウザの検索を奪うので、キャンバスが前面にある間だけ受ける。
   // 手前でダイアログが開いているときは、その入力欄の検索を邪魔しない。
@@ -102,6 +119,7 @@ export function FeatureWorkspace() {
     previewDocument !== undefined ||
     documentTarget !== undefined ||
     showFeatureEdit ||
+    groupAction !== undefined ||
     showBatchPrompt;
   useGraphSearchShortcut(Boolean(feature) && !overlayOpen, search.open);
   // 開いている作成ダイアログは開き直しても置き換えない。背景のツールバーへ
@@ -122,38 +140,36 @@ export function FeatureWorkspace() {
   if (snapshot.isPending) return <WorkspaceLoading />;
   if (!feature || !data) return <WorkspaceMissing />;
 
-  // インスペクタはキャンバスに従う。読み手が隠したタスクは、隣のパネルに
-  // 開いたまま残らずノードと一緒に画面から消える。
-  const selectedTask = visible.tasks.find((task) => task.id === selected);
+  // 一覧から直接開くタスクは、グラフの絞り込みで隠れていても詳細を表示する。
+  const selectable =
+    taskId && selected === taskId && !scope ? tasks : visible.tasks;
+  const selectedTask = selectable.find((task) => task.id === selected);
   return (
     <WorkspaceContent
+      {...workspaceData}
       feature={feature}
       featureId={featureId}
       project={project}
       projects={data.projects}
-      tasks={tasks}
-      visibleTasks={visible.tasks}
-      visibleDependencies={visible.dependencies}
-      hiddenDependencies={visible.hiddenDependencies}
-      hiddenTaskCount={tasks.length - visible.tasks.length}
+      visible={visible}
+      openGroup={openGroup}
       hideCompleted={hideCompleted}
       onHideCompletedChange={changeHideCompleted}
       search={search}
-      pullRequests={pullRequests}
-      documentsByTask={documentsByTask}
-      featureDocuments={featureDocuments}
       selectedTask={selectedTask}
       previewDocument={previewDocument}
       documentTarget={documentTarget}
       taskDraft={taskDraft}
       showFeatureEdit={showFeatureEdit}
+      groupAction={groupAction}
+      onGroupAction={setGroupAction}
       showBatchPrompt={showBatchPrompt}
       syncPending={sync.isPending}
       onSync={() => {
         sync.mutate(featureId);
       }}
       onCreateTask={openTaskDialog}
-      onEditTask={setSelected}
+      onEditTask={openInspector}
       onPreviewDocument={setPreviewDocument}
       onAddDocument={openDocumentDialog}
       onEditFeature={() => {
@@ -165,9 +181,7 @@ export function FeatureWorkspace() {
       onCloseBatchPrompt={() => {
         setShowBatchPrompt(false);
       }}
-      onCloseInspector={() => {
-        setSelected(undefined);
-      }}
+      onCloseInspector={closeInspector}
       onClosePreview={() => {
         setPreviewDocument(undefined);
       }}
@@ -234,6 +248,11 @@ function useFeatureWorkspaceData(
     () => data?.tasks.filter((task) => task.featureId === featureId) ?? [],
     [data, featureId],
   );
+  const groups = useMemo(
+    () =>
+      data?.taskGroups.filter((group) => group.featureId === featureId) ?? [],
+    [data, featureId],
+  );
   const taskIds = useMemo(() => new Set(tasks.map((task) => task.id)), [tasks]);
   const dependencies = useMemo(
     () =>
@@ -246,15 +265,18 @@ function useFeatureWorkspaceData(
     () => new Map(data?.pullRequests.map((pr) => [pr.taskId, pr]) ?? []),
     [data],
   );
-  const documentsByTask = useMemo(() => {
-    const result = new Map<string, TaskNodeDocument[]>();
+  const { documentsByTask, documentsByGroup } = useMemo(() => {
+    const documentsByTask = new Map<string, TaskNodeDocument[]>();
+    const documentsByGroup = new Map<string, TaskNodeDocument[]>();
     for (const document of data?.documents ?? []) {
-      if (!document.taskId) continue;
-      const documents = result.get(document.taskId) ?? [];
+      const owner = document.taskId || document.groupId;
+      if (!owner) continue;
+      const index = document.taskId ? documentsByTask : documentsByGroup;
+      const documents = index.get(owner) ?? [];
       documents.push(document);
-      result.set(document.taskId, documents);
+      index.set(owner, documents);
     }
-    return result;
+    return { documentsByTask, documentsByGroup };
   }, [data]);
   // feature に属さないドキュメントは ID が欠けるのではなく空文字になるので、
   // 比較では空の値を弾く必要がある。
@@ -267,26 +289,57 @@ function useFeatureWorkspaceData(
     [data, featureId],
   );
   return {
+    groups,
     tasks,
     dependencies,
     pullRequests,
     documentsByTask,
     featureDocuments,
+    documentsByGroup,
   };
 }
 
 // レイアウトは渡されたものの同一性を見るので、フィルタを使わないときは複製では
 // なくスナップショットが作った配列そのものを返す必要がある。
 // 完了済みと検索の不一致は 1 つの述語に束ね、隠す処理は 1 度だけ通す。
+function useTaskInspectorSelection(
+  featureId: string,
+  groupId: string | undefined,
+  taskId: string | undefined,
+) {
+  const navigate = useNavigate();
+  const [selected, openInspector] = useState(taskId);
+  const scope = JSON.stringify([featureId, groupId, taskId]);
+  const [previousScope, setPreviousScope] = useState(scope);
+  if (previousScope !== scope) {
+    setPreviousScope(scope);
+    openInspector(taskId);
+  }
+
+  function closeInspector() {
+    openInspector(undefined);
+    if (taskId) {
+      void navigate({
+        to: "/features/$featureId",
+        params: { featureId },
+        search: groupId ? { group: groupId } : {},
+        replace: true,
+      });
+    }
+  }
+  return { selected, openInspector, closeInspector };
+}
+
 function useVisibleGraph(
   tasks: Task[],
   dependencies: Dependency[],
   pullRequests: Map<string, PullRequest>,
   hideCompleted: boolean,
   query: string,
+  groupId: string | undefined,
 ): VisibleGraph {
   return useMemo(() => {
-    if (!hideCompleted && query === "")
+    if (!groupId && !hideCompleted && query === "")
       return {
         tasks,
         dependencies,
@@ -296,10 +349,11 @@ function useVisibleGraph(
       tasks,
       dependencies,
       (task) =>
+        (groupId !== undefined && task.groupId !== groupId) ||
         (hideCompleted && isFinishedTask(task)) ||
         !matchesGraphSearch(task, pullRequests.get(task.id), query),
     );
-  }, [tasks, dependencies, pullRequests, hideCompleted, query]);
+  }, [tasks, dependencies, pullRequests, hideCompleted, query, groupId]);
 }
 
 // 検索語は URL にもブラウザローカルにも残さない。1 回の閲覧の中で使う一時的な
@@ -367,6 +421,11 @@ function useGraphSearchShortcut(enabled: boolean, open: () => void) {
     const handle = (event: KeyboardEvent) => {
       if (event.key !== "f" || event.altKey || event.shiftKey) return;
       if (!event.metaKey && !event.ctrlKey) return;
+      if (
+        event.target instanceof Element &&
+        event.target.closest('[aria-modal="true"]')
+      )
+        return;
       event.preventDefault();
       latest.current();
     };
@@ -382,11 +441,10 @@ interface WorkspaceContentProps {
   featureId: string;
   project: Project | undefined;
   projects: Project[];
+  groups: TaskGroup[];
   tasks: Task[];
-  visibleTasks: Task[];
-  visibleDependencies: Dependency[];
-  hiddenDependencies: Map<string, HiddenDependencies>;
-  hiddenTaskCount: number;
+  visible: VisibleGraph;
+  openGroup: TaskGroup | undefined;
   hideCompleted: boolean;
   onHideCompletedChange: (hide: boolean) => void;
   search: GraphSearch;
@@ -398,6 +456,9 @@ interface WorkspaceContentProps {
   documentTarget: DocumentTarget | undefined;
   taskDraft: TaskDraft | undefined;
   showFeatureEdit: boolean;
+  groupAction: GroupAction | undefined;
+  documentsByGroup: Map<string, TaskNodeDocument[]>;
+  onGroupAction: (action: GroupAction | undefined) => void;
   showBatchPrompt: boolean;
   syncPending: boolean;
   onSync: () => void;
@@ -417,20 +478,51 @@ interface WorkspaceContentProps {
 }
 
 function WorkspaceContent(props: WorkspaceContentProps) {
+  const [showGroups, setShowGroups] = useState(readShowTaskGroups);
+  function toggleGroups() {
+    setShowGroups(!showGroups);
+    writeShowTaskGroups(!showGroups);
+  }
   // 読み取り専用かはサーバーが決めるので、ワークスペースは feature 自身の
   // アーカイブフラグとプロジェクトの状態を組み合わせない。
   const readOnly = props.feature.readOnly;
+  const hiddenTaskCount = graphTaskCount(props) - props.visible.tasks.length;
+  const searching = props.search.query !== "";
+  const graphGroups = useGraphGroups(
+    props.groups,
+    props.tasks,
+    props.visible.tasks,
+    searching,
+  );
   return (
     <div className={readOnly ? "workspace is-archived" : "workspace"}>
-      <FeatureWorkspaceHead props={props} readOnly={readOnly} />
+      <FeatureWorkspaceHead
+        props={props}
+        readOnly={readOnly}
+        showGroups={showGroups}
+        onToggleGroups={toggleGroups}
+      />
       {readOnly && <ArchivedNotice project={props.project} />}
-      <div className="workspace-body">
+      <div
+        className={
+          props.openGroup ? "workspace-body is-group-detail" : "workspace-body"
+        }
+      >
+        {props.openGroup && (
+          <GroupNavigation
+            key={props.openGroup.id}
+            group={props.openGroup}
+            documents={props.documentsByGroup.get(props.openGroup.id) ?? []}
+            onPreview={props.onPreviewDocument}
+            readOnly={readOnly}
+          />
+        )}
         <FeatureGraph
-          tasks={props.visibleTasks}
-          dependencies={props.visibleDependencies}
-          hiddenDependencies={props.hiddenDependencies}
-          hiddenTaskCount={props.hiddenTaskCount}
-          searching={props.search.query !== ""}
+          {...props.visible}
+          {...(showGroups && !props.openGroup ? { groups: graphGroups } : {})}
+          onGroupAction={props.onGroupAction}
+          hiddenTaskCount={hiddenTaskCount}
+          searching={searching}
           pullRequests={props.pullRequests}
           documentsByTask={props.documentsByTask}
           onEditTask={props.onEditTask}
@@ -445,11 +537,15 @@ function WorkspaceContent(props: WorkspaceContentProps) {
             key={props.selectedTask.id}
             task={props.selectedTask}
             tasks={props.tasks}
+            groups={props.groups}
             pullRequest={props.pullRequests.get(props.selectedTask.id)}
             documents={props.documentsByTask.get(props.selectedTask.id) ?? []}
             appearances={props.feature.taskLabelAppearances}
             readOnly={readOnly}
             onPreview={props.onPreviewDocument}
+            {...(props.selectedTask.groupId
+              ? { onAddReference: props.onAddDocument }
+              : {})}
             onClose={props.onCloseInspector}
           />
         )}
@@ -459,12 +555,76 @@ function WorkspaceContent(props: WorkspaceContentProps) {
   );
 }
 
+function graphTaskCount({ tasks, openGroup }: WorkspaceContentProps) {
+  return openGroup
+    ? tasks.filter((task) => task.groupId === openGroup.id).length
+    : tasks.length;
+}
+
+function useGraphGroups(
+  groups: TaskGroup[],
+  tasks: Task[],
+  visible: Task[],
+  searching: boolean,
+) {
+  return useMemo(() => {
+    if (!searching && tasks === visible) return groups;
+    const populated = new Set(tasks.map((task) => task.groupId));
+    const visibleGroups = new Set(visible.map((task) => task.groupId));
+    return groups.filter(
+      (group) =>
+        visibleGroups.has(group.id) || (!searching && !populated.has(group.id)),
+    );
+  }, [groups, tasks, visible, searching]);
+}
+
+function GroupNavigation({
+  group,
+  documents,
+  onPreview,
+  readOnly,
+}: {
+  group: TaskGroup;
+  documents: TaskNodeDocument[];
+  onPreview: (document: TaskNodeDocument) => void;
+  readOnly: boolean;
+}) {
+  const { t } = useTranslation();
+  return (
+    <nav
+      className="workspace-group-navigation"
+      aria-label={t("taskGroups.field")}
+    >
+      <Link
+        to="/features/$featureId"
+        params={{ featureId: group.featureId }}
+        search={{}}
+      >
+        <ArrowLeft size={15} aria-hidden="true" />
+        {t("taskGroups.backToFeature")}
+      </Link>
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- 長いグループ名をキーボードでスクロールできるようにする。 */}
+      <h2 tabIndex={0}>{group.name}</h2>
+      <DocumentReferences
+        parent={{ groupId: group.id }}
+        documents={documents}
+        onPreview={onPreview}
+        readOnly={readOnly}
+      />
+    </nav>
+  );
+}
+
 function FeatureWorkspaceHead({
   props,
   readOnly,
+  showGroups,
+  onToggleGroups,
 }: {
   props: WorkspaceContentProps;
   readOnly: boolean;
+  showGroups: boolean;
+  onToggleGroups: () => void;
 }) {
   const { t } = useTranslation();
   return (
@@ -499,13 +659,24 @@ function FeatureWorkspaceHead({
       <div className="workspace-actions">
         <GraphSearchControl
           search={props.search}
-          matched={props.visibleTasks.length}
-          total={props.tasks.length}
+          matched={props.visible.tasks.length}
+          total={graphTaskCount(props)}
         />
         <HideCompletedToggle
           checked={props.hideCompleted}
           onChange={props.onHideCompletedChange}
         />
+        {!props.openGroup && (
+          <IconButton
+            icon={showGroups ? Group : Ungroup}
+            label={t("workspace.showGroups")}
+            role="switch"
+            aria-checked={showGroups}
+            className="workspace-group-toggle"
+            iconOnly
+            onClick={onToggleGroups}
+          />
+        )}
         <DocumentReferences
           parent={{ featureId: props.featureId }}
           documents={props.featureDocuments}
@@ -535,6 +706,7 @@ function FeatureWorkspaceHead({
             icon={Plus}
             label={t("workspace.addTask")}
             variant="primary"
+            className="workspace-add-task"
             onClick={() => {
               props.onCreateTask();
             }}
@@ -714,22 +886,33 @@ function TaskCreateOverlay({
   draft,
   featureId,
   tasks,
+  groups,
+  groupId,
   onClose,
 }: {
   draft: TaskDraft;
   featureId: string;
   tasks: Task[];
+  groups: TaskGroup[];
+  groupId: string | undefined;
   onClose: () => void;
 }) {
   const dependency = draft.dependency;
-  if (!dependency)
-    return <CreateTaskDialog featureId={featureId} onClose={onClose} />;
-  const title = tasks.find((task) => task.id === dependency.taskId)?.title;
+  const title = tasks.find((task) => task.id === dependency?.taskId)?.title;
   return (
     <CreateTaskDialog
       featureId={featureId}
+      groups={groups}
+      defaultGroupId={groupId}
       onClose={onClose}
-      dependency={{ value: dependency, title: title ?? dependency.taskId }}
+      {...(dependency
+        ? {
+            dependency: {
+              value: dependency,
+              title: title ?? dependency.taskId,
+            },
+          }
+        : {})}
     />
   );
 }
@@ -764,7 +947,22 @@ function WorkspaceOverlays({ props }: { props: WorkspaceContentProps }) {
           draft={props.taskDraft}
           featureId={props.featureId}
           tasks={props.tasks}
+          groups={props.groups}
+          groupId={props.openGroup?.id}
           onClose={props.onCloseTask}
+        />
+      )}
+      {props.groupAction && (
+        <TaskGroupOverlay
+          action={props.groupAction}
+          documents={
+            props.documentsByGroup.get(props.groupAction.group.id) ?? []
+          }
+          groups={props.groups}
+          readOnly={props.feature.readOnly}
+          onClose={() => {
+            props.onGroupAction(undefined);
+          }}
         />
       )}
       {props.showFeatureEdit && (

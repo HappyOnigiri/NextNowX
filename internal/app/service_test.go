@@ -43,12 +43,29 @@ func (repositoryStub) DeleteFeature(context.Context, string, bool) error {
 	return errors.New("unexpected DeleteFeature call")
 }
 
+func (repositoryStub) CreateTaskGroup(context.Context, string, string) (domain.TaskGroup, error) {
+	return domain.TaskGroup{}, errors.New("unexpected CreateTaskGroup call")
+}
+
+func (repositoryStub) GetTaskGroup(context.Context, string) (domain.TaskGroup, error) {
+	return domain.TaskGroup{}, errors.New("unexpected GetTaskGroup call")
+}
+
+func (repositoryStub) RenameTaskGroup(context.Context, domain.TaskGroup) (domain.TaskGroup, error) {
+	return domain.TaskGroup{}, errors.New("unexpected RenameTaskGroup call")
+}
+
+func (repositoryStub) DeleteTaskGroup(context.Context, string, bool) error {
+	return errors.New("unexpected DeleteTaskGroup call")
+}
+
 func (repositoryStub) CreateTask(
 	context.Context,
 	string,
 	string,
 	string,
 	domain.TaskKind,
+	string,
 ) (domain.Task, error) {
 	return domain.Task{}, errors.New("unexpected CreateTask call")
 }
@@ -57,7 +74,7 @@ func (repositoryStub) GetTask(context.Context, string) (domain.Task, error) {
 	return domain.Task{}, errors.New("unexpected GetTask call")
 }
 
-func (repositoryStub) UpdateTask(context.Context, domain.Task) (domain.Task, error) {
+func (repositoryStub) UpdateTask(context.Context, domain.Task, *string) (domain.Task, error) {
 	return domain.Task{}, errors.New("unexpected UpdateTask call")
 }
 
@@ -248,7 +265,7 @@ func TestGetNodeResolvesFeatureAndTaskIDs(t *testing.T) {
 	}
 }
 
-func (r *taskRepository) UpdateTask(_ context.Context, task domain.Task) (domain.Task, error) {
+func (r *taskRepository) UpdateTask(_ context.Context, task domain.Task, _ *string) (domain.Task, error) {
 	r.task = task
 	return task, nil
 }
@@ -362,19 +379,19 @@ func TestUpdateTaskAcceptsManualOverrides(t *testing.T) {
 	service := app.New(repository, nil)
 	completed := domain.TaskStatusCompleted
 
-	updated, err := service.UpdateTask(context.Background(), "task-id", nil, &completed, nil, nil)
+	updated, err := service.UpdateTask(context.Background(), "task-id", nil, &completed, nil, nil, nil)
 	if err != nil || updated.Status != domain.TaskStatusCompleted {
 		t.Fatalf("updated task=%+v err=%v", updated, err)
 	}
 
 	designing := domain.TaskStatusDesigning
-	updated, err = service.UpdateTask(context.Background(), "task-id", nil, &designing, nil, nil)
+	updated, err = service.UpdateTask(context.Background(), "task-id", nil, &designing, nil, nil, nil)
 	if err != nil || updated.Status != domain.TaskStatusDesigning {
 		t.Fatalf("updated task=%+v err=%v", updated, err)
 	}
 
 	invalid := domain.TaskStatus("designed")
-	if _, err := service.UpdateTask(context.Background(), "task-id", nil, &invalid, nil, nil); err == nil {
+	if _, err := service.UpdateTask(context.Background(), "task-id", nil, &invalid, nil, nil, nil); err == nil {
 		t.Fatal("a display state is not a stored status and must be rejected")
 	}
 }

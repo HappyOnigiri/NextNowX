@@ -26,6 +26,7 @@ import type {
   Dependency,
   PullRequest,
   Task,
+  TaskGroup,
   TaskLabelAppearances,
 } from "../gen/nnx/v1/nnx_pb";
 import { useDomainMutation } from "../hooks";
@@ -45,23 +46,38 @@ import {
   type DependencyFlowEdge,
   type PendingDependency,
 } from "./dependencyGraph";
+import {
+  GraphTaskGroupMeasurements,
+  GraphTaskGroups,
+  type GroupAction,
+} from "./GraphTaskGroups";
 import { IconButton } from "./IconButton";
 import { MutationError } from "./MutationError";
-import { TaskNode, type TaskFlowNode, type TaskNodeDocument } from "./TaskNode";
+import {
+  graphOverviewDependencies,
+  type GraphDependency,
+  type TaskGroupFrame,
+} from "./taskGroupGraphLayout";
+import {
+  TaskGroupNode,
+  TaskNode,
+  type GraphFlowNode,
+  type TaskNodeDocument,
+} from "./TaskNode";
 import { useGraphLayout } from "./useGraphLayout";
 import {
   emptyHiddenDependencies,
   type HiddenDependencies,
 } from "./visibleGraph";
 
-const nodeTypes = { task: TaskNode };
+const nodeTypes = { task: TaskNode, taskGroup: TaskGroupNode };
 const edgeTypes = { dependency: DependencyEdge };
 
 // ノードとして扱われるのはハンドルの近傍だけなので、カード本体へのドロップが
 // 空白へのドロップと混ざらないよう、ドロップ位置が矩形に入るかを自分で見る。
 function droppedOnNode(
   event: MouseEvent | TouchEvent,
-  flow: ReactFlowInstance<TaskFlowNode, DependencyFlowEdge> | undefined,
+  flow: ReactFlowInstance<GraphFlowNode, DependencyFlowEdge> | undefined,
 ): boolean {
   if (!flow) return false;
   const point = "changedTouches" in event ? event.changedTouches[0] : event;
@@ -132,7 +148,7 @@ function useDependencyRemoval(readOnly: boolean) {
 function useDependencyConnections(
   readOnly: boolean,
   onCreateTask: (dependency?: PendingDependency) => void,
-  flow: ReactFlowInstance<TaskFlowNode, DependencyFlowEdge> | undefined,
+  flow: ReactFlowInstance<GraphFlowNode, DependencyFlowEdge> | undefined,
 ) {
   const addDependency = useDomainMutation(
     ({ blocker, blocked }: { blocker: string; blocked: string }) =>
@@ -255,7 +271,7 @@ function buildDependencyEdges({
   taskTitle,
   t,
 }: {
-  dependencies: Dependency[];
+  dependencies: GraphDependency[];
   edgeRoutes: Map<string, DependencyEdgeRoute>;
   pending: boolean;
   readOnly: boolean;
@@ -270,6 +286,7 @@ function buildDependencyEdges({
       dependency.blockedTaskId,
     );
     const route = edgeRoutes.get(id);
+    const editable = !readOnly && !dependency.summary;
     const blocker =
       taskTitle(dependency.blockerTaskId) ?? dependency.blockerTaskId;
     const blocked =
@@ -289,28 +306,32 @@ function buildDependencyEdges({
             target: dependency.blockedTaskId,
           });
         },
-        readOnly,
+        readOnly: !editable,
         removeLabel: t("workspace.flow.removeDependency", {
           blocker,
           blocked,
         }),
         route,
       },
-      deletable: !readOnly && !pending,
+      deletable: editable && !pending,
       interactionWidth: 24,
       markerEnd: { type: MarkerType.ArrowClosed },
       className: "dependency-edge",
-      reconnectable: readOnly || pending ? false : true,
+      reconnectable: editable && !pending,
       selected: id === selectedId,
       ariaLabel: t("workspace.flow.dependencyEdge", { blocker, blocked }),
     };
   });
 }
 
-function useTaskTitle(tasks: Task[]) {
+function useTaskTitle(tasks: Task[], groups: TaskGroup[] | undefined) {
   const titlesByTask = useMemo(
-    () => new Map(tasks.map((task) => [task.id, task.title])),
-    [tasks],
+    () =>
+      new Map([
+        ...tasks.map(({ id, title }) => [id, title] as const),
+        ...(groups ?? []).map(({ id, name }) => [id, name] as const),
+      ]),
+    [tasks, groups],
   );
   return useCallback(
     (taskId: string) => titlesByTask.get(taskId),
@@ -321,7 +342,7 @@ function useTaskTitle(tasks: Task[]) {
 // React Flow はエッジ配列を参照で比較するので、描画のたびに新しい配列を渡すと
 // 接続の索引が作り直され、ストアの利用側がすべて再描画される。
 function useDependencyEdges(options: {
-  dependencies: Dependency[];
+  dependencies: GraphDependency[];
   edgeRoutes: Map<string, DependencyEdgeRoute>;
   pending: boolean;
   readOnly: boolean;
@@ -404,7 +425,7 @@ function useHoveredEdge() {
   return { hoveredEdgeId, onEdgeMouseEnter, onEdgeMouseLeave };
 }
 
-function useDependencySelection(dependencies: Dependency[]) {
+function useDependencySelection(dependencies: GraphDependency[]) {
   const [requestedId, setSelectedId] = useState<string>();
   const stillPresent = dependencies.some(
     (dependency) =>
@@ -464,18 +485,22 @@ function useGraphAriaLabels(t: TFunction): Partial<AriaLabelConfig> {
 }
 
 function useCenterOnNodes(
-  nodes: TaskFlowNode[],
-  flow: ReactFlowInstance<TaskFlowNode, DependencyFlowEdge> | undefined,
+  nodes: GraphFlowNode[],
+  flow: ReactFlowInstance<GraphFlowNode, DependencyFlowEdge> | undefined,
   graphZoom: React.RefObject<number>,
 ) {
   // 中央寄せはユーザーのパン位置を奪うので、表示するタスクの集合が変わった
-  // ときだけ行う。ステータス更新や同期では今の視点を保つ。
+  // ときや、概要の行と個別カードを切り替えたときに行う。
   const centeredKey = useRef<string>(undefined);
   useEffect(() => {
     if (!nodes.length || !flow) return;
     // キーはレイアウト済みのノードから作る。tasks から作ると座標が入る前に
     // 走り、古い座標で寄せてしまう。
-    const key = nodes.map((node) => node.id).join("\n");
+    const key = nodes
+      .map(({ id, type, data }) =>
+        type === "task" && data.compact ? `${id}:row` : id,
+      )
+      .join("\n");
     if (key === centeredKey.current) return;
     centeredKey.current = key;
     const bounds = flow.getNodesBounds(nodes);
@@ -495,6 +520,8 @@ function useCenterOnNodes(
 interface FeatureGraphProps {
   tasks: Task[];
   dependencies: Dependency[];
+  groups?: TaskGroup[];
+  onGroupAction?: ((action: GroupAction) => void) | undefined;
   pullRequests: Map<string, PullRequest>;
   documentsByTask: Map<string, TaskNodeDocument[]>;
   hiddenDependencies?: Map<string, HiddenDependencies>;
@@ -510,7 +537,9 @@ interface FeatureGraphProps {
 
 export function FeatureGraph({
   tasks,
-  dependencies,
+  dependencies: allDependencies,
+  groups,
+  onGroupAction,
   pullRequests,
   documentsByTask,
   hiddenDependencies = emptyHiddenDependencies,
@@ -525,16 +554,23 @@ export function FeatureGraph({
 }: FeatureGraphProps) {
   const { t } = useTranslation();
   const [flow, setFlow] =
-    useState<ReactFlowInstance<TaskFlowNode, DependencyFlowEdge>>();
+    useState<ReactFlowInstance<GraphFlowNode, DependencyFlowEdge>>();
   const [initialGraphZoom] = useState(readGraphZoom);
   const graphZoom = useRef(initialGraphZoom);
+  const groupHeaderMeasurements = useRef<HTMLDivElement>(null);
+  const dependencies = useMemo(
+    () => graphOverviewDependencies(tasks, allDependencies, groups),
+    [tasks, allDependencies, groups],
+  );
   const connections = useDependencyConnections(readOnly, onCreateTask, flow);
   const selection = useDependencySelection(dependencies);
-  const taskTitle = useTaskTitle(tasks);
-  const { edgeRoutes, nodes, layoutError, layoutPending, retryLayout } =
+  const taskTitle = useTaskTitle(tasks, groups);
+  const { edgeRoutes, frames, nodes, layoutError, layoutPending, retryLayout } =
     useGraphLayout({
       tasks,
       dependencies,
+      groups,
+      groupHeaderMeasurements,
       pullRequests,
       documentsByTask,
       hiddenDependencies,
@@ -574,6 +610,9 @@ export function FeatureGraph({
         hiddenTaskCount={hiddenTaskCount}
         searching={searching}
         nodes={nodes}
+        frames={frames}
+        groupHeaders={{ groups, ref: groupHeaderMeasurements }}
+        onGroupAction={onGroupAction}
         edges={edges}
         initialGraphZoom={initialGraphZoom}
         onInit={setFlow}
@@ -657,11 +696,17 @@ interface GraphCanvasProps {
   tasks: Task[];
   hiddenTaskCount: number;
   searching: boolean;
-  nodes: TaskFlowNode[];
+  nodes: GraphFlowNode[];
+  frames: TaskGroupFrame[];
+  groupHeaders: Pick<
+    React.ComponentProps<typeof GraphTaskGroupMeasurements>,
+    "groups" | "ref"
+  >;
+  onGroupAction: ((action: GroupAction) => void) | undefined;
   edges: DependencyFlowEdge[];
   initialGraphZoom: number;
   onInit: (
-    instance: ReactFlowInstance<TaskFlowNode, DependencyFlowEdge>,
+    instance: ReactFlowInstance<GraphFlowNode, DependencyFlowEdge>,
   ) => void;
   onConnect: (connection: Connection) => void;
   onConnectStart: () => void;
@@ -706,6 +751,9 @@ function GraphCanvas({
   hiddenTaskCount,
   searching,
   nodes,
+  frames,
+  groupHeaders,
+  onGroupAction,
   edges,
   initialGraphZoom,
   onInit,
@@ -741,8 +789,13 @@ function GraphCanvas({
       data-testid="feature-graph"
       aria-busy={graphBusy}
     >
+      <GraphTaskGroupMeasurements
+        {...groupHeaders}
+        onGroupAction={onGroupAction}
+        readOnly={readOnly}
+      />
       <HoveredEdgeContext.Provider value={hoveredEdgeId}>
-        <ReactFlow<TaskFlowNode, DependencyFlowEdge>
+        <ReactFlow<GraphFlowNode, DependencyFlowEdge>
           ariaLabelConfig={ariaLabelConfig}
           autoPanOnConnect={false}
           defaultEdgeOptions={{ animated: false }}
@@ -781,6 +834,11 @@ function GraphCanvas({
             size={1}
             color="var(--border)"
           />
+          <GraphTaskGroups
+            frames={frames}
+            onGroupAction={onGroupAction}
+            readOnly={readOnly}
+          />
           <Controls showInteractive={false} />
         </ReactFlow>
       </HoveredEdgeContext.Provider>
@@ -791,6 +849,7 @@ function GraphCanvas({
       )}
       <GraphState
         taskCount={tasks.length}
+        hasGroups={frames.length > 0}
         hiddenTaskCount={hiddenTaskCount}
         searching={searching}
         layoutError={layoutError}
@@ -804,6 +863,7 @@ function GraphCanvas({
 
 function GraphState({
   taskCount,
+  hasGroups,
   hiddenTaskCount,
   searching,
   layoutError,
@@ -812,6 +872,7 @@ function GraphState({
   readOnly,
 }: {
   taskCount: number;
+  hasGroups: boolean;
   hiddenTaskCount: number;
   searching: boolean;
   layoutError: { message: string | undefined } | undefined;
@@ -822,7 +883,7 @@ function GraphState({
   const { t } = useTranslation();
   // 検索で何も残らなかったときは、完了非表示の説明を出すと理由を取り違える。
   // 絞り込みが効いている限り、そちらを先に答える。
-  if (taskCount === 0 && searching && !layoutError)
+  if (!hasGroups && taskCount === 0 && searching && !layoutError)
     return (
       <div className="graph-empty">
         <span>
@@ -835,7 +896,7 @@ function GraphState({
   // 全タスクが完了した feature にもグラフはあり、非表示は読み手が選んだ見え方
   // にすぎない。ここで最初のノードを促すと feature が空だと言うことになり、
   // 本来はトグルで解決する場面にタスク追加ボタンを置いてしまう。
-  if (taskCount === 0 && hiddenTaskCount > 0 && !layoutError)
+  if (!hasGroups && taskCount === 0 && hiddenTaskCount > 0 && !layoutError)
     return (
       <div className="graph-empty">
         <span>
@@ -845,7 +906,7 @@ function GraphState({
         <p>{t("workspace.graphAllHiddenDetail", { total: hiddenTaskCount })}</p>
       </div>
     );
-  if (taskCount === 0 && !layoutError)
+  if (!hasGroups && taskCount === 0 && !layoutError)
     return (
       <div className="graph-empty">
         <span>

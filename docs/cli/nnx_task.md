@@ -42,5 +42,6 @@ nnx t T-1
 * [nnx](nnx.md)	 - Manage pull-request dependency roadmaps
 * [nnx task create](nnx_task_create.md)	 - Create a task
 * [nnx task delete](nnx_task_delete.md)	 - Delete a task and optionally its dependencies and references
+* [nnx task group](nnx_task_group.md)	 - Manage task groups in a feature
 * [nnx task update](nnx_task_update.md)	 - Update a task by ID
 

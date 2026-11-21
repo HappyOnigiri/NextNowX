@@ -9,6 +9,7 @@ import {
   readHideCompletedTasks,
   readRailCollapsed,
   readRailWidth,
+  readShowTaskGroups,
   readThemePreference,
   readWebUISettings,
   resolveThemePreference,
@@ -19,6 +20,7 @@ import {
   writeHideCompletedTasks,
   writeRailCollapsed,
   writeRailWidth,
+  writeShowTaskGroups,
   writeThemePreference,
 } from "../src/i18n/settings";
 
@@ -122,6 +124,19 @@ describe("WebUI settings", () => {
 
   // グラフのフィルタは保存された真偽値がない限り無効なので、別の型の値は
   // 「全タスクを表示」として読み戻す必要がある。
+  it("defaults to grouped cards and preserves the saved view alongside other settings", () => {
+    expect(readShowTaskGroups()).toBe(true);
+    writeShowTaskGroups(false);
+    writeHideCompletedTasks(true);
+    expect(readShowTaskGroups()).toBe(false);
+    expect(readHideCompletedTasks()).toBe(true);
+    localStorage.setItem(
+      webUISettingsKey,
+      JSON.stringify({ showTaskGroups: "false" }),
+    );
+    expect(readShowTaskGroups()).toBe(true);
+  });
+
   it("restores the graph filter and ignores a non-boolean saved value", () => {
     expect(readHideCompletedTasks()).toBe(false);
     writeHideCompletedTasks(true);

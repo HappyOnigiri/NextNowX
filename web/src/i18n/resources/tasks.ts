@@ -1,5 +1,22 @@
 export const tasks = {
   en: {
+    taskGroups: {
+      addNew: "Add new group…",
+      backToFeature: "Back to feature",
+      field: "Task group",
+      ungrouped: "Ungrouped",
+      unavailable: "Group no longer available",
+      newName: "Group name",
+      create: "Create group",
+      rename: "Rename group",
+      editGroup: "Edit {{name}}",
+      referencesFor: "Group references for {{name}}",
+      deleteGroup: "Delete {{name}}",
+      delete: "Delete group",
+      deleteDetail:
+        "Group references will be deleted. Tasks will become ungrouped and keep their dependencies.",
+      duplicateName: "A group with this name already exists in this feature.",
+    },
     taskKind: {
       development: "Development",
       work: "Work",
@@ -32,6 +49,23 @@ export const tasks = {
     },
   },
   ja: {
+    taskGroups: {
+      addNew: "新規追加…",
+      backToFeature: "フィーチャーに戻る",
+      field: "タスクグループ",
+      ungrouped: "未所属",
+      unavailable: "グループが見つかりません",
+      newName: "グループ名",
+      create: "グループを作成",
+      rename: "名前を変更",
+      editGroup: "「{{name}}」を編集",
+      referencesFor: "「{{name}}」の資料",
+      deleteGroup: "「{{name}}」を削除",
+      delete: "グループを削除",
+      deleteDetail:
+        "グループの資料は削除されます。タスクは未所属になり、依存関係は保持されます。",
+      duplicateName: "このフィーチャーには同じ名前のグループがあります。",
+    },
     taskKind: {
       development: "開発",
       work: "作業",

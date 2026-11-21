@@ -2,7 +2,7 @@ import { useNavigate, useSearch } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { useState, type SyntheticEvent } from "react";
 import { useTranslation } from "react-i18next";
-import type { Project } from "../gen/nnx/v1/nnx_pb";
+import type { Project, TaskGroup } from "../gen/nnx/v1/nnx_pb";
 import { useSnapshot } from "../hooks";
 import { formatError } from "../i18n/domain";
 import {
@@ -14,7 +14,7 @@ import {
 } from "../task-search";
 import { StateMessage } from "./Dashboard";
 import { IconButton } from "./IconButton";
-import { TaskCard } from "./TaskCard";
+import { TaskCardList } from "./TaskCardList";
 
 export function TaskSearch() {
   const { t } = useTranslation();
@@ -46,6 +46,7 @@ export function TaskSearch() {
       parsed={parsed}
       results={results}
       projects={data.projects}
+      groups={data.taskGroups}
     />
   );
 }
@@ -55,11 +56,13 @@ function TaskSearchContent({
   parsed,
   results,
   projects,
+  groups,
 }: {
   query: string;
   parsed: TaskSearchParseResult;
   results: TaskSearchResult[];
   projects: Project[];
+  groups: TaskGroup[];
 }) {
   const { t } = useTranslation();
   return (
@@ -78,6 +81,7 @@ function TaskSearchContent({
         parsed={parsed}
         results={results}
         projects={projects}
+        groups={groups}
       />
     </div>
   );
@@ -124,10 +128,12 @@ function TaskSearchResults({
   parsed,
   results,
   projects,
+  groups,
 }: {
   parsed: TaskSearchParseResult;
   results: TaskSearchResult[];
   projects: Project[];
+  groups: TaskGroup[];
 }) {
   const { t } = useTranslation();
   if (parsed.error) return <SearchError error={parsed.error} />;
@@ -139,22 +145,17 @@ function TaskSearchResults({
       </div>
     );
   return (
-    <ol
-      className="task-card-list task-results"
-      aria-label={t("tasks.listLabel")}
-    >
-      {results.map((result) => (
-        <TaskCard
-          key={result.task.id}
-          task={result.task}
-          feature={result.feature}
-          project={projects.find(
-            (item) => item.id === result.feature.projectId,
-          )}
-          pullRequest={result.pullRequest}
-        />
-      ))}
-    </ol>
+    <TaskCardList
+      className="task-results"
+      label={t("tasks.listLabel")}
+      groups={groups}
+      cards={results.map(({ task, feature, pullRequest }) => ({
+        task,
+        feature,
+        pullRequest,
+        project: projects.find((item) => item.id === feature.projectId),
+      }))}
+    />
   );
 }
 

@@ -9,7 +9,7 @@ import { formatError } from "../i18n/domain";
 import { useAutoSyncStatus } from "../sync-status";
 import { filterTaskSearchResults } from "../task-search";
 import { IconButton } from "./IconButton";
-import { TaskCard } from "./TaskCard";
+import { TaskCardList } from "./TaskCardList";
 
 // 件数はタスクのステータスとブロックラベルから数えるので、リンク先のクエリも
 // 同じ軸で書く。pull request 自身の状態を指す github-status では件数と一覧が
@@ -110,24 +110,22 @@ export function Dashboard() {
               <p>{t("dashboard.noTaskDetail")}</p>
             </div>
           ) : (
-            <ol className="task-card-list">
-              {projected.readyTasks.map((task) => {
+            <TaskCardList
+              groups={data.taskGroups}
+              cards={projected.readyTasks.map((task) => {
                 const feature = features.find(
                   (item) => item.id === task.featureId,
                 );
-                return (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    feature={feature}
-                    project={data.projects.find(
-                      (item) => item.id === feature?.projectId,
-                    )}
-                    pullRequest={pullRequests.get(task.id)}
-                  />
-                );
+                return {
+                  task,
+                  feature,
+                  project: data.projects.find(
+                    (item) => item.id === feature?.projectId,
+                  ),
+                  pullRequest: pullRequests.get(task.id),
+                };
               })}
-            </ol>
+            />
           )}
         </section>
       </div>

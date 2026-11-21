@@ -215,6 +215,7 @@ func renderTaskDetailWithAppearances(
 			{"Feature", task.FeatureID},
 			{"Title", task.Title},
 			{"Kind", string(task.Kind)},
+			{"Group", displayValue(task.GroupID)},
 			{"Status", string(task.Status)},
 			{"Display state", taskDisplayLabel(task, appearances)},
 			{"Ready", yesNo(task.Ready)},
@@ -312,7 +313,7 @@ func writeDocumentTable(out io.Writer, documents []domain.Document) error {
 	}
 	return writeTable(
 		out,
-		[]string{"ID", "PROJECT", "FEATURE", "TASK", "KIND", "PLAN", "TITLE", "LOCATOR"},
+		[]string{"ID", "PROJECT", "FEATURE", "TASK", "GROUP", "KIND", "PLAN", "TITLE", "LOCATOR"},
 		func(table *tabwriter.Writer) {
 			for _, document := range documents {
 				writeRow(
@@ -321,6 +322,7 @@ func writeDocumentTable(out io.Writer, documents []domain.Document) error {
 					displayValue(document.ProjectID),
 					displayValue(document.FeatureID),
 					displayValue(document.TaskID),
+					displayValue(document.GroupID),
 					document.Kind,
 					yesNo(document.IsImplementationPlan),
 					displayValue(document.Title),
@@ -338,6 +340,7 @@ func renderDocumentDetail(document domain.Document) humanRenderer {
 			{"Project", displayValue(document.ProjectID)},
 			{"Feature", displayValue(document.FeatureID)},
 			{"Task", displayValue(document.TaskID)},
+			{"Group", displayValue(document.GroupID)},
 			{"Kind", string(document.Kind)},
 			{"Title", displayValue(document.Title)},
 			{"Locator", displayValue(document.Locator)},

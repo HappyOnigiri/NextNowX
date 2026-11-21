@@ -55,13 +55,13 @@ func (s *state) taskCommand() *cobra.Command {
 		},
 	}
 	command.Flags().StringVar(&filterFeature, "feature", "", "filter by feature ID")
-	command.AddCommand(s.taskCreateCommand(), s.taskUpdateCommand(), s.taskDeleteCommand())
+	command.AddCommand(s.taskCreateCommand(), s.taskUpdateCommand(), s.taskDeleteCommand(), s.taskGroupCommand())
 	return command
 }
 
 func (s *state) taskCreateCommand() *cobra.Command {
 	var assignee string
-	var kind string
+	var kind, group string
 	command := &cobra.Command{
 		Use:   "create FEATURE_ID TITLE",
 		Short: "Create a task",
@@ -69,7 +69,7 @@ func (s *state) taskCreateCommand() *cobra.Command {
 			"nnx task create F-1 -- \"-fix login redirect\"",
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			value, err := s.service.CreateTask(cmd.Context(), args[0], args[1], assignee, domain.TaskKind(kind))
+			value, err := s.service.CreateTask(cmd.Context(), args[0], args[1], assignee, domain.TaskKind(kind), group)
 			if err != nil {
 				return err
 			}
@@ -78,12 +78,13 @@ func (s *state) taskCreateCommand() *cobra.Command {
 	}
 	command.Flags().StringVar(&kind, "kind", "development", "development or work")
 	command.Flags().StringVar(&assignee, "assignee", "", "assignee")
+	command.Flags().StringVar(&group, "group", "", "task group ID")
 	return command
 }
 
 func (s *state) taskUpdateCommand() *cobra.Command {
 	var title, status, assignee string
-	var kind string
+	var kind, group string
 	command := &cobra.Command{
 		Use:     "update TASK_ID",
 		Short:   "Update a task by ID",
@@ -108,13 +109,14 @@ func (s *state) taskUpdateCommand() *cobra.Command {
 				statusValue,
 				changedFlag(cmd, "assignee", &assignee),
 				(*domain.TaskKind)(changedFlag(cmd, "kind", &kind)),
+				changedFlag(cmd, "group", &group),
 			)
 			if err != nil {
 				return err
 			}
 			return s.write(
 				value,
-				renderMessage("%s", taskUpdateMessage(cmd, value.ID, title, status, assignee, kind)),
+				renderMessage("%s", taskUpdateMessage(cmd, value.ID, title, status, assignee, kind, group)),
 			)
 		},
 	}
@@ -122,6 +124,7 @@ func (s *state) taskUpdateCommand() *cobra.Command {
 	command.Flags().StringVar(&kind, "kind", "", "development or work")
 	command.Flags().StringVar(&status, "status", "", "not_started, designing, in_progress, completed, or closed")
 	command.Flags().StringVar(&assignee, "assignee", "", "new assignee")
+	command.Flags().StringVar(&group, "group", "", "task group ID; pass an empty string to clear")
 	return command
 }
 
@@ -201,12 +204,12 @@ func (s *state) taskDeleteCommand() *cobra.Command {
 	return command
 }
 
-func taskUpdateMessage(cmd *cobra.Command, taskID, title, status, assignee, kind string) string {
-	changes := make([]string, 0, 4)
+func taskUpdateMessage(cmd *cobra.Command, taskID, title, status, assignee, kind, group string) string {
+	changes := make([]string, 0, 5)
 	for _, field := range []struct {
 		name  string
 		value string
-	}{{"title", title}, {"status", status}, {"assignee", assignee}, {"kind", kind}} {
+	}{{"title", title}, {"status", status}, {"assignee", assignee}, {"kind", kind}, {"group", group}} {
 		if cmd.Flags().Changed(field.name) {
 			changes = append(changes, fmt.Sprintf("%s=%s", field.name, field.value))
 		}

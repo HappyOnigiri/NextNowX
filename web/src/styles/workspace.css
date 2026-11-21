@@ -79,6 +79,11 @@
   gap: 8px;
 }
 
+.workspace-group-toggle[aria-checked="true"] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 .document-references {
   position: relative;
 }
@@ -172,6 +177,7 @@
     display: none;
   }
 
+  .workspace-actions > .workspace-group-toggle,
   .document-references-trigger {
     display: inline-flex;
   }
@@ -193,6 +199,17 @@
   /* The switch stays reachable at this width; only its wording gives way, and
      the accessible name and tooltip on the control carry it instead. */
   .hide-completed-toggle span {
+    display: none;
+  }
+}
+
+@media (width <= 420px) {
+  .workspace-add-task {
+    width: 32px;
+    padding-inline: 0;
+  }
+
+  .workspace-add-task .icon-button-label {
     display: none;
   }
 }
@@ -304,5 +321,61 @@
 @media (width <= 900px) {
   .graph-search-input {
     width: 120px;
+  }
+}
+
+.workspace-body.is-group-detail {
+  grid-template-rows: minmax(0, auto) minmax(50%, 1fr);
+}
+
+.workspace-body.is-group-detail > .graph-status-notice {
+  top: 48px;
+}
+
+.workspace-group-navigation {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.workspace-group-navigation > a {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-2);
+  font-size: var(--text-sm);
+}
+
+.workspace-group-navigation > a:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.workspace-group-navigation > h2 {
+  min-width: 0;
+  max-height: 25dvh;
+  flex: 1;
+  margin: 0;
+  overflow-y: auto;
+  font-size: var(--text-md);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+@media (width <= 600px) {
+  .workspace-group-navigation {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 12px;
+  }
+
+  .workspace-group-navigation > h2 {
+    grid-column: 1 / -1;
+    grid-row: 2;
   }
 }

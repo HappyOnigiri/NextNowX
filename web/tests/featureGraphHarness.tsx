@@ -77,6 +77,7 @@ export const xyflowMock = () => ({
   Background: () => null,
   BackgroundVariant: { Dots: "dots" },
   Controls: () => null,
+  ViewportPortal: ({ children }: { children: ReactNode }) => children,
   MarkerType: { ArrowClosed: "arrowclosed" },
   ReactFlow: ({
     children,
@@ -210,6 +211,7 @@ export function resetGraphMocks() {
   graphMocks.hideAttribution = undefined;
   graphMocks.flow.getNodes.mockReturnValue([]);
   graphMocks.useGraphLayout.mockReturnValue({
+    frames: [],
     edgeRoutes: new Map(),
     nodes: [],
     layoutError: undefined,

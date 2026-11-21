@@ -8,9 +8,14 @@ import {
 } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { TaskDisplayState, type Snapshot } from "../src/gen/nnx/v1/nnx_pb";
+import {
+  DocumentKind,
+  TaskDisplayState,
+  type Snapshot,
+} from "../src/gen/nnx/v1/nnx_pb";
 import { readHideCompletedTasks } from "../src/i18n/settings";
 import { FeatureWorkspace } from "../src/views/FeatureWorkspace";
+import type { GroupAction } from "../src/views/GraphTaskGroups";
 import {
   makeDependency,
   makeDocument,
@@ -19,12 +24,15 @@ import {
   makePullRequest,
   makeSnapshot,
   makeTask,
+  makeTaskGroup,
 } from "./factories";
 
 const workspaceMocks = vi.hoisted(() => ({
   navigate: vi.fn().mockResolvedValue(undefined),
   snapshot: { data: undefined as Snapshot | undefined, isPending: false },
   hookIndex: 0,
+  groupId: undefined as string | undefined,
+  taskId: undefined as string | undefined,
   mutations: Array.from({ length: 5 }, () => ({
     mutate: vi.fn(),
     mutateAsync: vi.fn().mockResolvedValue({}),
@@ -32,6 +40,7 @@ const workspaceMocks = vi.hoisted(() => ({
     error: null as Error | null,
   })),
   api: {
+    deleteTaskGroup: vi.fn(),
     sync: vi.fn(),
     updateFeature: vi.fn(),
     deleteFeature: vi.fn(),
@@ -57,6 +66,10 @@ vi.mock("@tanstack/react-router", () => ({
   ),
   useNavigate: () => workspaceMocks.navigate,
   useParams: () => ({ featureId: "feature-1" }),
+  useSearch: () => ({
+    group: workspaceMocks.groupId,
+    task: workspaceMocks.taskId,
+  }),
 }));
 vi.mock("../src/api", () => ({
   mutations: workspaceMocks.api,
@@ -92,6 +105,8 @@ vi.mock("../src/hooks", () => ({
 vi.mock("../src/views/FeatureGraph", () => ({
   FeatureGraph: ({
     tasks,
+    groups,
+    onGroupAction,
     hiddenDependencies,
     hiddenTaskCount,
     searching,
@@ -102,6 +117,8 @@ vi.mock("../src/views/FeatureGraph", () => ({
     readOnly,
   }: {
     tasks: { id: string }[];
+    groups?: GroupAction["group"][];
+    onGroupAction?: (action: GroupAction) => void;
     hiddenDependencies: Map<string, { blockers: string[] }>;
     hiddenTaskCount: number;
     searching: boolean;
@@ -116,6 +133,18 @@ vi.mock("../src/views/FeatureGraph", () => ({
   }) => (
     <div data-testid="feature-graph">
       <span>{readOnly ? "Mock read-only graph" : "Mock active graph"}</span>
+      {groups?.map((group) => (
+        <div key={group.id}>
+          <button
+            onClick={() => onGroupAction?.({ type: "references", group })}
+          >
+            View references for {group.name}
+          </button>
+          <button onClick={() => onGroupAction?.({ type: "edit", group })}>
+            Edit {group.name}
+          </button>
+        </div>
+      ))}
       <span data-testid="mock-graph-tasks">
         {tasks.map((task) => task.id).join(",")}
       </span>
@@ -815,4 +844,154 @@ describe("FeatureWorkspace", () => {
     expect(screen.queryByText("Archived · read-only")).not.toBeInTheDocument();
     expect(screen.getByText("Open project")).toBeInTheDocument();
   });
+});
+
+it("opens editing for this feature's groups and returns to it after canceling deletion", () => {
+  workspaceMocks.snapshot.data = makeSnapshot({
+    features: [makeFeature()],
+    taskGroups: [
+      makeTaskGroup(),
+      makeTaskGroup({
+        id: "group-2",
+        featureId: "feature-2",
+        name: "Other group",
+      }),
+    ],
+  });
+  render(<FeatureWorkspace />);
+  expect(
+    screen.queryByRole("button", { name: "Task groups" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Edit Other group" }),
+  ).not.toBeInTheDocument();
+  const groupToggle = screen.getByRole("switch", { name: "Show groups" });
+  fireEvent.click(groupToggle);
+  expect(groupToggle).not.toBeChecked();
+  expect(screen.queryByText("Edit Checkout")).not.toBeInTheDocument();
+  fireEvent.click(groupToggle);
+  fireEvent.click(screen.getByRole("button", { name: "Edit Checkout" }));
+  const edit = screen.getByRole("dialog", { name: "Edit Checkout" });
+  fireEvent.click(within(edit).getByRole("button", { name: "Delete group" }));
+  const deletion = screen.getByRole("dialog", { name: "Delete Checkout" });
+  fireEvent.click(within(deletion).getByRole("button", { name: "Cancel" }));
+  expect(deletion).not.toBeInTheDocument();
+  expect(edit).toBeVisible();
+  fireEvent.keyDown(window, { key: "Escape" });
+  expect(edit).not.toBeInTheDocument();
+  cleanup();
+});
+
+it("lists only the selected group's references and returns from preview to the list", async () => {
+  workspaceMocks.snapshot.data = makeSnapshot({
+    features: [makeFeature({ readOnly: true })],
+    taskGroups: [
+      makeTaskGroup(),
+      makeTaskGroup({ id: "group-2", name: "Delivery" }),
+    ],
+    documents: [
+      makeDocument({
+        title: "Group notes",
+        groupId: "group-1",
+        taskId: "",
+        kind: DocumentKind.MARKDOWN,
+        locator: "",
+      }),
+      makeDocument({
+        id: "doc-url",
+        title: "Group runbook",
+        groupId: "group-1",
+        taskId: "",
+      }),
+      makeDocument({ id: "doc-2", title: "Task notes" }),
+    ],
+  });
+  render(<FeatureWorkspace />);
+  const emptyTrigger = screen.getByRole("button", {
+    name: "View references for Delivery",
+  });
+  fireEvent.click(emptyTrigger);
+  expect(
+    screen.getByRole("dialog", { name: "Group references for Delivery" }),
+  ).toHaveTextContent("No references.");
+  fireEvent.keyDown(window, { key: "Escape" });
+
+  const trigger = screen.getByRole("button", {
+    name: "View references for Checkout",
+  });
+  trigger.focus();
+  fireEvent.click(trigger);
+  const dialog = screen.getByRole("dialog", {
+    name: "Group references for Checkout",
+  });
+  expect(dialog).not.toHaveTextContent("Task notes");
+  expect(
+    within(dialog).getByRole("link", { name: /Group runbook/ }),
+  ).toHaveAttribute("href", "https://example.com/runbook");
+  expect(
+    within(dialog).queryByRole("button", { name: "Edit Group notes" }),
+  ).not.toBeInTheDocument();
+  fireEvent.click(within(dialog).getByRole("button", { name: /Group notes/ }));
+  expect(
+    screen.getByRole("dialog", { name: "Mock Markdown preview" }),
+  ).toHaveTextContent("Group notes");
+  expect(dialog).toHaveAttribute("inert");
+  fireEvent.click(screen.getByRole("button", { name: "Mock close preview" }));
+  const close = within(dialog).getByRole("button", { name: "Close" });
+  expect(close).toHaveFocus();
+  fireEvent.click(close);
+  await waitFor(() => {
+    expect(trigger).toHaveFocus();
+  });
+  cleanup();
+});
+
+it("opens the selected group with a graph restricted to its tasks", () => {
+  workspaceMocks.groupId = "group-1";
+  workspaceMocks.snapshot.data = makeSnapshot({
+    features: [makeFeature()],
+    tasks: [makeTask({ groupId: "group-1" }), makeTask({ id: "task-2" })],
+    taskGroups: [makeTaskGroup()],
+    dependencies: [makeDependency()],
+    documents: [
+      makeDocument({ title: "Group notes", groupId: "group-1", taskId: "" }),
+    ],
+  });
+  render(<FeatureWorkspace />);
+  expect(screen.getByRole("heading", { name: "Checkout" })).toBeInTheDocument();
+  expect(
+    screen.getByRole("link", { name: "Back to feature" }),
+  ).toBeInTheDocument();
+  expect(screen.getByTestId("mock-graph-tasks")).toHaveTextContent(/^task-1$/);
+  fireEvent.click(screen.getByRole("button", { name: "Group references" }));
+  expect(
+    screen.getByRole("region", { name: "Group references" }),
+  ).toHaveTextContent("Group notes");
+  cleanup();
+  workspaceMocks.groupId = undefined;
+});
+
+it("opens a task linked from a grouped list and clears the link on close", () => {
+  workspaceMocks.taskId = "task-1";
+  workspaceMocks.snapshot.data = makeSnapshot({
+    features: [makeFeature()],
+    tasks: [makeTask({ groupId: "group-1" })],
+    taskGroups: [makeTaskGroup()],
+  });
+  render(<FeatureWorkspace />);
+  const inspector = screen.getByRole("complementary", {
+    name: "Mock task inspector",
+  });
+  fireEvent.click(
+    within(inspector).getByRole("button", { name: "Mock close inspector" }),
+  );
+  expect(inspector).not.toBeInTheDocument();
+  expect(workspaceMocks.navigate).toHaveBeenCalledWith({
+    to: "/features/$featureId",
+    params: { featureId: "feature-1" },
+    search: {},
+    replace: true,
+  });
+  cleanup();
+  workspaceMocks.taskId = undefined;
 });

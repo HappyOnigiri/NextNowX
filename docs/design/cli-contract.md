@@ -29,11 +29,19 @@ JSON の `status`・`display_state`・`block_labels` は安定値を保つ。
 
 task の JSON は種類を `kind`（`development` または `work`）で返す。`task create` の `--kind` は省略すると `development`、`task update` では省略すると種類を維持する。
 
+タスクグループには `G-<number>` 形式の公開 ID があり、`task group create`・`list`・`rename`・`delete` で扱う。
+`task create` の `--group GROUP_ID` は同じ feature のグループを指定し、省略時は未所属で作成する。
+`task update` では `--group` を省略すると所属を維持し、空文字列を渡すと所属を解除する。
+タスクの JSON は `group_id` を返し、未所属は空文字列で表す。
+`task group list --json` と `graph --json` は対象 feature の `task_groups` を、`snapshot --json` は全 feature の `task_groups` を返す。
+各グループは `id`、`feature_id`、`name` を持つ。グループの一覧は名前順で、所属するタスクがないグループも含む。
+
 変更操作は非対話のままにし、人とコーディングエージェントが同じ操作面を使えるようにする。
 変更対象が存在しない場合は、成功した no-op として報告せず失敗させる。
 参照されたデータを破壊的にたどる操作には、明示的な cascade の指定を必要とする。
 project への cascade は、その project 自身の document と、保持するすべての feature、およびそれらの feature の中の作業を削除する。
 feature や task への cascade が行うのは、内部の作業の削除である。
+資料が添付されたタスクグループの削除には `task group delete --cascade` が必要である。グループを削除すると所属は解除され、タスクと依存関係は残る。
 操作のたびに必ず必要になる値は位置引数にする。
 フラグは、任意の修飾子、フィルタ、部分更新、秘密情報を安全に渡す入力方式、実行設定、出力形式に予約する。
 別の operand があることで必要になる値と、排他的な選択肢から選ぶ値もフラグで受け取る。
@@ -41,11 +49,15 @@ feature や task への cascade が行うのは、内部の作業の削除であ
 
 project、feature、task は、ストレージ上の識別子とは別の公開識別子を持つ。
 それぞれ `P-<number>`、`F-<number>`、`T-<number>` であり、ストレージの UUID は CLI・RPC・WebUI の境界を越えてはならない。
-`show` や `document add` のように 3 種類のいずれも受け付ける operand は公開 ID の接頭辞で解決するので、operand が曖昧になることはなく、既知の接頭辞を持たない値は not found として報告する。
+`show` や `document add` のように複数種類を受け付ける operand は、公開 ID の接頭辞で解決する。
+既知の接頭辞を持たない値は not found として報告する。
 種類の名前が付いたコマンドはその種類だけを解決する。`project`、`feature`、`graph` はそれぞれ自分のリソースの公開 ID だけを受け付け、それ以外は operand を not found として報告する。
 document は意図的な例外で、独立した公開識別子を持たない。
 そのため `document get`、`document update`、`document delete` に渡す識別子はストレージの識別子そのものである。
 この識別子は不透明であり、移行された document は UUID の形式ではない値を持つことがある。
+`document add` は添付先に project・feature・task・タスクグループの公開 ID を受け付ける。
+`document --group GROUP_ID` は、指定したグループに直接添付された資料を一覧する。
+グループに添付された document の JSON は親グループを `group_id` で示す。
 
 `nnx setup` は、起動時にデータベースファイルを新規作成したときだけサンプルデータを投入し、投入したときだけ標準出力へ実効言語で 1 行を出す。
 投入を止める `--no-sample-data` は `nnx setup` のローカルフラグで、環境変数 `NNX_NO_SAMPLE_DATA` は空でない値をすべて opt-out として扱う。

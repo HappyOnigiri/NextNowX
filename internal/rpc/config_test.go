@@ -293,12 +293,29 @@ func (noopRepository) DeleteFeature(context.Context, string, bool) error {
 	return errors.New("not implemented")
 }
 
+func (noopRepository) CreateTaskGroup(context.Context, string, string) (domain.TaskGroup, error) {
+	return domain.TaskGroup{}, errors.New("not implemented")
+}
+
+func (noopRepository) GetTaskGroup(context.Context, string) (domain.TaskGroup, error) {
+	return domain.TaskGroup{}, errors.New("not implemented")
+}
+
+func (noopRepository) RenameTaskGroup(context.Context, domain.TaskGroup) (domain.TaskGroup, error) {
+	return domain.TaskGroup{}, errors.New("not implemented")
+}
+
+func (noopRepository) DeleteTaskGroup(context.Context, string, bool) error {
+	return errors.New("not implemented")
+}
+
 func (noopRepository) CreateTask(
 	context.Context,
 	string,
 	string,
 	string,
 	domain.TaskKind,
+	string,
 ) (domain.Task, error) {
 	return domain.Task{}, errors.New("not implemented")
 }
@@ -307,7 +324,7 @@ func (noopRepository) GetTask(context.Context, string) (domain.Task, error) {
 	return domain.Task{}, errors.New("not implemented")
 }
 
-func (noopRepository) UpdateTask(context.Context, domain.Task) (domain.Task, error) {
+func (noopRepository) UpdateTask(context.Context, domain.Task, *string) (domain.Task, error) {
 	return domain.Task{}, errors.New("not implemented")
 }
 

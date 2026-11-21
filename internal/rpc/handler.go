@@ -124,6 +124,7 @@ func rpcError(err error) error {
 		code = connect.CodeNotFound
 	case domain.DomainErrorCodeDuplicateDependency,
 		domain.DomainErrorCodeDuplicatePullRequest,
+		domain.DomainErrorCodeDuplicateTaskGroupName,
 		domain.DomainErrorCodeReferencesExist,
 		domain.DomainErrorCodeDuplicateImplementationPlan,
 		domain.DomainErrorCodeArchivedReadOnly,
@@ -269,6 +270,7 @@ func (h *Handler) CreateTask(
 		req.Msg.GetTitle(),
 		req.Msg.GetAssignee(),
 		kind,
+		req.Msg.GetGroupId(),
 	)
 	if err != nil {
 		return nil, rpcError(err)
@@ -307,7 +309,15 @@ func (h *Handler) UpdateTask(
 		}
 		kind = &value
 	}
-	value, err := h.service.UpdateTask(ctx, req.Msg.GetId(), titlePointer, status, assigneePointer, kind)
+	value, err := h.service.UpdateTask(
+		ctx,
+		req.Msg.GetId(),
+		titlePointer,
+		status,
+		assigneePointer,
+		kind,
+		req.Msg.GroupId,
+	)
 	if err != nil {
 		return nil, rpcError(err)
 	}
@@ -377,6 +387,7 @@ func (h *Handler) AddDocument(
 			ProjectID: req.Msg.GetProjectId(),
 			FeatureID: req.Msg.GetFeatureId(),
 			TaskID:    req.Msg.GetTaskId(),
+			GroupID:   req.Msg.GetGroupId(),
 		},
 		source.Kind,
 		req.Msg.GetTitle(),

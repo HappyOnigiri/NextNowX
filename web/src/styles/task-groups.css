@@ -1,0 +1,23 @@
+.task-groups-dialog {
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+.task-groups-dialog footer {
+  flex-wrap: wrap;
+}
+
+.task-group-delete {
+  margin-inline-end: auto;
+}
+
+.task-group-references-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.task-group-references-header h2 {
+  overflow-wrap: anywhere;
+}

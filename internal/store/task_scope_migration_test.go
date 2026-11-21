@@ -15,40 +15,7 @@ import (
 func TestTaskScopeMigratesToAnAttachmentOnce(t *testing.T) {
 	ctx := context.Background()
 	path := filepath.Join(t.TempDir(), "scope.db")
-	legacy, err := sql.Open("sqlite", path+"?_pragma=foreign_keys(1)")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = legacy.Close() }()
-	files, err := filepath.Glob("migrations/*.sql")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := legacy.ExecContext(
-		ctx,
-		`CREATE TABLE schema_migrations(version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)`,
-	); err != nil {
-		t.Fatal(err)
-	}
-	for index, file := range files {
-		if strings.HasPrefix(filepath.Base(file), "021_") {
-			break
-		}
-		body, err := os.ReadFile(file)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if _, err := legacy.ExecContext(ctx, string(body)); err != nil {
-			t.Fatalf("%s: %v", file, err)
-		}
-		if _, err := legacy.ExecContext(
-			ctx,
-			`INSERT INTO schema_migrations VALUES(?, '2026-01-01T00:00:00Z')`,
-			index+1,
-		); err != nil {
-			t.Fatal(err)
-		}
-	}
+	legacy := openLegacyDatabase(t, ctx, path, "021_")
 	const created = "2026-01-01T00:00:00Z"
 	const updated = "2026-01-02T00:00:00Z"
 	const content = "  # 要件\n\n元の本文を保持する。\n"
@@ -121,4 +88,43 @@ func TestTaskScopeMigratesToAnAttachmentOnce(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+}
+
+func openLegacyDatabase(t *testing.T, ctx context.Context, path, stopAt string) *sql.DB {
+	t.Helper()
+	legacy, err := sql.Open("sqlite", path+"?_pragma=foreign_keys(1)")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = legacy.Close() })
+	files, err := filepath.Glob("migrations/*.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := legacy.ExecContext(
+		ctx,
+		`CREATE TABLE schema_migrations(version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)`,
+	); err != nil {
+		t.Fatal(err)
+	}
+	for index, file := range files {
+		if strings.HasPrefix(filepath.Base(file), stopAt) {
+			break
+		}
+		body, err := os.ReadFile(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := legacy.ExecContext(ctx, string(body)); err != nil {
+			t.Fatalf("%s: %v", file, err)
+		}
+		if _, err := legacy.ExecContext(
+			ctx,
+			`INSERT INTO schema_migrations VALUES(?, '2026-01-01T00:00:00Z')`,
+			index+1,
+		); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return legacy
 }

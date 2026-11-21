@@ -1,15 +1,15 @@
 ## nnx document add
 
-Add a document to a project, a feature, or a task
+Add a document to a project, feature, task, or task group
 
 ### Synopsis
 
-Add a document to a project, a feature, or a task.
+Add a document to a project, feature, task, or task group.
 
-The operand is a public project, feature, or task ID.
+The operand is a public project, feature, task, or task group ID.
 
 ```
-nnx document add PROJECT_OR_FEATURE_OR_TASK [flags]
+nnx document add PARENT_ID [flags]
 ```
 
 ### Examples
@@ -18,6 +18,7 @@ nnx document add PROJECT_OR_FEATURE_OR_TASK [flags]
 nnx document add T-1 --url https://example.com
 nnx document add P-1 --url https://example.com
 nnx document add F-1 --markdown-file notes.md
+nnx document add G-1 --url https://example.com/runbook
 ```
 
 ### Options

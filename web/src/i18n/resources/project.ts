@@ -88,7 +88,7 @@ export const project = {
       confirmArchive: "Archive project",
       deleteTitle: "Delete {{title}}?",
       deleteDescription:
-        "This deletes the project and its {{count}} references. Its features are kept and simply leave the project. This cannot be undone.",
+        "This permanently deletes the project, its {{count}} references, and all its features, including their tasks, task groups, and references. This cannot be undone.",
       confirmDelete: "Delete permanently",
     },
   },
@@ -182,7 +182,7 @@ export const project = {
       confirmArchive: "アーカイブする",
       deleteTitle: "{{title}} を削除しますか？",
       deleteDescription:
-        "プロジェクトと {{count}} 件の資料を削除します。配下のフィーチャーは残り、所属だけが外れます。この操作は取り消せません。",
+        "プロジェクトとその資料 {{count}} 件、および配下の全フィーチャーを完全に削除します。フィーチャーのタスク、タスクグループ、資料も削除します。この操作は取り消せません。",
       confirmDelete: "完全に削除",
     },
   },

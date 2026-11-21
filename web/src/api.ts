@@ -10,12 +10,14 @@ import {
   AttachPullRequestRequestSchema,
   CreateFeatureRequestSchema,
   CreateProjectRequestSchema,
+  CreateTaskGroupRequestSchema,
   CreateTaskRequestSchema,
   DeleteDocumentRequestSchema,
   DeleteFeatureRequestSchema,
   DeleteGitHubAuthMethodRequestSchema,
   DeleteGitHubHostRequestSchema,
   DeleteProjectRequestSchema,
+  DeleteTaskGroupRequestSchema,
   DeleteTaskRequestSchema,
   DetachPullRequestRequestSchema,
   DocumentKind,
@@ -32,6 +34,7 @@ import {
   NNXService,
   ReadDocumentContentRequestSchema,
   RemoveDependencyRequestSchema,
+  RenameTaskGroupRequestSchema,
   ReorderGitHubAuthMethodsRequestSchema,
   SelectLocalFileRequestSchema,
   SkipUpdateVersionRequestSchema,
@@ -160,8 +163,7 @@ export const mutations = {
     };
     taskLabelOverrides?: TaskLabelOverridesUpdate;
   }) => client.updateProject(create(UpdateProjectRequestSchema, input)),
-  // cascade は project の feature を削除せず切り離すので、WebUI に必要な形は
-  // これだけ。
+  // 削除の確認後に、配下のフィーチャーとその内容もまとめて削除する。
   deleteProject: (id: string) =>
     client.deleteProject(
       create(DeleteProjectRequestSchema, { id, cascade: true }),
@@ -189,17 +191,27 @@ export const mutations = {
     client.deleteFeature(
       create(DeleteFeatureRequestSchema, { id, cascade: true }),
     ),
+  createTaskGroup: (input: { featureId: string; name: string }) =>
+    client.createTaskGroup(create(CreateTaskGroupRequestSchema, input)),
+  renameTaskGroup: (input: { id: string; name: string }) =>
+    client.renameTaskGroup(create(RenameTaskGroupRequestSchema, input)),
+  deleteTaskGroup: (id: string) =>
+    client.deleteTaskGroup(
+      create(DeleteTaskGroupRequestSchema, { id, cascade: true }),
+    ),
   createTask: (input: {
     featureId: string;
     title: string;
     assignee: string;
     kind?: TaskKind;
+    groupId?: string;
   }) => client.createTask(create(CreateTaskRequestSchema, input)),
   updateTask: (input: {
     id: string;
     title?: string;
     status?: TaskStatus;
     kind?: TaskKind;
+    groupId?: string;
     assignee?: string;
   }) => client.updateTask(create(UpdateTaskRequestSchema, input)),
   deleteTask: (id: string) =>
@@ -224,6 +236,7 @@ export const mutations = {
     projectId?: string;
     featureId?: string;
     taskId?: string;
+    groupId?: string;
     title: string;
     kind: DocumentKind;
     value: string;
@@ -239,6 +252,7 @@ export const mutations = {
       projectId?: string;
       featureId?: string;
       taskId?: string;
+      groupId?: string;
       title: string;
       source: typeof source;
       isImplementationPlan?: boolean;
@@ -246,6 +260,7 @@ export const mutations = {
     if (input.projectId !== undefined) request.projectId = input.projectId;
     if (input.featureId !== undefined) request.featureId = input.featureId;
     if (input.taskId !== undefined) request.taskId = input.taskId;
+    if (input.groupId !== undefined) request.groupId = input.groupId;
     if (input.isImplementationPlan !== undefined)
       request.isImplementationPlan = input.isImplementationPlan;
     return client.addDocument(create(AddDocumentRequestSchema, request));

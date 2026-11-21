@@ -1,4 +1,10 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TaskDisplayState, type Snapshot } from "../src/gen/nnx/v1/nnx_pb";
@@ -9,6 +15,7 @@ import {
   makePullRequest,
   makeSnapshot,
   makeTask,
+  makeTaskGroup,
 } from "./factories";
 
 const mocks = vi.hoisted(() => ({
@@ -114,6 +121,67 @@ describe("TaskSearch view", () => {
         name: "GitHub status refresh error: offline",
       }),
     ).toHaveClass("pr-flag", "is-sync-error");
+  });
+
+  it("groups only the filtered cards, keeping the first member's position", () => {
+    const group = makeTaskGroup();
+    const sameName = makeTaskGroup({ id: "group-2", featureId: "feature-2" });
+    const empty = makeTaskGroup({ id: "group-3", name: "Empty group" });
+    mocks.state.data = makeSnapshot({
+      features: [makeFeature(), makeFeature({ id: sameName.featureId })],
+      taskGroups: [group, sameName, empty],
+      tasks: [
+        makeTask({
+          id: "hidden",
+          title: "Hidden first member",
+          groupId: group.id,
+          ready: false,
+        }),
+        makeTask({ id: "loose-1", title: "Ungrouped first" }),
+        makeTask({
+          id: "grouped-1",
+          title: "Grouped first",
+          groupId: group.id,
+        }),
+        makeTask({ id: "loose-2", title: "Ungrouped second" }),
+        makeTask({
+          id: "grouped-2",
+          title: "Grouped second",
+          groupId: group.id,
+        }),
+        makeTask({
+          id: "other",
+          title: "Other feature",
+          featureId: sameName.featureId,
+          groupId: sameName.id,
+        }),
+      ],
+    });
+    render(<TaskSearch />);
+
+    const results = screen.getByRole("list", { name: "Matching active tasks" });
+    const [first, second, ...rest] = within(results).getAllByRole("list", {
+      name: group.name,
+    });
+    if (!first || !second) throw new Error("Both group frames must be present");
+    expect(rest).toHaveLength(0);
+    expect(within(first).getAllByRole("listitem")).toHaveLength(2);
+    expect(within(first).queryByRole("button")).not.toBeInTheDocument();
+    expect(
+      within(first).getAllByRole("img", { name: "not started" }),
+    ).toHaveLength(2);
+    expect(within(second).getByText("Other feature")).toBeInTheDocument();
+    expect(results.children).toHaveLength(4);
+    expect(results.children[0]).toHaveTextContent("Ungrouped first");
+    expect(results.children[1]).toHaveTextContent(
+      /Grouped first.*Grouped second/,
+    );
+    expect(results.children[2]).toHaveTextContent("Ungrouped second");
+    expect(results.children[3]).toContainElement(second);
+    expect(
+      within(results).queryByText("Hidden first member"),
+    ).not.toBeInTheDocument();
+    expect(within(results).queryByText(empty.name)).not.toBeInTheDocument();
   });
 
   it("distinguishes invalid syntax from an empty result", () => {

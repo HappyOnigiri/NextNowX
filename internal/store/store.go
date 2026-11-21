@@ -456,6 +456,7 @@ func publicTaskIDs(values []db.Task) map[string]string {
 
 func domainTask(value db.Task, featureID string) domain.Task {
 	return domain.Task{
+		GroupID:          value.GroupID.String,
 		Kind:             domain.TaskKind(value.Kind),
 		ID:               value.PublicID,
 		StorageID:        value.ID,
@@ -489,6 +490,7 @@ func domainDocument(
 		ProjectID:            projectIDs[value.ProjectID.String],
 		FeatureID:            featureIDs[value.FeatureID.String],
 		TaskID:               taskIDs[value.TaskID.String],
+		GroupID:              value.GroupID.String,
 		Kind:                 domain.DocumentKind(value.Kind),
 		Title:                value.Title,
 		Locator:              value.Locator.String,
@@ -508,6 +510,7 @@ func domainListedDocument(
 		ProjectID:            projectIDs[value.ProjectID.String],
 		FeatureID:            featureIDs[value.FeatureID.String],
 		TaskID:               taskIDs[value.TaskID.String],
+		GroupID:              value.GroupID.String,
 		Kind:                 domain.DocumentKind(value.Kind),
 		Title:                value.Title,
 		Locator:              value.Locator.String,

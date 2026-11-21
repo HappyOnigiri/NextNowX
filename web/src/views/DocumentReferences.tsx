@@ -69,7 +69,9 @@ export function DocumentReferences({
         ref={triggerRef}
         id={triggerId}
         icon={ChevronDown}
-        label={t("workspace.references")}
+        label={t(
+          parent.groupId ? "workspace.groupReferences" : "workspace.references",
+        )}
         className="document-references-trigger"
         variant="secondary"
         aria-expanded={open}

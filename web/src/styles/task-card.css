@@ -175,3 +175,77 @@
 .task-card-pr .pr-flag svg {
   color: inherit;
 }
+
+.task-card-group {
+  min-width: 0;
+  padding: clamp(6px, 1.5vw, 12px);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+}
+
+.task-card-group > h2 {
+  margin: 0 0 8px;
+  padding-inline: 4px;
+  color: var(--text-2);
+  font-size: var(--text-sm);
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.task-group-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.task-group-link-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.task-group-link-icon {
+  flex: 0 0 auto;
+}
+
+.task-group-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.task-group-row {
+  display: grid;
+  grid-template-columns: fit-content(8rem) minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-height: 36px;
+  border-top: 1px solid var(--border);
+}
+
+.task-group-row .status-badge {
+  max-width: 100%;
+  justify-self: start;
+}
+
+.task-group-row-title {
+  justify-self: start;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.task-group-row-title:hover,
+.task-group-row-title:focus-visible {
+  color: var(--accent);
+  text-decoration: underline;
+}

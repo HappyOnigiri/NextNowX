@@ -21,7 +21,12 @@ import {
   TaskStatus,
 } from "../src/gen/nnx/v1/nnx_pb";
 import { TaskInspector } from "../src/views/TaskInspector";
-import { makeDocument, makePullRequest, makeTask } from "./factories";
+import {
+  makeDocument,
+  makePullRequest,
+  makeTask,
+  makeTaskGroup,
+} from "./factories";
 
 // 資料の編集ダイアログはファイル選択に react-query をそのまま使うので、
 // インスペクタの描画にも Provider を添える。
@@ -608,4 +613,79 @@ describe("TaskInspector", () => {
       }),
     );
   });
+});
+
+it("explicitly clears a task group and follows the refreshed membership", async () => {
+  const group = makeTaskGroup();
+  const task = makeTask({ groupId: group.id });
+  const onAddReference = vi.fn();
+  const props = {
+    task,
+    tasks: [task],
+    groups: [group],
+    pullRequest: undefined,
+    documents: [],
+    onPreview: vi.fn(),
+    onAddReference,
+    onClose: vi.fn(),
+  };
+  const view = render(<TaskInspector {...props} />);
+  const add = screen.getByRole("button", { name: "Add reference" });
+  fireEvent.click(add);
+  expect(onAddReference).toHaveBeenCalledWith(task.id, add);
+  expect(
+    screen.getByRole("button", { name: "Copy task prompt" }),
+  ).toBeInTheDocument();
+  const select = screen.getByRole("combobox", { name: "Task group" });
+  expect(select).toHaveValue(group.id);
+  fireEvent.change(select, { target: { value: "" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save task" }));
+  const updateTask = mutationFor("updateTask");
+  updateTask.isPending = true;
+  view.rerender(<TaskInspector {...props} />);
+  expect(select).toBeDisabled();
+  await waitFor(() => {
+    expect(apiFor("updateTask")).toHaveBeenCalledWith(
+      expect.objectContaining({ groupId: "" }),
+    );
+    expect(select).toHaveValue(group.id);
+  });
+  const refreshed = makeTask({ groupId: "" });
+  updateTask.isPending = false;
+  view.rerender(<TaskInspector {...props} task={refreshed} />);
+  expect(select).toBeEnabled();
+  expect(select).toHaveValue("");
+  view.rerender(<TaskInspector {...props} readOnly />);
+  expect(
+    screen.queryByRole("combobox", { name: "Task group" }),
+  ).not.toBeInTheDocument();
+  expect(screen.getByText(group.name)).toBeInTheDocument();
+  cleanup();
+});
+
+it("can return to Ungrouped when the group selected in the draft was deleted", () => {
+  const group = makeTaskGroup();
+  const task = makeTask();
+  const props = {
+    task,
+    tasks: [task],
+    pullRequest: undefined,
+    documents: [],
+    onPreview: vi.fn(),
+    onClose: vi.fn(),
+  };
+  const view = render(<TaskInspector {...props} groups={[group]} />);
+  const select = screen.getByRole("combobox", { name: "Task group" });
+  fireEvent.change(select, { target: { value: group.id } });
+  view.rerender(<TaskInspector {...props} groups={[]} />);
+  expect(
+    screen.getByRole("option", {
+      name: "Group no longer available",
+      selected: true,
+    }),
+  ).toBeDisabled();
+  fireEvent.change(select, { target: { value: "" } });
+  expect(select).toHaveValue("");
+  expect(screen.getByRole("button", { name: "Save task" })).toBeDisabled();
+  cleanup();
 });

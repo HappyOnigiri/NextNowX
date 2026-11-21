@@ -1754,9 +1754,9 @@ func TestBlackBoxJSONResponsesCoverEveryResponseCommand(t *testing.T) {
 	assertDirectObject(
 		t,
 		runDB("snapshot"),
-		"projects", "features", "tasks", "dependencies", "pull_requests", "documents",
+		"projects", "features", "tasks", "dependencies", "pull_requests", "documents", "task_groups",
 	)
-	assertDirectObjectKeys(t, runDB("graph", featureID), "feature", "tasks", "dependencies")
+	assertDirectObjectKeys(t, runDB("graph", featureID), "feature", "tasks", "dependencies", "task_groups")
 	assertDirectObjectKeys(t, runDB("ready"), "ready_tasks")
 	assertDirectObjectKeys(t, runDB("reviews"), "review_waiting_tasks")
 	assertDirectObjectKeys(t, runDB("conflicts"), "conflict_tasks")

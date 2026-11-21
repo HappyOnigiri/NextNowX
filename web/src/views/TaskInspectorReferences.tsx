@@ -1,4 +1,4 @@
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { DocumentKind } from "../gen/nnx/v1/nnx_pb";
 import { documentKindLabel } from "../i18n/domain";
@@ -11,6 +11,7 @@ import { useDocumentEditing } from "./useDocumentEditing";
 interface ReferencesSectionProps {
   documents: TaskNodeDocument[];
   onPreview: (document: TaskNodeDocument) => void;
+  onAdd?: (trigger: HTMLButtonElement) => void;
   readOnly?: boolean;
   compact?: boolean;
 }
@@ -18,6 +19,7 @@ interface ReferencesSectionProps {
 export function ReferencesSection({
   documents,
   onPreview,
+  onAdd,
   readOnly = false,
   compact = false,
 }: ReferencesSectionProps) {
@@ -48,6 +50,17 @@ export function ReferencesSection({
       {documents.length === 0 && (
         <p className="read-only-empty">{t("inspector.noReferences")}</p>
       )}
+      {!readOnly && onAdd && (
+        <IconButton
+          icon={Plus}
+          label={t("inspector.addReference")}
+          variant="secondary"
+          size="compact"
+          onClick={(event) => {
+            onAdd(event.currentTarget);
+          }}
+        />
+      )}
       {!readOnly && <MutationError error={editing.error} />}
       {editing.dialog}
       {deletion.dialog}
@@ -66,7 +79,7 @@ export function DocumentRow({
   document: TaskNodeDocument;
   onPreview: (document: TaskNodeDocument) => void;
   onDelete?: (document: TaskNodeDocument) => void;
-  onEdit: (document: TaskNodeDocument, trigger: HTMLElement | null) => void;
+  onEdit?: (document: TaskNodeDocument, trigger: HTMLElement | null) => void;
   canEdit: boolean;
   canDelete: boolean;
 }) {
@@ -107,7 +120,7 @@ export function DocumentRow({
               size="compact"
               iconOnly
               onClick={(event) => {
-                onEdit(document, event.currentTarget);
+                onEdit?.(document, event.currentTarget);
               }}
             />
           )}

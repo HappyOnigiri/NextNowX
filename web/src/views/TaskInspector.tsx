@@ -6,6 +6,7 @@ import {
   TaskKind,
   type PullRequest,
   type Task,
+  type TaskGroup,
   type TaskLabelAppearances,
 } from "../gen/nnx/v1/nnx_pb";
 import { useDomainMutation } from "../hooks";
@@ -19,16 +20,19 @@ import { ReferencesSection } from "./TaskInspectorReferences";
 import { TaskInspectorTaskForm } from "./TaskInspectorTaskForm";
 import { TaskKindLabel } from "./TaskKindLabel";
 import { type TaskNodeDocument } from "./TaskNode";
+import { TaskPromptCopyButton } from "./TaskPromptCopyButton";
 import { TaskBlockLabels, TaskStatusBadge } from "./TaskStateBadges";
 import { DiscardChangesDialog, SaveButton } from "./UnsavedChanges";
 
 export interface TaskInspectorProps {
   task: Task;
   tasks: Task[];
+  groups?: TaskGroup[];
   pullRequest: PullRequest | undefined;
   documents: TaskNodeDocument[];
   appearances?: TaskLabelAppearances | undefined;
   onPreview: (document: TaskNodeDocument) => void;
+  onAddReference?: (taskId: string, trigger: HTMLButtonElement) => void;
   onClose: () => void;
   readOnly?: boolean;
 }
@@ -70,30 +74,35 @@ function TaskInspectorHeader({
   const { t } = useTranslation();
   return (
     <header>
-      <div className="inspector-heading">
-        {/* どのカードや行とも同じく、状態が見出しの先頭に来る。 */}
-        <div className="inspector-heading-line">
-          <TaskStatusBadge
-            state={task.displayState}
-            kind={task.kind}
-            appearances={appearances}
-          />
-          <TaskKindLabel kind={task.kind} />
-          <h2>{task.title}</h2>
-        </div>
+      <div className="inspector-header-metadata">
+        <TaskStatusBadge
+          state={task.displayState}
+          kind={task.kind}
+          appearances={appearances}
+        />
+        <TaskKindLabel kind={task.kind} />
         <CopyableIdentifier
           label={t("common.taskId")}
           value={task.id}
           valueOnly
         />
       </div>
-      <IconButton
-        icon={X}
-        label={t("inspector.close")}
-        variant="secondary"
-        iconOnly
-        onClick={onClose}
-      />
+      <div className="inspector-header-actions">
+        <TaskPromptCopyButton
+          taskId={task.id}
+          hasImplementationPlan={task.hasImplementationPlan}
+          size="compact"
+        />
+        <IconButton
+          icon={X}
+          label={t("inspector.close")}
+          variant="secondary"
+          iconOnly
+          size="compact"
+          onClick={onClose}
+        />
+      </div>
+      <h2>{task.title}</h2>
     </header>
   );
 }
@@ -102,9 +111,11 @@ export function TaskInspector({
   task,
   tasks,
   pullRequest,
+  groups = [],
   documents,
   appearances,
   onPreview,
+  onAddReference,
   onClose,
   readOnly = false,
 }: TaskInspectorProps) {
@@ -140,6 +151,7 @@ export function TaskInspector({
       <TaskInspectorTaskForm
         task={task}
         controller={controller}
+        groups={groups}
         hasPullRequest={!!pullRequest}
         appearances={appearances}
         readOnly={readOnly}
@@ -154,6 +166,13 @@ export function TaskInspector({
       <ReferencesSection
         documents={documents}
         onPreview={onPreview}
+        {...(onAddReference
+          ? {
+              onAdd: (trigger: HTMLButtonElement) => {
+                onAddReference(task.id, trigger);
+              },
+            }
+          : {})}
         readOnly={readOnly}
       />
       {!readOnly && (

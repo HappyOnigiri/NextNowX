@@ -6,9 +6,39 @@ import {
   TaskBlockLabel,
   TaskDisplayState,
 } from "../src/gen/nnx/v1/nnx_pb";
-import { TaskNode, type TaskFlowNode } from "../src/views/TaskNode";
+import {
+  TaskGroupNode,
+  TaskNode,
+  type TaskFlowNode,
+} from "../src/views/TaskNode";
 
 describe("TaskNode", () => {
+  it("renders group ports for display-only dependencies", () => {
+    const { container } = render(
+      <ReactFlowProvider>
+        <TaskGroupNode
+          id="group-1"
+          data={{
+            incomingPorts: [{ id: "edge-target", top: 48 }],
+            outgoingPorts: [{ id: "edge-source", top: 72 }],
+          }}
+          selected={false}
+          isConnectable={false}
+          zIndex={0}
+          dragging={false}
+          draggable={false}
+          selectable={false}
+          deletable={false}
+          type="taskGroup"
+          positionAbsoluteX={0}
+          positionAbsoluteY={0}
+        />
+      </ReactFlowProvider>,
+    );
+    expect(container.querySelectorAll(".task-edge-port")).toHaveLength(2);
+    expect(container.querySelector(".task-edge-port.connectable")).toBeNull();
+  });
+
   it("shows and copies the task ID and supports adding references", async () => {
     const onEdit = vi.fn();
     const onPreview = vi.fn();
@@ -69,7 +99,7 @@ describe("TaskNode", () => {
       positionAbsoluteX: 0,
       positionAbsoluteY: 0,
     } as NodeProps<TaskFlowNode>;
-    const { container } = render(
+    const { container, rerender } = render(
       <ReactFlowProvider>
         <TaskNode {...props} />
       </ReactFlowProvider>,
@@ -138,6 +168,25 @@ describe("TaskNode", () => {
     );
     fireEvent.click(addReference);
     expect(onAddReference).toHaveBeenCalledWith(addReference);
+
+    rerender(
+      <ReactFlowProvider>
+        <TaskNode {...props} data={{ ...props.data, compact: true }} />
+      </ReactFlowProvider>,
+    );
+    expect(screen.getByText("Merge billing schema")).toBeInTheDocument();
+    expect(
+      container.querySelector(".graph-group-row .status-badge"),
+    ).toBeInTheDocument();
+    expect(container.querySelectorAll(".task-edge-port")).toHaveLength(0);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Merge billing schema" }),
+    );
+    expect(onEdit).toHaveBeenCalledTimes(2);
+    expect(screen.queryByText("Carol")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Copy Task ID" }),
+    ).not.toBeInTheDocument();
   });
 
   it("labels the inspector action as view-only for archived tasks", () => {

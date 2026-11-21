@@ -127,6 +127,7 @@ func domainPromptTemplateOverridesUpdate(
 func protoTask(v domain.Task) *nnxv1.Task {
 	return &nnxv1.Task{
 		Kind:                  protoTaskKind(v.Kind),
+		GroupId:               v.GroupID,
 		Id:                    v.ID,
 		FeatureId:             v.FeatureID,
 		Title:                 v.Title,
@@ -194,6 +195,7 @@ func protoDocument(v domain.Document) *nnxv1.Document {
 		ProjectId:            v.ProjectID,
 		FeatureId:            v.FeatureID,
 		TaskId:               v.TaskID,
+		GroupId:              v.GroupID,
 		Kind:                 protoDocumentKind(v.Kind),
 		Title:                v.Title,
 		Locator:              v.Locator,
@@ -205,6 +207,9 @@ func protoDocument(v domain.Document) *nnxv1.Document {
 
 func protoSnapshot(v domain.Snapshot) *nnxv1.Snapshot {
 	result := &nnxv1.Snapshot{}
+	for _, item := range v.TaskGroups {
+		result.TaskGroups = append(result.TaskGroups, protoTaskGroup(item))
+	}
 	for _, item := range v.Projects {
 		result.Projects = append(result.Projects, protoProject(item))
 	}
@@ -544,6 +549,8 @@ func protoDomainErrorCode(value domain.DomainErrorCode) nnxv1.DomainErrorCode {
 		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_PULL_REQUEST_ON_WORK_TASK
 	case domain.DomainErrorCodeInvalidStatus:
 		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_STATUS
+	case domain.DomainErrorCodeDuplicateTaskGroupName:
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DUPLICATE_TASK_GROUP_NAME
 	case domain.DomainErrorCodeInvalidTitle:
 		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_TITLE
 	case domain.DomainErrorCodeInvalidPromptTemplate:

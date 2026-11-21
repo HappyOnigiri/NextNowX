@@ -17,6 +17,7 @@ nnx task create F-1 -- "-fix login redirect"
 
 ```
       --assignee string   assignee
+      --group string      task group ID
   -h, --help              help for create
       --kind string       development or work (default "development")
 ```

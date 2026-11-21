@@ -830,7 +830,7 @@ const (
 	DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_PULL_REQUEST_URL DomainErrorCode = 12
 	// DOMAIN_ERROR_CODE_INVALID_STATUS は feature か task のステータスが未対応であることを表す。
 	DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_STATUS DomainErrorCode = 15
-	// DOMAIN_ERROR_CODE_INVALID_TITLE は必須の feature か task のタイトルが空であることを表す。
+	// DOMAIN_ERROR_CODE_INVALID_TITLE は必須のタイトルかグループ名が空であることを表す。
 	DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_TITLE DomainErrorCode = 16
 	// DOMAIN_ERROR_CODE_NOT_FOUND は要求されたレコードが存在しないことを表す。
 	DomainErrorCode_DOMAIN_ERROR_CODE_NOT_FOUND DomainErrorCode = 17
@@ -868,6 +868,8 @@ const (
 	DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_TASK_KIND DomainErrorCode = 35
 	// DOMAIN_ERROR_CODE_PULL_REQUEST_ON_WORK_TASK は作業への PR 紐づけを拒否する。
 	DomainErrorCode_DOMAIN_ERROR_CODE_PULL_REQUEST_ON_WORK_TASK DomainErrorCode = 36
+	// DOMAIN_ERROR_CODE_DUPLICATE_TASK_GROUP_NAME は同じ feature 内に同名のグループがあることを表す。
+	DomainErrorCode_DOMAIN_ERROR_CODE_DUPLICATE_TASK_GROUP_NAME DomainErrorCode = 37
 )
 
 // Enum value maps for DomainErrorCode.
@@ -904,6 +906,7 @@ var (
 		34: "DOMAIN_ERROR_CODE_INVALID_TASK_LABEL",
 		35: "DOMAIN_ERROR_CODE_INVALID_TASK_KIND",
 		36: "DOMAIN_ERROR_CODE_PULL_REQUEST_ON_WORK_TASK",
+		37: "DOMAIN_ERROR_CODE_DUPLICATE_TASK_GROUP_NAME",
 	}
 	DomainErrorCode_value = map[string]int32{
 		"DOMAIN_ERROR_CODE_UNSPECIFIED":                   0,
@@ -937,6 +940,7 @@ var (
 		"DOMAIN_ERROR_CODE_INVALID_TASK_LABEL":            34,
 		"DOMAIN_ERROR_CODE_INVALID_TASK_KIND":             35,
 		"DOMAIN_ERROR_CODE_PULL_REQUEST_ON_WORK_TASK":     36,
+		"DOMAIN_ERROR_CODE_DUPLICATE_TASK_GROUP_NAME":     37,
 	}
 )
 
@@ -2193,7 +2197,9 @@ type Task struct {
 	// 順で並べる。blocked_reason は依存未解決ラベルの詳細にあたる。
 	BlockLabels []TaskBlockLabel `protobuf:"varint,15,rep,packed,name=block_labels,json=blockLabels,proto3,enum=nnx.v1.TaskBlockLabel" json:"block_labels,omitempty"`
 	// kind はタスクの種類。
-	Kind          TaskKind `protobuf:"varint,16,opt,name=kind,proto3,enum=nnx.v1.TaskKind" json:"kind,omitempty"`
+	Kind TaskKind `protobuf:"varint,16,opt,name=kind,proto3,enum=nnx.v1.TaskKind" json:"kind,omitempty"`
+	// group_id は所属するグループの公開 ID。空文字列は未所属。
+	GroupId       string `protobuf:"bytes,17,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2324,6 +2330,13 @@ func (x *Task) GetKind() TaskKind {
 		return x.Kind
 	}
 	return TaskKind_TASK_KIND_UNSPECIFIED
+}
+
+func (x *Task) GetGroupId() string {
+	if x != nil {
+		return x.GroupId
+	}
+	return ""
 }
 
 // Dependency は 1 つの feature 内で blocker task から blocked task への有向辺を表す。
@@ -2625,7 +2638,7 @@ func (x *PullRequest) GetCheckState() CheckState {
 	return CheckState_CHECK_STATE_UNSPECIFIED
 }
 
-// Document は project、feature、task のいずれか 1 つだけに紐づく参照。
+// Document は project、feature、task、task group のいずれか 1 つだけに紐づく参照。
 type Document struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// id は document 参照の安定識別子。
@@ -2647,7 +2660,9 @@ type Document struct {
 	// updated_at は RFC 3339 形式の最終更新時刻。
 	UpdatedAt string `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	// project_id は project 単位の document のとき、親 project を公開 ID の P-<number> で示す。
-	ProjectId     string `protobuf:"bytes,10,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,10,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	// group_id はグループ単位の document のとき、親グループの公開 ID を示す。
+	GroupId       string `protobuf:"bytes,11,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2752,6 +2767,13 @@ func (x *Document) GetProjectId() string {
 	return ""
 }
 
+func (x *Document) GetGroupId() string {
+	if x != nil {
+		return x.GroupId
+	}
+	return ""
+}
+
 // Snapshot は正規化されたデータ一式と、導出した task のキュー。
 type Snapshot struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -2774,7 +2796,9 @@ type Snapshot struct {
 	// stale_tasks は pull request のデータが古いか同期エラーを持つ task。
 	StaleTasks []*Task `protobuf:"bytes,9,rep,name=stale_tasks,json=staleTasks,proto3" json:"stale_tasks,omitempty"`
 	// projects は保存されたすべての project。
-	Projects      []*Project `protobuf:"bytes,10,rep,name=projects,proto3" json:"projects,omitempty"`
+	Projects []*Project `protobuf:"bytes,10,rep,name=projects,proto3" json:"projects,omitempty"`
+	// task_groups はタスクがまだ所属していないグループも含む。
+	TaskGroups    []*TaskGroup `protobuf:"bytes,11,rep,name=task_groups,json=taskGroups,proto3" json:"task_groups,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2875,6 +2899,13 @@ func (x *Snapshot) GetStaleTasks() []*Task {
 func (x *Snapshot) GetProjects() []*Project {
 	if x != nil {
 		return x.Projects
+	}
+	return nil
+}
+
+func (x *Snapshot) GetTaskGroups() []*TaskGroup {
+	if x != nil {
+		return x.TaskGroups
 	}
 	return nil
 }
@@ -3751,7 +3782,9 @@ type CreateTaskRequest struct {
 	// assignee は task の担当者で、任意。
 	Assignee string `protobuf:"bytes,5,opt,name=assignee,proto3" json:"assignee,omitempty"`
 	// kind は未指定なら開発。
-	Kind          TaskKind `protobuf:"varint,6,opt,name=kind,proto3,enum=nnx.v1.TaskKind" json:"kind,omitempty"`
+	Kind TaskKind `protobuf:"varint,6,opt,name=kind,proto3,enum=nnx.v1.TaskKind" json:"kind,omitempty"`
+	// group_id が空文字列なら未所属で作る。
+	GroupId       string `protobuf:"bytes,7,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3814,6 +3847,13 @@ func (x *CreateTaskRequest) GetKind() TaskKind {
 	return TaskKind_TASK_KIND_UNSPECIFIED
 }
 
+func (x *CreateTaskRequest) GetGroupId() string {
+	if x != nil {
+		return x.GroupId
+	}
+	return ""
+}
+
 // CreateTaskResponse は作成された task を返す。
 type CreateTaskResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -3873,7 +3913,9 @@ type UpdateTaskRequest struct {
 	// assignee は未設定なら変更なし、空文字列ならクリアする。
 	Assignee *string `protobuf:"bytes,5,opt,name=assignee,proto3,oneof" json:"assignee,omitempty"`
 	// kind は未指定なら変更しない。
-	Kind          *TaskKind `protobuf:"varint,6,opt,name=kind,proto3,enum=nnx.v1.TaskKind,oneof" json:"kind,omitempty"`
+	Kind *TaskKind `protobuf:"varint,6,opt,name=kind,proto3,enum=nnx.v1.TaskKind,oneof" json:"kind,omitempty"`
+	// group_id は省略すると所属を維持し、空文字列なら解除する。
+	GroupId       *string `protobuf:"bytes,7,opt,name=group_id,json=groupId,proto3,oneof" json:"group_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3941,6 +3983,13 @@ func (x *UpdateTaskRequest) GetKind() TaskKind {
 		return *x.Kind
 	}
 	return TaskKind_TASK_KIND_UNSPECIFIED
+}
+
+func (x *UpdateTaskRequest) GetGroupId() string {
+	if x != nil && x.GroupId != nil {
+		return *x.GroupId
+	}
+	return ""
 }
 
 // UpdateTaskResponse は更新後の task を返す。
@@ -4081,6 +4130,364 @@ func (*DeleteTaskResponse) Descriptor() ([]byte, []int) {
 	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{38}
 }
 
+// TaskGroup は 1 つの feature 内でタスクをまとめる。
+type TaskGroup struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// id は G-<number> 形式の公開安定識別子。
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// feature_id は所属先の feature の公開 ID。
+	FeatureId string `protobuf:"bytes,2,opt,name=feature_id,json=featureId,proto3" json:"feature_id,omitempty"`
+	// name は同じ feature 内で一意の表示名。
+	Name          string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TaskGroup) Reset() {
+	*x = TaskGroup{}
+	mi := &file_nnx_v1_nnx_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TaskGroup) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TaskGroup) ProtoMessage() {}
+
+func (x *TaskGroup) ProtoReflect() protoreflect.Message {
+	mi := &file_nnx_v1_nnx_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TaskGroup.ProtoReflect.Descriptor instead.
+func (*TaskGroup) Descriptor() ([]byte, []int) {
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *TaskGroup) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *TaskGroup) GetFeatureId() string {
+	if x != nil {
+		return x.FeatureId
+	}
+	return ""
+}
+
+func (x *TaskGroup) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+// CreateTaskGroupRequest はグループの所属先と名前を指定する。
+type CreateTaskGroupRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// feature_id は所属先の feature の公開 ID。
+	FeatureId string `protobuf:"bytes,1,opt,name=feature_id,json=featureId,proto3" json:"feature_id,omitempty"`
+	// name は前後の空白を除いた上で保存する。
+	Name          string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateTaskGroupRequest) Reset() {
+	*x = CreateTaskGroupRequest{}
+	mi := &file_nnx_v1_nnx_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateTaskGroupRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateTaskGroupRequest) ProtoMessage() {}
+
+func (x *CreateTaskGroupRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_nnx_v1_nnx_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateTaskGroupRequest.ProtoReflect.Descriptor instead.
+func (*CreateTaskGroupRequest) Descriptor() ([]byte, []int) {
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *CreateTaskGroupRequest) GetFeatureId() string {
+	if x != nil {
+		return x.FeatureId
+	}
+	return ""
+}
+
+func (x *CreateTaskGroupRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+// CreateTaskGroupResponse は作成済みのグループを返す。
+type CreateTaskGroupResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// task_group は公開 ID を持つ作成済みのグループ。
+	TaskGroup     *TaskGroup `protobuf:"bytes,1,opt,name=task_group,json=taskGroup,proto3" json:"task_group,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateTaskGroupResponse) Reset() {
+	*x = CreateTaskGroupResponse{}
+	mi := &file_nnx_v1_nnx_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateTaskGroupResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateTaskGroupResponse) ProtoMessage() {}
+
+func (x *CreateTaskGroupResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_nnx_v1_nnx_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateTaskGroupResponse.ProtoReflect.Descriptor instead.
+func (*CreateTaskGroupResponse) Descriptor() ([]byte, []int) {
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{41}
+}
+
+func (x *CreateTaskGroupResponse) GetTaskGroup() *TaskGroup {
+	if x != nil {
+		return x.TaskGroup
+	}
+	return nil
+}
+
+// RenameTaskGroupRequest は既存のグループの名前を更新する。
+type RenameTaskGroupRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// id は更新するグループの公開 ID。
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// name は前後の空白を除いた上で保存する。
+	Name          string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RenameTaskGroupRequest) Reset() {
+	*x = RenameTaskGroupRequest{}
+	mi := &file_nnx_v1_nnx_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RenameTaskGroupRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RenameTaskGroupRequest) ProtoMessage() {}
+
+func (x *RenameTaskGroupRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_nnx_v1_nnx_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RenameTaskGroupRequest.ProtoReflect.Descriptor instead.
+func (*RenameTaskGroupRequest) Descriptor() ([]byte, []int) {
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *RenameTaskGroupRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *RenameTaskGroupRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+// RenameTaskGroupResponse は改名したグループを返す。
+type RenameTaskGroupResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// task_group は新しい名前を持つグループ。
+	TaskGroup     *TaskGroup `protobuf:"bytes,1,opt,name=task_group,json=taskGroup,proto3" json:"task_group,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RenameTaskGroupResponse) Reset() {
+	*x = RenameTaskGroupResponse{}
+	mi := &file_nnx_v1_nnx_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RenameTaskGroupResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RenameTaskGroupResponse) ProtoMessage() {}
+
+func (x *RenameTaskGroupResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_nnx_v1_nnx_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RenameTaskGroupResponse.ProtoReflect.Descriptor instead.
+func (*RenameTaskGroupResponse) Descriptor() ([]byte, []int) {
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{43}
+}
+
+func (x *RenameTaskGroupResponse) GetTaskGroup() *TaskGroup {
+	if x != nil {
+		return x.TaskGroup
+	}
+	return nil
+}
+
+// DeleteTaskGroupRequest は所属を解除してグループを削除する。
+type DeleteTaskGroupRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// id は削除するグループの公開 ID。
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// cascade はグループに添付された資料も削除する。
+	Cascade       bool `protobuf:"varint,2,opt,name=cascade,proto3" json:"cascade,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteTaskGroupRequest) Reset() {
+	*x = DeleteTaskGroupRequest{}
+	mi := &file_nnx_v1_nnx_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteTaskGroupRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteTaskGroupRequest) ProtoMessage() {}
+
+func (x *DeleteTaskGroupRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_nnx_v1_nnx_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteTaskGroupRequest.ProtoReflect.Descriptor instead.
+func (*DeleteTaskGroupRequest) Descriptor() ([]byte, []int) {
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *DeleteTaskGroupRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *DeleteTaskGroupRequest) GetCascade() bool {
+	if x != nil {
+		return x.Cascade
+	}
+	return false
+}
+
+// DeleteTaskGroupResponse は削除の成功を表す。
+type DeleteTaskGroupResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteTaskGroupResponse) Reset() {
+	*x = DeleteTaskGroupResponse{}
+	mi := &file_nnx_v1_nnx_proto_msgTypes[45]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteTaskGroupResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteTaskGroupResponse) ProtoMessage() {}
+
+func (x *DeleteTaskGroupResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_nnx_v1_nnx_proto_msgTypes[45]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteTaskGroupResponse.ProtoReflect.Descriptor instead.
+func (*DeleteTaskGroupResponse) Descriptor() ([]byte, []int) {
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{45}
+}
+
 // AddDependencyRequest は同じ feature 内に依存の辺を作る。
 type AddDependencyRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -4094,7 +4501,7 @@ type AddDependencyRequest struct {
 
 func (x *AddDependencyRequest) Reset() {
 	*x = AddDependencyRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[39]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4106,7 +4513,7 @@ func (x *AddDependencyRequest) String() string {
 func (*AddDependencyRequest) ProtoMessage() {}
 
 func (x *AddDependencyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[39]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4119,7 +4526,7 @@ func (x *AddDependencyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddDependencyRequest.ProtoReflect.Descriptor instead.
 func (*AddDependencyRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{39}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *AddDependencyRequest) GetBlockerTaskId() string {
@@ -4147,7 +4554,7 @@ type AddDependencyResponse struct {
 
 func (x *AddDependencyResponse) Reset() {
 	*x = AddDependencyResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[40]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4159,7 +4566,7 @@ func (x *AddDependencyResponse) String() string {
 func (*AddDependencyResponse) ProtoMessage() {}
 
 func (x *AddDependencyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[40]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4172,7 +4579,7 @@ func (x *AddDependencyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddDependencyResponse.ProtoReflect.Descriptor instead.
 func (*AddDependencyResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{40}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *AddDependencyResponse) GetDependency() *Dependency {
@@ -4195,7 +4602,7 @@ type RemoveDependencyRequest struct {
 
 func (x *RemoveDependencyRequest) Reset() {
 	*x = RemoveDependencyRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[41]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4207,7 +4614,7 @@ func (x *RemoveDependencyRequest) String() string {
 func (*RemoveDependencyRequest) ProtoMessage() {}
 
 func (x *RemoveDependencyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[41]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4220,7 +4627,7 @@ func (x *RemoveDependencyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveDependencyRequest.ProtoReflect.Descriptor instead.
 func (*RemoveDependencyRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{41}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *RemoveDependencyRequest) GetBlockerTaskId() string {
@@ -4246,7 +4653,7 @@ type RemoveDependencyResponse struct {
 
 func (x *RemoveDependencyResponse) Reset() {
 	*x = RemoveDependencyResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[42]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4258,7 +4665,7 @@ func (x *RemoveDependencyResponse) String() string {
 func (*RemoveDependencyResponse) ProtoMessage() {}
 
 func (x *RemoveDependencyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[42]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4271,7 +4678,7 @@ func (x *RemoveDependencyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveDependencyResponse.ProtoReflect.Descriptor instead.
 func (*RemoveDependencyResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{42}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{49}
 }
 
 // AttachPullRequestRequest は GitHub の pull request を task に紐づける。
@@ -4287,7 +4694,7 @@ type AttachPullRequestRequest struct {
 
 func (x *AttachPullRequestRequest) Reset() {
 	*x = AttachPullRequestRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[43]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4299,7 +4706,7 @@ func (x *AttachPullRequestRequest) String() string {
 func (*AttachPullRequestRequest) ProtoMessage() {}
 
 func (x *AttachPullRequestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[43]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4312,7 +4719,7 @@ func (x *AttachPullRequestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AttachPullRequestRequest.ProtoReflect.Descriptor instead.
 func (*AttachPullRequestRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{43}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *AttachPullRequestRequest) GetTaskId() string {
@@ -4340,7 +4747,7 @@ type AttachPullRequestResponse struct {
 
 func (x *AttachPullRequestResponse) Reset() {
 	*x = AttachPullRequestResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[44]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4352,7 +4759,7 @@ func (x *AttachPullRequestResponse) String() string {
 func (*AttachPullRequestResponse) ProtoMessage() {}
 
 func (x *AttachPullRequestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[44]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4365,7 +4772,7 @@ func (x *AttachPullRequestResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AttachPullRequestResponse.ProtoReflect.Descriptor instead.
 func (*AttachPullRequestResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{44}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *AttachPullRequestResponse) GetPullRequest() *PullRequest {
@@ -4386,7 +4793,7 @@ type DetachPullRequestRequest struct {
 
 func (x *DetachPullRequestRequest) Reset() {
 	*x = DetachPullRequestRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[45]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4398,7 +4805,7 @@ func (x *DetachPullRequestRequest) String() string {
 func (*DetachPullRequestRequest) ProtoMessage() {}
 
 func (x *DetachPullRequestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[45]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4411,7 +4818,7 @@ func (x *DetachPullRequestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DetachPullRequestRequest.ProtoReflect.Descriptor instead.
 func (*DetachPullRequestRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{45}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *DetachPullRequestRequest) GetTaskId() string {
@@ -4430,7 +4837,7 @@ type DetachPullRequestResponse struct {
 
 func (x *DetachPullRequestResponse) Reset() {
 	*x = DetachPullRequestResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[46]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4442,7 +4849,7 @@ func (x *DetachPullRequestResponse) String() string {
 func (*DetachPullRequestResponse) ProtoMessage() {}
 
 func (x *DetachPullRequestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[46]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4455,15 +4862,15 @@ func (x *DetachPullRequestResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DetachPullRequestResponse.ProtoReflect.Descriptor instead.
 func (*DetachPullRequestResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{46}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{53}
 }
 
 // AddDocumentRequest は document の取得元を 1 つの親のもとに登録する。
 type AddDocumentRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// feature_id は project_id と task_id が空のとき、親 feature を示す。
+	// feature_id は feature に添付するときだけ指定する。
 	FeatureId string `protobuf:"bytes,1,opt,name=feature_id,json=featureId,proto3" json:"feature_id,omitempty"`
-	// task_id は project_id と feature_id が空のとき、親 task を示す。
+	// task_id は task に添付するときだけ指定する。
 	TaskId string `protobuf:"bytes,2,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
 	// title は人が読む document のラベル。
 	Title string `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
@@ -4477,15 +4884,17 @@ type AddDocumentRequest struct {
 	Source isAddDocumentRequest_Source `protobuf_oneof:"source"`
 	// is_implementation_plan はこの task document を計画として印付ける。
 	IsImplementationPlan bool `protobuf:"varint,7,opt,name=is_implementation_plan,json=isImplementationPlan,proto3" json:"is_implementation_plan,omitempty"`
-	// project_id は feature_id と task_id が空のとき、親 project を示す。
-	ProjectId     string `protobuf:"bytes,8,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	// project_id は project に添付するときだけ指定する。
+	ProjectId string `protobuf:"bytes,8,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	// group_id は task group に添付するときだけ指定する。
+	GroupId       string `protobuf:"bytes,9,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AddDocumentRequest) Reset() {
 	*x = AddDocumentRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[47]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4497,7 +4906,7 @@ func (x *AddDocumentRequest) String() string {
 func (*AddDocumentRequest) ProtoMessage() {}
 
 func (x *AddDocumentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[47]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4510,7 +4919,7 @@ func (x *AddDocumentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddDocumentRequest.ProtoReflect.Descriptor instead.
 func (*AddDocumentRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{47}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *AddDocumentRequest) GetFeatureId() string {
@@ -4582,6 +4991,13 @@ func (x *AddDocumentRequest) GetProjectId() string {
 	return ""
 }
 
+func (x *AddDocumentRequest) GetGroupId() string {
+	if x != nil {
+		return x.GroupId
+	}
+	return ""
+}
+
 type isAddDocumentRequest_Source interface {
 	isAddDocumentRequest_Source()
 }
@@ -4618,7 +5034,7 @@ type AddDocumentResponse struct {
 
 func (x *AddDocumentResponse) Reset() {
 	*x = AddDocumentResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[48]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4630,7 +5046,7 @@ func (x *AddDocumentResponse) String() string {
 func (*AddDocumentResponse) ProtoMessage() {}
 
 func (x *AddDocumentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[48]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4643,7 +5059,7 @@ func (x *AddDocumentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddDocumentResponse.ProtoReflect.Descriptor instead.
 func (*AddDocumentResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{48}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *AddDocumentResponse) GetDocument() *Document {
@@ -4664,7 +5080,7 @@ type GetDocumentRequest struct {
 
 func (x *GetDocumentRequest) Reset() {
 	*x = GetDocumentRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[49]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4676,7 +5092,7 @@ func (x *GetDocumentRequest) String() string {
 func (*GetDocumentRequest) ProtoMessage() {}
 
 func (x *GetDocumentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[49]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4689,7 +5105,7 @@ func (x *GetDocumentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDocumentRequest.ProtoReflect.Descriptor instead.
 func (*GetDocumentRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{49}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *GetDocumentRequest) GetId() string {
@@ -4712,7 +5128,7 @@ type GetDocumentResponse struct {
 
 func (x *GetDocumentResponse) Reset() {
 	*x = GetDocumentResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[50]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4724,7 +5140,7 @@ func (x *GetDocumentResponse) String() string {
 func (*GetDocumentResponse) ProtoMessage() {}
 
 func (x *GetDocumentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[50]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4737,7 +5153,7 @@ func (x *GetDocumentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDocumentResponse.ProtoReflect.Descriptor instead.
 func (*GetDocumentResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{50}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *GetDocumentResponse) GetDocument() *Document {
@@ -4777,7 +5193,7 @@ type UpdateDocumentRequest struct {
 
 func (x *UpdateDocumentRequest) Reset() {
 	*x = UpdateDocumentRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[51]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4789,7 +5205,7 @@ func (x *UpdateDocumentRequest) String() string {
 func (*UpdateDocumentRequest) ProtoMessage() {}
 
 func (x *UpdateDocumentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[51]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4802,7 +5218,7 @@ func (x *UpdateDocumentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateDocumentRequest.ProtoReflect.Descriptor instead.
 func (*UpdateDocumentRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{51}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *UpdateDocumentRequest) GetId() string {
@@ -4896,7 +5312,7 @@ type UpdateDocumentResponse struct {
 
 func (x *UpdateDocumentResponse) Reset() {
 	*x = UpdateDocumentResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[52]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4908,7 +5324,7 @@ func (x *UpdateDocumentResponse) String() string {
 func (*UpdateDocumentResponse) ProtoMessage() {}
 
 func (x *UpdateDocumentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[52]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4921,7 +5337,7 @@ func (x *UpdateDocumentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateDocumentResponse.ProtoReflect.Descriptor instead.
 func (*UpdateDocumentResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{52}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *UpdateDocumentResponse) GetDocument() *Document {
@@ -4942,7 +5358,7 @@ type DeleteDocumentRequest struct {
 
 func (x *DeleteDocumentRequest) Reset() {
 	*x = DeleteDocumentRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[53]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4954,7 +5370,7 @@ func (x *DeleteDocumentRequest) String() string {
 func (*DeleteDocumentRequest) ProtoMessage() {}
 
 func (x *DeleteDocumentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[53]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4967,7 +5383,7 @@ func (x *DeleteDocumentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteDocumentRequest.ProtoReflect.Descriptor instead.
 func (*DeleteDocumentRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{53}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *DeleteDocumentRequest) GetId() string {
@@ -4986,7 +5402,7 @@ type DeleteDocumentResponse struct {
 
 func (x *DeleteDocumentResponse) Reset() {
 	*x = DeleteDocumentResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[54]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4998,7 +5414,7 @@ func (x *DeleteDocumentResponse) String() string {
 func (*DeleteDocumentResponse) ProtoMessage() {}
 
 func (x *DeleteDocumentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[54]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5011,7 +5427,7 @@ func (x *DeleteDocumentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteDocumentResponse.ProtoReflect.Descriptor instead.
 func (*DeleteDocumentResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{54}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{61}
 }
 
 // ReadDocumentContentRequest は読み取る登録済み document を示す。
@@ -5025,7 +5441,7 @@ type ReadDocumentContentRequest struct {
 
 func (x *ReadDocumentContentRequest) Reset() {
 	*x = ReadDocumentContentRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[55]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5037,7 +5453,7 @@ func (x *ReadDocumentContentRequest) String() string {
 func (*ReadDocumentContentRequest) ProtoMessage() {}
 
 func (x *ReadDocumentContentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[55]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5050,7 +5466,7 @@ func (x *ReadDocumentContentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReadDocumentContentRequest.ProtoReflect.Descriptor instead.
 func (*ReadDocumentContentRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{55}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *ReadDocumentContentRequest) GetId() string {
@@ -5071,7 +5487,7 @@ type ReadDocumentContentResponse struct {
 
 func (x *ReadDocumentContentResponse) Reset() {
 	*x = ReadDocumentContentResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[56]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5083,7 +5499,7 @@ func (x *ReadDocumentContentResponse) String() string {
 func (*ReadDocumentContentResponse) ProtoMessage() {}
 
 func (x *ReadDocumentContentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[56]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5096,7 +5512,7 @@ func (x *ReadDocumentContentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReadDocumentContentResponse.ProtoReflect.Descriptor instead.
 func (*ReadDocumentContentResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{56}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *ReadDocumentContentResponse) GetContent() string {
@@ -5115,7 +5531,7 @@ type SelectLocalFileRequest struct {
 
 func (x *SelectLocalFileRequest) Reset() {
 	*x = SelectLocalFileRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[57]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5127,7 +5543,7 @@ func (x *SelectLocalFileRequest) String() string {
 func (*SelectLocalFileRequest) ProtoMessage() {}
 
 func (x *SelectLocalFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[57]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5140,7 +5556,7 @@ func (x *SelectLocalFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SelectLocalFileRequest.ProtoReflect.Descriptor instead.
 func (*SelectLocalFileRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{57}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{64}
 }
 
 // SelectLocalFileResponse は選択されたサーバー上の絶対パスを返す。
@@ -5156,7 +5572,7 @@ type SelectLocalFileResponse struct {
 
 func (x *SelectLocalFileResponse) Reset() {
 	*x = SelectLocalFileResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[58]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5168,7 +5584,7 @@ func (x *SelectLocalFileResponse) String() string {
 func (*SelectLocalFileResponse) ProtoMessage() {}
 
 func (x *SelectLocalFileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[58]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5181,7 +5597,7 @@ func (x *SelectLocalFileResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SelectLocalFileResponse.ProtoReflect.Descriptor instead.
 func (*SelectLocalFileResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{58}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *SelectLocalFileResponse) GetPath() string {
@@ -5217,7 +5633,7 @@ type GitHubHost struct {
 
 func (x *GitHubHost) Reset() {
 	*x = GitHubHost{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[59]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5229,7 +5645,7 @@ func (x *GitHubHost) String() string {
 func (*GitHubHost) ProtoMessage() {}
 
 func (x *GitHubHost) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[59]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5242,7 +5658,7 @@ func (x *GitHubHost) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GitHubHost.ProtoReflect.Descriptor instead.
 func (*GitHubHost) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{59}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{66}
 }
 
 func (x *GitHubHost) GetHost() string {
@@ -5308,7 +5724,7 @@ type GitHubAuthMethod struct {
 
 func (x *GitHubAuthMethod) Reset() {
 	*x = GitHubAuthMethod{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[60]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5320,7 +5736,7 @@ func (x *GitHubAuthMethod) String() string {
 func (*GitHubAuthMethod) ProtoMessage() {}
 
 func (x *GitHubAuthMethod) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[60]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5333,7 +5749,7 @@ func (x *GitHubAuthMethod) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GitHubAuthMethod.ProtoReflect.Descriptor instead.
 func (*GitHubAuthMethod) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{60}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{67}
 }
 
 func (x *GitHubAuthMethod) GetId() string {
@@ -5429,7 +5845,7 @@ type GitHubConfig struct {
 
 func (x *GitHubConfig) Reset() {
 	*x = GitHubConfig{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[61]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5441,7 +5857,7 @@ func (x *GitHubConfig) String() string {
 func (*GitHubConfig) ProtoMessage() {}
 
 func (x *GitHubConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[61]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5454,7 +5870,7 @@ func (x *GitHubConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GitHubConfig.ProtoReflect.Descriptor instead.
 func (*GitHubConfig) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{61}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *GitHubConfig) GetVersion() int32 {
@@ -5536,7 +5952,7 @@ type GetConfigRequest struct {
 
 func (x *GetConfigRequest) Reset() {
 	*x = GetConfigRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[62]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5548,7 +5964,7 @@ func (x *GetConfigRequest) String() string {
 func (*GetConfigRequest) ProtoMessage() {}
 
 func (x *GetConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[62]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5561,7 +5977,7 @@ func (x *GetConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetConfigRequest.ProtoReflect.Descriptor instead.
 func (*GetConfigRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{62}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{69}
 }
 
 // GetConfigResponse は公開の GitHub 設定を返す。
@@ -5575,7 +5991,7 @@ type GetConfigResponse struct {
 
 func (x *GetConfigResponse) Reset() {
 	*x = GetConfigResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[63]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5587,7 +6003,7 @@ func (x *GetConfigResponse) String() string {
 func (*GetConfigResponse) ProtoMessage() {}
 
 func (x *GetConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[63]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5600,7 +6016,7 @@ func (x *GetConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetConfigResponse.ProtoReflect.Descriptor instead.
 func (*GetConfigResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{63}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{70}
 }
 
 func (x *GetConfigResponse) GetConfig() *GitHubConfig {
@@ -5619,7 +6035,7 @@ type GetTaskLabelConfigRequest struct {
 
 func (x *GetTaskLabelConfigRequest) Reset() {
 	*x = GetTaskLabelConfigRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[64]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5631,7 +6047,7 @@ func (x *GetTaskLabelConfigRequest) String() string {
 func (*GetTaskLabelConfigRequest) ProtoMessage() {}
 
 func (x *GetTaskLabelConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[64]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5644,7 +6060,7 @@ func (x *GetTaskLabelConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTaskLabelConfigRequest.ProtoReflect.Descriptor instead.
 func (*GetTaskLabelConfigRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{64}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{71}
 }
 
 // TaskLabelConfig は global 上書き、組み込み表示、検証規則をまとめる。
@@ -5664,7 +6080,7 @@ type TaskLabelConfig struct {
 
 func (x *TaskLabelConfig) Reset() {
 	*x = TaskLabelConfig{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[65]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[72]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5676,7 +6092,7 @@ func (x *TaskLabelConfig) String() string {
 func (*TaskLabelConfig) ProtoMessage() {}
 
 func (x *TaskLabelConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[65]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[72]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5689,7 +6105,7 @@ func (x *TaskLabelConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TaskLabelConfig.ProtoReflect.Descriptor instead.
 func (*TaskLabelConfig) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{65}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{72}
 }
 
 func (x *TaskLabelConfig) GetOverrides() *TaskLabelOverrides {
@@ -5731,7 +6147,7 @@ type GetTaskLabelConfigResponse struct {
 
 func (x *GetTaskLabelConfigResponse) Reset() {
 	*x = GetTaskLabelConfigResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[66]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5743,7 +6159,7 @@ func (x *GetTaskLabelConfigResponse) String() string {
 func (*GetTaskLabelConfigResponse) ProtoMessage() {}
 
 func (x *GetTaskLabelConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[66]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5756,7 +6172,7 @@ func (x *GetTaskLabelConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTaskLabelConfigResponse.ProtoReflect.Descriptor instead.
 func (*GetTaskLabelConfigResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{66}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{73}
 }
 
 func (x *GetTaskLabelConfigResponse) GetConfig() *TaskLabelConfig {
@@ -5777,7 +6193,7 @@ type UpdateTaskLabelConfigRequest struct {
 
 func (x *UpdateTaskLabelConfigRequest) Reset() {
 	*x = UpdateTaskLabelConfigRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[67]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5789,7 +6205,7 @@ func (x *UpdateTaskLabelConfigRequest) String() string {
 func (*UpdateTaskLabelConfigRequest) ProtoMessage() {}
 
 func (x *UpdateTaskLabelConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[67]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5802,7 +6218,7 @@ func (x *UpdateTaskLabelConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateTaskLabelConfigRequest.ProtoReflect.Descriptor instead.
 func (*UpdateTaskLabelConfigRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{67}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{74}
 }
 
 func (x *UpdateTaskLabelConfigRequest) GetOverrides() *TaskLabelOverridesUpdate {
@@ -5823,7 +6239,7 @@ type UpdateTaskLabelConfigResponse struct {
 
 func (x *UpdateTaskLabelConfigResponse) Reset() {
 	*x = UpdateTaskLabelConfigResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[68]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[75]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5835,7 +6251,7 @@ func (x *UpdateTaskLabelConfigResponse) String() string {
 func (*UpdateTaskLabelConfigResponse) ProtoMessage() {}
 
 func (x *UpdateTaskLabelConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[68]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[75]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5848,7 +6264,7 @@ func (x *UpdateTaskLabelConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateTaskLabelConfigResponse.ProtoReflect.Descriptor instead.
 func (*UpdateTaskLabelConfigResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{68}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{75}
 }
 
 func (x *UpdateTaskLabelConfigResponse) GetConfig() *TaskLabelConfig {
@@ -5869,7 +6285,7 @@ type UpdateGitHubSyncConfigRequest struct {
 
 func (x *UpdateGitHubSyncConfigRequest) Reset() {
 	*x = UpdateGitHubSyncConfigRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[69]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[76]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5881,7 +6297,7 @@ func (x *UpdateGitHubSyncConfigRequest) String() string {
 func (*UpdateGitHubSyncConfigRequest) ProtoMessage() {}
 
 func (x *UpdateGitHubSyncConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[69]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[76]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5894,7 +6310,7 @@ func (x *UpdateGitHubSyncConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateGitHubSyncConfigRequest.ProtoReflect.Descriptor instead.
 func (*UpdateGitHubSyncConfigRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{69}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{76}
 }
 
 func (x *UpdateGitHubSyncConfigRequest) GetIntervalSeconds() int64 {
@@ -5915,7 +6331,7 @@ type UpdateGitHubSyncConfigResponse struct {
 
 func (x *UpdateGitHubSyncConfigResponse) Reset() {
 	*x = UpdateGitHubSyncConfigResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[70]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[77]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5927,7 +6343,7 @@ func (x *UpdateGitHubSyncConfigResponse) String() string {
 func (*UpdateGitHubSyncConfigResponse) ProtoMessage() {}
 
 func (x *UpdateGitHubSyncConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[70]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[77]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5940,7 +6356,7 @@ func (x *UpdateGitHubSyncConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateGitHubSyncConfigResponse.ProtoReflect.Descriptor instead.
 func (*UpdateGitHubSyncConfigResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{70}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{77}
 }
 
 func (x *UpdateGitHubSyncConfigResponse) GetConfig() *GitHubConfig {
@@ -5961,7 +6377,7 @@ type UpdateLanguageConfigRequest struct {
 
 func (x *UpdateLanguageConfigRequest) Reset() {
 	*x = UpdateLanguageConfigRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[71]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[78]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5973,7 +6389,7 @@ func (x *UpdateLanguageConfigRequest) String() string {
 func (*UpdateLanguageConfigRequest) ProtoMessage() {}
 
 func (x *UpdateLanguageConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[71]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[78]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5986,7 +6402,7 @@ func (x *UpdateLanguageConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateLanguageConfigRequest.ProtoReflect.Descriptor instead.
 func (*UpdateLanguageConfigRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{71}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{78}
 }
 
 func (x *UpdateLanguageConfigRequest) GetLanguage() string {
@@ -6007,7 +6423,7 @@ type UpdateLanguageConfigResponse struct {
 
 func (x *UpdateLanguageConfigResponse) Reset() {
 	*x = UpdateLanguageConfigResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[72]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[79]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6019,7 +6435,7 @@ func (x *UpdateLanguageConfigResponse) String() string {
 func (*UpdateLanguageConfigResponse) ProtoMessage() {}
 
 func (x *UpdateLanguageConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[72]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[79]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6032,7 +6448,7 @@ func (x *UpdateLanguageConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateLanguageConfigResponse.ProtoReflect.Descriptor instead.
 func (*UpdateLanguageConfigResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{72}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{79}
 }
 
 func (x *UpdateLanguageConfigResponse) GetConfig() *GitHubConfig {
@@ -6061,7 +6477,7 @@ type AddGitHubHostRequest struct {
 
 func (x *AddGitHubHostRequest) Reset() {
 	*x = AddGitHubHostRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[73]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[80]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6073,7 +6489,7 @@ func (x *AddGitHubHostRequest) String() string {
 func (*AddGitHubHostRequest) ProtoMessage() {}
 
 func (x *AddGitHubHostRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[73]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[80]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6086,7 +6502,7 @@ func (x *AddGitHubHostRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddGitHubHostRequest.ProtoReflect.Descriptor instead.
 func (*AddGitHubHostRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{73}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{80}
 }
 
 func (x *AddGitHubHostRequest) GetHost() string {
@@ -6135,7 +6551,7 @@ type AddGitHubHostResponse struct {
 
 func (x *AddGitHubHostResponse) Reset() {
 	*x = AddGitHubHostResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[74]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[81]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6147,7 +6563,7 @@ func (x *AddGitHubHostResponse) String() string {
 func (*AddGitHubHostResponse) ProtoMessage() {}
 
 func (x *AddGitHubHostResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[74]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[81]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6160,7 +6576,7 @@ func (x *AddGitHubHostResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddGitHubHostResponse.ProtoReflect.Descriptor instead.
 func (*AddGitHubHostResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{74}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{81}
 }
 
 func (x *AddGitHubHostResponse) GetHost() *GitHubHost {
@@ -6191,7 +6607,7 @@ type UpdateGitHubHostRequest struct {
 
 func (x *UpdateGitHubHostRequest) Reset() {
 	*x = UpdateGitHubHostRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[75]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6203,7 +6619,7 @@ func (x *UpdateGitHubHostRequest) String() string {
 func (*UpdateGitHubHostRequest) ProtoMessage() {}
 
 func (x *UpdateGitHubHostRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[75]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6216,7 +6632,7 @@ func (x *UpdateGitHubHostRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateGitHubHostRequest.ProtoReflect.Descriptor instead.
 func (*UpdateGitHubHostRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{75}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{82}
 }
 
 func (x *UpdateGitHubHostRequest) GetHost() string {
@@ -6272,7 +6688,7 @@ type UpdateGitHubHostResponse struct {
 
 func (x *UpdateGitHubHostResponse) Reset() {
 	*x = UpdateGitHubHostResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[76]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6284,7 +6700,7 @@ func (x *UpdateGitHubHostResponse) String() string {
 func (*UpdateGitHubHostResponse) ProtoMessage() {}
 
 func (x *UpdateGitHubHostResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[76]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6297,7 +6713,7 @@ func (x *UpdateGitHubHostResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateGitHubHostResponse.ProtoReflect.Descriptor instead.
 func (*UpdateGitHubHostResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{76}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{83}
 }
 
 func (x *UpdateGitHubHostResponse) GetHost() *GitHubHost {
@@ -6318,7 +6734,7 @@ type DeleteGitHubHostRequest struct {
 
 func (x *DeleteGitHubHostRequest) Reset() {
 	*x = DeleteGitHubHostRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[77]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6330,7 +6746,7 @@ func (x *DeleteGitHubHostRequest) String() string {
 func (*DeleteGitHubHostRequest) ProtoMessage() {}
 
 func (x *DeleteGitHubHostRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[77]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6343,7 +6759,7 @@ func (x *DeleteGitHubHostRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteGitHubHostRequest.ProtoReflect.Descriptor instead.
 func (*DeleteGitHubHostRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{77}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{84}
 }
 
 func (x *DeleteGitHubHostRequest) GetHost() string {
@@ -6362,7 +6778,7 @@ type DeleteGitHubHostResponse struct {
 
 func (x *DeleteGitHubHostResponse) Reset() {
 	*x = DeleteGitHubHostResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[78]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[85]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6374,7 +6790,7 @@ func (x *DeleteGitHubHostResponse) String() string {
 func (*DeleteGitHubHostResponse) ProtoMessage() {}
 
 func (x *DeleteGitHubHostResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[78]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[85]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6387,7 +6803,7 @@ func (x *DeleteGitHubHostResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteGitHubHostResponse.ProtoReflect.Descriptor instead.
 func (*DeleteGitHubHostResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{78}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{85}
 }
 
 // AddGitHubAuthMethodRequest は host 単位の認証方法を 1 つ追加する。
@@ -6415,7 +6831,7 @@ type AddGitHubAuthMethodRequest struct {
 
 func (x *AddGitHubAuthMethodRequest) Reset() {
 	*x = AddGitHubAuthMethodRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[79]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[86]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6427,7 +6843,7 @@ func (x *AddGitHubAuthMethodRequest) String() string {
 func (*AddGitHubAuthMethodRequest) ProtoMessage() {}
 
 func (x *AddGitHubAuthMethodRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[79]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[86]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6440,7 +6856,7 @@ func (x *AddGitHubAuthMethodRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddGitHubAuthMethodRequest.ProtoReflect.Descriptor instead.
 func (*AddGitHubAuthMethodRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{79}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{86}
 }
 
 func (x *AddGitHubAuthMethodRequest) GetId() string {
@@ -6510,7 +6926,7 @@ type AddGitHubAuthMethodResponse struct {
 
 func (x *AddGitHubAuthMethodResponse) Reset() {
 	*x = AddGitHubAuthMethodResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[80]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6522,7 +6938,7 @@ func (x *AddGitHubAuthMethodResponse) String() string {
 func (*AddGitHubAuthMethodResponse) ProtoMessage() {}
 
 func (x *AddGitHubAuthMethodResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[80]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6535,7 +6951,7 @@ func (x *AddGitHubAuthMethodResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddGitHubAuthMethodResponse.ProtoReflect.Descriptor instead.
 func (*AddGitHubAuthMethodResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{80}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{87}
 }
 
 func (x *AddGitHubAuthMethodResponse) GetAuthMethod() *GitHubAuthMethod {
@@ -6572,7 +6988,7 @@ type UpdateGitHubAuthMethodRequest struct {
 
 func (x *UpdateGitHubAuthMethodRequest) Reset() {
 	*x = UpdateGitHubAuthMethodRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[81]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[88]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6584,7 +7000,7 @@ func (x *UpdateGitHubAuthMethodRequest) String() string {
 func (*UpdateGitHubAuthMethodRequest) ProtoMessage() {}
 
 func (x *UpdateGitHubAuthMethodRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[81]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[88]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6597,7 +7013,7 @@ func (x *UpdateGitHubAuthMethodRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateGitHubAuthMethodRequest.ProtoReflect.Descriptor instead.
 func (*UpdateGitHubAuthMethodRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{81}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{88}
 }
 
 func (x *UpdateGitHubAuthMethodRequest) GetId() string {
@@ -6674,7 +7090,7 @@ type UpdateGitHubAuthMethodResponse struct {
 
 func (x *UpdateGitHubAuthMethodResponse) Reset() {
 	*x = UpdateGitHubAuthMethodResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[82]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[89]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6686,7 +7102,7 @@ func (x *UpdateGitHubAuthMethodResponse) String() string {
 func (*UpdateGitHubAuthMethodResponse) ProtoMessage() {}
 
 func (x *UpdateGitHubAuthMethodResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[82]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[89]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6699,7 +7115,7 @@ func (x *UpdateGitHubAuthMethodResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateGitHubAuthMethodResponse.ProtoReflect.Descriptor instead.
 func (*UpdateGitHubAuthMethodResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{82}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{89}
 }
 
 func (x *UpdateGitHubAuthMethodResponse) GetAuthMethod() *GitHubAuthMethod {
@@ -6720,7 +7136,7 @@ type DeleteGitHubAuthMethodRequest struct {
 
 func (x *DeleteGitHubAuthMethodRequest) Reset() {
 	*x = DeleteGitHubAuthMethodRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[83]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[90]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6732,7 +7148,7 @@ func (x *DeleteGitHubAuthMethodRequest) String() string {
 func (*DeleteGitHubAuthMethodRequest) ProtoMessage() {}
 
 func (x *DeleteGitHubAuthMethodRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[83]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[90]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6745,7 +7161,7 @@ func (x *DeleteGitHubAuthMethodRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteGitHubAuthMethodRequest.ProtoReflect.Descriptor instead.
 func (*DeleteGitHubAuthMethodRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{83}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{90}
 }
 
 func (x *DeleteGitHubAuthMethodRequest) GetId() string {
@@ -6764,7 +7180,7 @@ type DeleteGitHubAuthMethodResponse struct {
 
 func (x *DeleteGitHubAuthMethodResponse) Reset() {
 	*x = DeleteGitHubAuthMethodResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[84]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[91]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6776,7 +7192,7 @@ func (x *DeleteGitHubAuthMethodResponse) String() string {
 func (*DeleteGitHubAuthMethodResponse) ProtoMessage() {}
 
 func (x *DeleteGitHubAuthMethodResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[84]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[91]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6789,7 +7205,7 @@ func (x *DeleteGitHubAuthMethodResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteGitHubAuthMethodResponse.ProtoReflect.Descriptor instead.
 func (*DeleteGitHubAuthMethodResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{84}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{91}
 }
 
 // ReorderGitHubAuthMethodsRequest は認証の優先順位をすべて設定する。
@@ -6803,7 +7219,7 @@ type ReorderGitHubAuthMethodsRequest struct {
 
 func (x *ReorderGitHubAuthMethodsRequest) Reset() {
 	*x = ReorderGitHubAuthMethodsRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[85]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[92]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6815,7 +7231,7 @@ func (x *ReorderGitHubAuthMethodsRequest) String() string {
 func (*ReorderGitHubAuthMethodsRequest) ProtoMessage() {}
 
 func (x *ReorderGitHubAuthMethodsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[85]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[92]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6828,7 +7244,7 @@ func (x *ReorderGitHubAuthMethodsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReorderGitHubAuthMethodsRequest.ProtoReflect.Descriptor instead.
 func (*ReorderGitHubAuthMethodsRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{85}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{92}
 }
 
 func (x *ReorderGitHubAuthMethodsRequest) GetIds() []string {
@@ -6849,7 +7265,7 @@ type ReorderGitHubAuthMethodsResponse struct {
 
 func (x *ReorderGitHubAuthMethodsResponse) Reset() {
 	*x = ReorderGitHubAuthMethodsResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[86]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[93]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6861,7 +7277,7 @@ func (x *ReorderGitHubAuthMethodsResponse) String() string {
 func (*ReorderGitHubAuthMethodsResponse) ProtoMessage() {}
 
 func (x *ReorderGitHubAuthMethodsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[86]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[93]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6874,7 +7290,7 @@ func (x *ReorderGitHubAuthMethodsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReorderGitHubAuthMethodsResponse.ProtoReflect.Descriptor instead.
 func (*ReorderGitHubAuthMethodsResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{86}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{93}
 }
 
 func (x *ReorderGitHubAuthMethodsResponse) GetAuthMethods() []*GitHubAuthMethod {
@@ -6893,7 +7309,7 @@ type ValidateConfigRequest struct {
 
 func (x *ValidateConfigRequest) Reset() {
 	*x = ValidateConfigRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[87]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[94]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6905,7 +7321,7 @@ func (x *ValidateConfigRequest) String() string {
 func (*ValidateConfigRequest) ProtoMessage() {}
 
 func (x *ValidateConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[87]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[94]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6918,7 +7334,7 @@ func (x *ValidateConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ValidateConfigRequest.ProtoReflect.Descriptor instead.
 func (*ValidateConfigRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{87}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{94}
 }
 
 // ValidateConfigResponse は設定の検証に成功したかを報告する。
@@ -6937,7 +7353,7 @@ type ValidateConfigResponse struct {
 
 func (x *ValidateConfigResponse) Reset() {
 	*x = ValidateConfigResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[88]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[95]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6949,7 +7365,7 @@ func (x *ValidateConfigResponse) String() string {
 func (*ValidateConfigResponse) ProtoMessage() {}
 
 func (x *ValidateConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[88]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[95]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6962,7 +7378,7 @@ func (x *ValidateConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ValidateConfigResponse.ProtoReflect.Descriptor instead.
 func (*ValidateConfigResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{88}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{95}
 }
 
 func (x *ValidateConfigResponse) GetValid() bool {
@@ -7005,7 +7421,7 @@ type PromptTemplates struct {
 
 func (x *PromptTemplates) Reset() {
 	*x = PromptTemplates{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[89]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[96]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7017,7 +7433,7 @@ func (x *PromptTemplates) String() string {
 func (*PromptTemplates) ProtoMessage() {}
 
 func (x *PromptTemplates) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[89]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[96]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7030,7 +7446,7 @@ func (x *PromptTemplates) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PromptTemplates.ProtoReflect.Descriptor instead.
 func (*PromptTemplates) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{89}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{96}
 }
 
 func (x *PromptTemplates) GetDesign() string {
@@ -7070,7 +7486,7 @@ type GetPromptTemplatesRequest struct {
 
 func (x *GetPromptTemplatesRequest) Reset() {
 	*x = GetPromptTemplatesRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[90]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[97]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7082,7 +7498,7 @@ func (x *GetPromptTemplatesRequest) String() string {
 func (*GetPromptTemplatesRequest) ProtoMessage() {}
 
 func (x *GetPromptTemplatesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[90]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[97]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7095,7 +7511,7 @@ func (x *GetPromptTemplatesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPromptTemplatesRequest.ProtoReflect.Descriptor instead.
 func (*GetPromptTemplatesRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{90}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{97}
 }
 
 // GetPromptTemplatesResponse は保存されたエージェント用テンプレートを返す。
@@ -7125,7 +7541,7 @@ type GetPromptTemplatesResponse struct {
 
 func (x *GetPromptTemplatesResponse) Reset() {
 	*x = GetPromptTemplatesResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[91]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[98]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7137,7 +7553,7 @@ func (x *GetPromptTemplatesResponse) String() string {
 func (*GetPromptTemplatesResponse) ProtoMessage() {}
 
 func (x *GetPromptTemplatesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[91]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[98]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7150,7 +7566,7 @@ func (x *GetPromptTemplatesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPromptTemplatesResponse.ProtoReflect.Descriptor instead.
 func (*GetPromptTemplatesResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{91}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{98}
 }
 
 func (x *GetPromptTemplatesResponse) GetTemplates() *PromptTemplates {
@@ -7215,7 +7631,7 @@ type UpdatePromptTemplatesRequest struct {
 
 func (x *UpdatePromptTemplatesRequest) Reset() {
 	*x = UpdatePromptTemplatesRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[92]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[99]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7227,7 +7643,7 @@ func (x *UpdatePromptTemplatesRequest) String() string {
 func (*UpdatePromptTemplatesRequest) ProtoMessage() {}
 
 func (x *UpdatePromptTemplatesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[92]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[99]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7240,7 +7656,7 @@ func (x *UpdatePromptTemplatesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePromptTemplatesRequest.ProtoReflect.Descriptor instead.
 func (*UpdatePromptTemplatesRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{92}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{99}
 }
 
 func (x *UpdatePromptTemplatesRequest) GetDesign() string {
@@ -7282,7 +7698,7 @@ type UpdatePromptTemplatesResponse struct {
 
 func (x *UpdatePromptTemplatesResponse) Reset() {
 	*x = UpdatePromptTemplatesResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[93]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[100]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7294,7 +7710,7 @@ func (x *UpdatePromptTemplatesResponse) String() string {
 func (*UpdatePromptTemplatesResponse) ProtoMessage() {}
 
 func (x *UpdatePromptTemplatesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[93]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[100]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7307,7 +7723,7 @@ func (x *UpdatePromptTemplatesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePromptTemplatesResponse.ProtoReflect.Descriptor instead.
 func (*UpdatePromptTemplatesResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{93}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{100}
 }
 
 func (x *UpdatePromptTemplatesResponse) GetTemplates() *PromptTemplates {
@@ -7330,7 +7746,7 @@ type GetTaskPromptRequest struct {
 
 func (x *GetTaskPromptRequest) Reset() {
 	*x = GetTaskPromptRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[94]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[101]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7342,7 +7758,7 @@ func (x *GetTaskPromptRequest) String() string {
 func (*GetTaskPromptRequest) ProtoMessage() {}
 
 func (x *GetTaskPromptRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[94]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[101]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7355,7 +7771,7 @@ func (x *GetTaskPromptRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTaskPromptRequest.ProtoReflect.Descriptor instead.
 func (*GetTaskPromptRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{94}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{101}
 }
 
 func (x *GetTaskPromptRequest) GetTaskId() string {
@@ -7387,7 +7803,7 @@ type GetTaskPromptResponse struct {
 
 func (x *GetTaskPromptResponse) Reset() {
 	*x = GetTaskPromptResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[95]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[102]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7399,7 +7815,7 @@ func (x *GetTaskPromptResponse) String() string {
 func (*GetTaskPromptResponse) ProtoMessage() {}
 
 func (x *GetTaskPromptResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[95]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[102]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7412,7 +7828,7 @@ func (x *GetTaskPromptResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTaskPromptResponse.ProtoReflect.Descriptor instead.
 func (*GetTaskPromptResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{95}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{102}
 }
 
 func (x *GetTaskPromptResponse) GetTaskId() string {
@@ -7452,7 +7868,7 @@ type GetBatchPromptRequest struct {
 
 func (x *GetBatchPromptRequest) Reset() {
 	*x = GetBatchPromptRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[96]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[103]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7464,7 +7880,7 @@ func (x *GetBatchPromptRequest) String() string {
 func (*GetBatchPromptRequest) ProtoMessage() {}
 
 func (x *GetBatchPromptRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[96]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[103]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7477,7 +7893,7 @@ func (x *GetBatchPromptRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBatchPromptRequest.ProtoReflect.Descriptor instead.
 func (*GetBatchPromptRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{96}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{103}
 }
 
 func (x *GetBatchPromptRequest) GetFeatureId() string {
@@ -7518,7 +7934,7 @@ type GetBatchPromptResponse struct {
 
 func (x *GetBatchPromptResponse) Reset() {
 	*x = GetBatchPromptResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[97]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[104]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7530,7 +7946,7 @@ func (x *GetBatchPromptResponse) String() string {
 func (*GetBatchPromptResponse) ProtoMessage() {}
 
 func (x *GetBatchPromptResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[97]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[104]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7543,7 +7959,7 @@ func (x *GetBatchPromptResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBatchPromptResponse.ProtoReflect.Descriptor instead.
 func (*GetBatchPromptResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{97}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{104}
 }
 
 func (x *GetBatchPromptResponse) GetFeatureId() string {
@@ -7588,7 +8004,7 @@ type SyncRequest struct {
 
 func (x *SyncRequest) Reset() {
 	*x = SyncRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[98]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[105]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7600,7 +8016,7 @@ func (x *SyncRequest) String() string {
 func (*SyncRequest) ProtoMessage() {}
 
 func (x *SyncRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[98]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[105]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7613,7 +8029,7 @@ func (x *SyncRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SyncRequest.ProtoReflect.Descriptor instead.
 func (*SyncRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{98}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{105}
 }
 
 func (x *SyncRequest) GetFeatureId() string {
@@ -7644,7 +8060,7 @@ type SyncResponse struct {
 
 func (x *SyncResponse) Reset() {
 	*x = SyncResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[99]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[106]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7656,7 +8072,7 @@ func (x *SyncResponse) String() string {
 func (*SyncResponse) ProtoMessage() {}
 
 func (x *SyncResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[99]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[106]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7669,7 +8085,7 @@ func (x *SyncResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SyncResponse.ProtoReflect.Descriptor instead.
 func (*SyncResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{99}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{106}
 }
 
 func (x *SyncResponse) GetSucceeded() int32 {
@@ -7708,7 +8124,7 @@ type GitHubSyncStatus struct {
 
 func (x *GitHubSyncStatus) Reset() {
 	*x = GitHubSyncStatus{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[100]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[107]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7720,7 +8136,7 @@ func (x *GitHubSyncStatus) String() string {
 func (*GitHubSyncStatus) ProtoMessage() {}
 
 func (x *GitHubSyncStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[100]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[107]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7733,7 +8149,7 @@ func (x *GitHubSyncStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GitHubSyncStatus.ProtoReflect.Descriptor instead.
 func (*GitHubSyncStatus) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{100}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{107}
 }
 
 func (x *GitHubSyncStatus) GetIntervalSeconds() int64 {
@@ -7787,7 +8203,7 @@ type GetGitHubSyncStatusRequest struct {
 
 func (x *GetGitHubSyncStatusRequest) Reset() {
 	*x = GetGitHubSyncStatusRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[101]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[108]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7799,7 +8215,7 @@ func (x *GetGitHubSyncStatusRequest) String() string {
 func (*GetGitHubSyncStatusRequest) ProtoMessage() {}
 
 func (x *GetGitHubSyncStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[101]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[108]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7812,7 +8228,7 @@ func (x *GetGitHubSyncStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetGitHubSyncStatusRequest.ProtoReflect.Descriptor instead.
 func (*GetGitHubSyncStatusRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{101}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{108}
 }
 
 // GetGitHubSyncStatusResponse は保存された同期状況を返す。
@@ -7826,7 +8242,7 @@ type GetGitHubSyncStatusResponse struct {
 
 func (x *GetGitHubSyncStatusResponse) Reset() {
 	*x = GetGitHubSyncStatusResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[102]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[109]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7838,7 +8254,7 @@ func (x *GetGitHubSyncStatusResponse) String() string {
 func (*GetGitHubSyncStatusResponse) ProtoMessage() {}
 
 func (x *GetGitHubSyncStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[102]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[109]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7851,7 +8267,7 @@ func (x *GetGitHubSyncStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetGitHubSyncStatusResponse.ProtoReflect.Descriptor instead.
 func (*GetGitHubSyncStatusResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{102}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{109}
 }
 
 func (x *GetGitHubSyncStatusResponse) GetStatus() *GitHubSyncStatus {
@@ -7870,7 +8286,7 @@ type SyncGitHubIfDueRequest struct {
 
 func (x *SyncGitHubIfDueRequest) Reset() {
 	*x = SyncGitHubIfDueRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[103]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[110]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7882,7 +8298,7 @@ func (x *SyncGitHubIfDueRequest) String() string {
 func (*SyncGitHubIfDueRequest) ProtoMessage() {}
 
 func (x *SyncGitHubIfDueRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[103]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[110]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7895,7 +8311,7 @@ func (x *SyncGitHubIfDueRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SyncGitHubIfDueRequest.ProtoReflect.Descriptor instead.
 func (*SyncGitHubIfDueRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{103}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{110}
 }
 
 // SyncGitHubIfDueResponse は呼び出し側が実行を確保したかと、その結果の状況を報告する。
@@ -7911,7 +8327,7 @@ type SyncGitHubIfDueResponse struct {
 
 func (x *SyncGitHubIfDueResponse) Reset() {
 	*x = SyncGitHubIfDueResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[104]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[111]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7923,7 +8339,7 @@ func (x *SyncGitHubIfDueResponse) String() string {
 func (*SyncGitHubIfDueResponse) ProtoMessage() {}
 
 func (x *SyncGitHubIfDueResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[104]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[111]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7936,7 +8352,7 @@ func (x *SyncGitHubIfDueResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SyncGitHubIfDueResponse.ProtoReflect.Descriptor instead.
 func (*SyncGitHubIfDueResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{104}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{111}
 }
 
 func (x *SyncGitHubIfDueResponse) GetRan() bool {
@@ -7970,7 +8386,7 @@ type UpdateRelease struct {
 
 func (x *UpdateRelease) Reset() {
 	*x = UpdateRelease{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[105]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[112]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7982,7 +8398,7 @@ func (x *UpdateRelease) String() string {
 func (*UpdateRelease) ProtoMessage() {}
 
 func (x *UpdateRelease) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[105]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[112]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7995,7 +8411,7 @@ func (x *UpdateRelease) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateRelease.ProtoReflect.Descriptor instead.
 func (*UpdateRelease) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{105}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{112}
 }
 
 func (x *UpdateRelease) GetVersion() string {
@@ -8055,7 +8471,7 @@ type UpdateStatus struct {
 
 func (x *UpdateStatus) Reset() {
 	*x = UpdateStatus{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[106]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[113]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8067,7 +8483,7 @@ func (x *UpdateStatus) String() string {
 func (*UpdateStatus) ProtoMessage() {}
 
 func (x *UpdateStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[106]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[113]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8080,7 +8496,7 @@ func (x *UpdateStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateStatus.ProtoReflect.Descriptor instead.
 func (*UpdateStatus) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{106}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{113}
 }
 
 func (x *UpdateStatus) GetEnabled() bool {
@@ -8162,7 +8578,7 @@ type GetUpdateStatusRequest struct {
 
 func (x *GetUpdateStatusRequest) Reset() {
 	*x = GetUpdateStatusRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[107]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[114]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8174,7 +8590,7 @@ func (x *GetUpdateStatusRequest) String() string {
 func (*GetUpdateStatusRequest) ProtoMessage() {}
 
 func (x *GetUpdateStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[107]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[114]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8187,7 +8603,7 @@ func (x *GetUpdateStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUpdateStatusRequest.ProtoReflect.Descriptor instead.
 func (*GetUpdateStatusRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{107}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{114}
 }
 
 // GetUpdateStatusResponse は更新の状況を返す。
@@ -8201,7 +8617,7 @@ type GetUpdateStatusResponse struct {
 
 func (x *GetUpdateStatusResponse) Reset() {
 	*x = GetUpdateStatusResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[108]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[115]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8213,7 +8629,7 @@ func (x *GetUpdateStatusResponse) String() string {
 func (*GetUpdateStatusResponse) ProtoMessage() {}
 
 func (x *GetUpdateStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[108]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[115]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8226,7 +8642,7 @@ func (x *GetUpdateStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUpdateStatusResponse.ProtoReflect.Descriptor instead.
 func (*GetUpdateStatusResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{108}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{115}
 }
 
 func (x *GetUpdateStatusResponse) GetStatus() *UpdateStatus {
@@ -8247,7 +8663,7 @@ type SkipUpdateVersionRequest struct {
 
 func (x *SkipUpdateVersionRequest) Reset() {
 	*x = SkipUpdateVersionRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[109]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[116]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8259,7 +8675,7 @@ func (x *SkipUpdateVersionRequest) String() string {
 func (*SkipUpdateVersionRequest) ProtoMessage() {}
 
 func (x *SkipUpdateVersionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[109]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[116]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8272,7 +8688,7 @@ func (x *SkipUpdateVersionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SkipUpdateVersionRequest.ProtoReflect.Descriptor instead.
 func (*SkipUpdateVersionRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{109}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{116}
 }
 
 func (x *SkipUpdateVersionRequest) GetVersion() string {
@@ -8293,7 +8709,7 @@ type SkipUpdateVersionResponse struct {
 
 func (x *SkipUpdateVersionResponse) Reset() {
 	*x = SkipUpdateVersionResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[110]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[117]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8305,7 +8721,7 @@ func (x *SkipUpdateVersionResponse) String() string {
 func (*SkipUpdateVersionResponse) ProtoMessage() {}
 
 func (x *SkipUpdateVersionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[110]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[117]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8318,7 +8734,7 @@ func (x *SkipUpdateVersionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SkipUpdateVersionResponse.ProtoReflect.Descriptor instead.
 func (*SkipUpdateVersionResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{110}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{117}
 }
 
 func (x *SkipUpdateVersionResponse) GetStatus() *UpdateStatus {
@@ -8339,7 +8755,7 @@ type ApplyUpdateRequest struct {
 
 func (x *ApplyUpdateRequest) Reset() {
 	*x = ApplyUpdateRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[111]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[118]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8351,7 +8767,7 @@ func (x *ApplyUpdateRequest) String() string {
 func (*ApplyUpdateRequest) ProtoMessage() {}
 
 func (x *ApplyUpdateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[111]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[118]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8364,7 +8780,7 @@ func (x *ApplyUpdateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApplyUpdateRequest.ProtoReflect.Descriptor instead.
 func (*ApplyUpdateRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{111}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{118}
 }
 
 func (x *ApplyUpdateRequest) GetVersion() string {
@@ -8390,7 +8806,7 @@ type ApplyUpdateResponse struct {
 
 func (x *ApplyUpdateResponse) Reset() {
 	*x = ApplyUpdateResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[112]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[119]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8402,7 +8818,7 @@ func (x *ApplyUpdateResponse) String() string {
 func (*ApplyUpdateResponse) ProtoMessage() {}
 
 func (x *ApplyUpdateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[112]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[119]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8415,7 +8831,7 @@ func (x *ApplyUpdateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApplyUpdateResponse.ProtoReflect.Descriptor instead.
 func (*ApplyUpdateResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{112}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{119}
 }
 
 func (x *ApplyUpdateResponse) GetVersion() string {
@@ -8448,7 +8864,7 @@ type ValidateRequest struct {
 
 func (x *ValidateRequest) Reset() {
 	*x = ValidateRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[113]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[120]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8460,7 +8876,7 @@ func (x *ValidateRequest) String() string {
 func (*ValidateRequest) ProtoMessage() {}
 
 func (x *ValidateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[113]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[120]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8473,7 +8889,7 @@ func (x *ValidateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ValidateRequest.ProtoReflect.Descriptor instead.
 func (*ValidateRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{113}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{120}
 }
 
 // ValidateResponse はデータベースの整合性検査に通ったかを報告する。
@@ -8489,7 +8905,7 @@ type ValidateResponse struct {
 
 func (x *ValidateResponse) Reset() {
 	*x = ValidateResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[114]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[121]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8501,7 +8917,7 @@ func (x *ValidateResponse) String() string {
 func (*ValidateResponse) ProtoMessage() {}
 
 func (x *ValidateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[114]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[121]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8514,7 +8930,7 @@ func (x *ValidateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ValidateResponse.ProtoReflect.Descriptor instead.
 func (*ValidateResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{114}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{121}
 }
 
 func (x *ValidateResponse) GetValid() bool {
@@ -8548,7 +8964,7 @@ type DebugProblem struct {
 
 func (x *DebugProblem) Reset() {
 	*x = DebugProblem{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[115]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[122]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8560,7 +8976,7 @@ func (x *DebugProblem) String() string {
 func (*DebugProblem) ProtoMessage() {}
 
 func (x *DebugProblem) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[115]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[122]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8573,7 +8989,7 @@ func (x *DebugProblem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DebugProblem.ProtoReflect.Descriptor instead.
 func (*DebugProblem) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{115}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{122}
 }
 
 func (x *DebugProblem) GetCode() DebugProblemCode {
@@ -8623,7 +9039,7 @@ type DebugBuild struct {
 
 func (x *DebugBuild) Reset() {
 	*x = DebugBuild{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[116]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[123]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8635,7 +9051,7 @@ func (x *DebugBuild) String() string {
 func (*DebugBuild) ProtoMessage() {}
 
 func (x *DebugBuild) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[116]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[123]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8648,7 +9064,7 @@ func (x *DebugBuild) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DebugBuild.ProtoReflect.Descriptor instead.
 func (*DebugBuild) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{116}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{123}
 }
 
 func (x *DebugBuild) GetVersion() string {
@@ -8711,7 +9127,7 @@ type DebugRuntime struct {
 
 func (x *DebugRuntime) Reset() {
 	*x = DebugRuntime{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[117]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[124]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8723,7 +9139,7 @@ func (x *DebugRuntime) String() string {
 func (*DebugRuntime) ProtoMessage() {}
 
 func (x *DebugRuntime) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[117]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[124]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8736,7 +9152,7 @@ func (x *DebugRuntime) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DebugRuntime.ProtoReflect.Descriptor instead.
 func (*DebugRuntime) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{117}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{124}
 }
 
 func (x *DebugRuntime) GetMode() string {
@@ -8827,7 +9243,7 @@ type DebugDaemon struct {
 
 func (x *DebugDaemon) Reset() {
 	*x = DebugDaemon{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[118]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[125]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8839,7 +9255,7 @@ func (x *DebugDaemon) String() string {
 func (*DebugDaemon) ProtoMessage() {}
 
 func (x *DebugDaemon) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[118]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[125]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8852,7 +9268,7 @@ func (x *DebugDaemon) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DebugDaemon.ProtoReflect.Descriptor instead.
 func (*DebugDaemon) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{118}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{125}
 }
 
 func (x *DebugDaemon) GetSupported() bool {
@@ -8945,7 +9361,7 @@ type DebugEnvironmentVariable struct {
 
 func (x *DebugEnvironmentVariable) Reset() {
 	*x = DebugEnvironmentVariable{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[119]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[126]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8957,7 +9373,7 @@ func (x *DebugEnvironmentVariable) String() string {
 func (*DebugEnvironmentVariable) ProtoMessage() {}
 
 func (x *DebugEnvironmentVariable) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[119]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[126]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8970,7 +9386,7 @@ func (x *DebugEnvironmentVariable) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DebugEnvironmentVariable.ProtoReflect.Descriptor instead.
 func (*DebugEnvironmentVariable) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{119}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{126}
 }
 
 func (x *DebugEnvironmentVariable) GetName() string {
@@ -9012,7 +9428,7 @@ type DebugPaths struct {
 
 func (x *DebugPaths) Reset() {
 	*x = DebugPaths{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[120]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[127]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9024,7 +9440,7 @@ func (x *DebugPaths) String() string {
 func (*DebugPaths) ProtoMessage() {}
 
 func (x *DebugPaths) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[120]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[127]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9037,7 +9453,7 @@ func (x *DebugPaths) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DebugPaths.ProtoReflect.Descriptor instead.
 func (*DebugPaths) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{120}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{127}
 }
 
 func (x *DebugPaths) GetDatabasePath() string {
@@ -9111,7 +9527,7 @@ type DebugConfigHost struct {
 
 func (x *DebugConfigHost) Reset() {
 	*x = DebugConfigHost{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[121]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[128]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9123,7 +9539,7 @@ func (x *DebugConfigHost) String() string {
 func (*DebugConfigHost) ProtoMessage() {}
 
 func (x *DebugConfigHost) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[121]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[128]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9136,7 +9552,7 @@ func (x *DebugConfigHost) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DebugConfigHost.ProtoReflect.Descriptor instead.
 func (*DebugConfigHost) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{121}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{128}
 }
 
 func (x *DebugConfigHost) GetHost() string {
@@ -9177,7 +9593,7 @@ type DebugConfigAuthMethod struct {
 
 func (x *DebugConfigAuthMethod) Reset() {
 	*x = DebugConfigAuthMethod{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[122]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[129]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9189,7 +9605,7 @@ func (x *DebugConfigAuthMethod) String() string {
 func (*DebugConfigAuthMethod) ProtoMessage() {}
 
 func (x *DebugConfigAuthMethod) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[122]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[129]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9202,7 +9618,7 @@ func (x *DebugConfigAuthMethod) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DebugConfigAuthMethod.ProtoReflect.Descriptor instead.
 func (*DebugConfigAuthMethod) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{122}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{129}
 }
 
 func (x *DebugConfigAuthMethod) GetId() string {
@@ -9256,7 +9672,7 @@ type DebugConfig struct {
 
 func (x *DebugConfig) Reset() {
 	*x = DebugConfig{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[123]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[130]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9268,7 +9684,7 @@ func (x *DebugConfig) String() string {
 func (*DebugConfig) ProtoMessage() {}
 
 func (x *DebugConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[123]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[130]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9281,7 +9697,7 @@ func (x *DebugConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DebugConfig.ProtoReflect.Descriptor instead.
 func (*DebugConfig) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{123}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{130}
 }
 
 func (x *DebugConfig) GetVersion() int32 {
@@ -9356,7 +9772,7 @@ type DebugDatabaseFile struct {
 
 func (x *DebugDatabaseFile) Reset() {
 	*x = DebugDatabaseFile{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[124]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[131]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9368,7 +9784,7 @@ func (x *DebugDatabaseFile) String() string {
 func (*DebugDatabaseFile) ProtoMessage() {}
 
 func (x *DebugDatabaseFile) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[124]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[131]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9381,7 +9797,7 @@ func (x *DebugDatabaseFile) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DebugDatabaseFile.ProtoReflect.Descriptor instead.
 func (*DebugDatabaseFile) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{124}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{131}
 }
 
 func (x *DebugDatabaseFile) GetApplicable() bool {
@@ -9456,7 +9872,7 @@ type DebugStorage struct {
 
 func (x *DebugStorage) Reset() {
 	*x = DebugStorage{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[125]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[132]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9468,7 +9884,7 @@ func (x *DebugStorage) String() string {
 func (*DebugStorage) ProtoMessage() {}
 
 func (x *DebugStorage) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[125]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[132]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9481,7 +9897,7 @@ func (x *DebugStorage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DebugStorage.ProtoReflect.Descriptor instead.
 func (*DebugStorage) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{125}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{132}
 }
 
 func (x *DebugStorage) GetAppliedSchemaVersion() int32 {
@@ -9546,7 +9962,7 @@ type DebugCount struct {
 
 func (x *DebugCount) Reset() {
 	*x = DebugCount{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[126]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[133]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9558,7 +9974,7 @@ func (x *DebugCount) String() string {
 func (*DebugCount) ProtoMessage() {}
 
 func (x *DebugCount) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[126]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[133]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9571,7 +9987,7 @@ func (x *DebugCount) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DebugCount.ProtoReflect.Descriptor instead.
 func (*DebugCount) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{126}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{133}
 }
 
 func (x *DebugCount) GetName() string {
@@ -9623,7 +10039,7 @@ type DebugData struct {
 
 func (x *DebugData) Reset() {
 	*x = DebugData{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[127]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[134]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9635,7 +10051,7 @@ func (x *DebugData) String() string {
 func (*DebugData) ProtoMessage() {}
 
 func (x *DebugData) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[127]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[134]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9648,7 +10064,7 @@ func (x *DebugData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DebugData.ProtoReflect.Descriptor instead.
 func (*DebugData) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{127}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{134}
 }
 
 func (x *DebugData) GetFeatures() int32 {
@@ -9755,7 +10171,7 @@ type DebugSyncFailure struct {
 
 func (x *DebugSyncFailure) Reset() {
 	*x = DebugSyncFailure{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[128]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[135]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9767,7 +10183,7 @@ func (x *DebugSyncFailure) String() string {
 func (*DebugSyncFailure) ProtoMessage() {}
 
 func (x *DebugSyncFailure) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[128]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[135]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9780,7 +10196,7 @@ func (x *DebugSyncFailure) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DebugSyncFailure.ProtoReflect.Descriptor instead.
 func (*DebugSyncFailure) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{128}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{135}
 }
 
 func (x *DebugSyncFailure) GetScope() string {
@@ -9814,7 +10230,7 @@ type DebugErrorGroup struct {
 
 func (x *DebugErrorGroup) Reset() {
 	*x = DebugErrorGroup{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[129]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[136]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9826,7 +10242,7 @@ func (x *DebugErrorGroup) String() string {
 func (*DebugErrorGroup) ProtoMessage() {}
 
 func (x *DebugErrorGroup) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[129]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[136]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9839,7 +10255,7 @@ func (x *DebugErrorGroup) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DebugErrorGroup.ProtoReflect.Descriptor instead.
 func (*DebugErrorGroup) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{129}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{136}
 }
 
 func (x *DebugErrorGroup) GetMessage() string {
@@ -9889,7 +10305,7 @@ type DebugAuthCacheEntry struct {
 
 func (x *DebugAuthCacheEntry) Reset() {
 	*x = DebugAuthCacheEntry{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[130]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[137]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9901,7 +10317,7 @@ func (x *DebugAuthCacheEntry) String() string {
 func (*DebugAuthCacheEntry) ProtoMessage() {}
 
 func (x *DebugAuthCacheEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[130]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[137]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9914,7 +10330,7 @@ func (x *DebugAuthCacheEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DebugAuthCacheEntry.ProtoReflect.Descriptor instead.
 func (*DebugAuthCacheEntry) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{130}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{137}
 }
 
 func (x *DebugAuthCacheEntry) GetHost() string {
@@ -9989,7 +10405,7 @@ type DebugGitHubSync struct {
 
 func (x *DebugGitHubSync) Reset() {
 	*x = DebugGitHubSync{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[131]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[138]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10001,7 +10417,7 @@ func (x *DebugGitHubSync) String() string {
 func (*DebugGitHubSync) ProtoMessage() {}
 
 func (x *DebugGitHubSync) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[131]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[138]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10014,7 +10430,7 @@ func (x *DebugGitHubSync) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DebugGitHubSync.ProtoReflect.Descriptor instead.
 func (*DebugGitHubSync) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{131}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{138}
 }
 
 func (x *DebugGitHubSync) GetStatus() *GitHubSyncStatus {
@@ -10143,7 +10559,7 @@ type DebugReport struct {
 
 func (x *DebugReport) Reset() {
 	*x = DebugReport{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[132]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[139]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10155,7 +10571,7 @@ func (x *DebugReport) String() string {
 func (*DebugReport) ProtoMessage() {}
 
 func (x *DebugReport) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[132]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[139]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10168,7 +10584,7 @@ func (x *DebugReport) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DebugReport.ProtoReflect.Descriptor instead.
 func (*DebugReport) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{132}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{139}
 }
 
 func (x *DebugReport) GetProblems() []*DebugProblem {
@@ -10243,7 +10659,7 @@ type GetDebugReportRequest struct {
 
 func (x *GetDebugReportRequest) Reset() {
 	*x = GetDebugReportRequest{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[133]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[140]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10255,7 +10671,7 @@ func (x *GetDebugReportRequest) String() string {
 func (*GetDebugReportRequest) ProtoMessage() {}
 
 func (x *GetDebugReportRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[133]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[140]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10268,7 +10684,7 @@ func (x *GetDebugReportRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDebugReportRequest.ProtoReflect.Descriptor instead.
 func (*GetDebugReportRequest) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{133}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{140}
 }
 
 // GetDebugReportResponse は診断レポートと、その整形済みテキストを返す。
@@ -10284,7 +10700,7 @@ type GetDebugReportResponse struct {
 
 func (x *GetDebugReportResponse) Reset() {
 	*x = GetDebugReportResponse{}
-	mi := &file_nnx_v1_nnx_proto_msgTypes[134]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[141]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10296,7 +10712,7 @@ func (x *GetDebugReportResponse) String() string {
 func (*GetDebugReportResponse) ProtoMessage() {}
 
 func (x *GetDebugReportResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nnx_v1_nnx_proto_msgTypes[134]
+	mi := &file_nnx_v1_nnx_proto_msgTypes[141]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10309,7 +10725,7 @@ func (x *GetDebugReportResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDebugReportResponse.ProtoReflect.Descriptor instead.
 func (*GetDebugReportResponse) Descriptor() ([]byte, []int) {
-	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{134}
+	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{141}
 }
 
 func (x *GetDebugReportResponse) GetReport() *DebugReport {
@@ -10413,7 +10829,7 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"\x0ftext_overridden\x18\x04 \x01(\bR\x0etextOverridden\x12)\n" +
 	"\x10color_overridden\x18\x05 \x01(\bR\x0fcolorOverridden\"K\n" +
 	"\x14TaskLabelAppearances\x123\n" +
-	"\x06values\x18\x01 \x03(\v2\x1b.nnx.v1.TaskLabelAppearanceR\x06values\"\xc9\x04\n" +
+	"\x06values\x18\x01 \x03(\v2\x1b.nnx.v1.TaskLabelAppearanceR\x06values\"\xe4\x04\n" +
 	"\x04Task\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -10432,7 +10848,8 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"\x17has_implementation_plan\x18\r \x01(\bR\x15hasImplementationPlan\x127\n" +
 	"\x18pending_blocker_task_ids\x18\x0e \x03(\tR\x15pendingBlockerTaskIds\x129\n" +
 	"\fblock_labels\x18\x0f \x03(\x0e2\x16.nnx.v1.TaskBlockLabelR\vblockLabels\x12$\n" +
-	"\x04kind\x18\x10 \x01(\x0e2\x10.nnx.v1.TaskKindR\x04kindJ\x04\b\x04\x10\x05J\x04\b\x05\x10\x06R\x05scope\"{\n" +
+	"\x04kind\x18\x10 \x01(\x0e2\x10.nnx.v1.TaskKindR\x04kind\x12\x19\n" +
+	"\bgroup_id\x18\x11 \x01(\tR\agroupIdJ\x04\b\x04\x10\x05J\x04\b\x05\x10\x06R\x05scope\"{\n" +
 	"\n" +
 	"Dependency\x12&\n" +
 	"\x0fblocker_task_id\x18\x01 \x01(\tR\rblockerTaskId\x12&\n" +
@@ -10466,7 +10883,7 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"\x14changes_requested_at\x18\x14 \x01(\tR\x12changesRequestedAt\x12$\n" +
 	"\x0elast_pushed_at\x18\x15 \x01(\tR\flastPushedAt\x123\n" +
 	"\vcheck_state\x18\x16 \x01(\x0e2\x12.nnx.v1.CheckStateR\n" +
-	"checkState\"\xbf\x02\n" +
+	"checkState\"\xda\x02\n" +
 	"\bDocument\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -10482,7 +10899,8 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"updated_at\x18\t \x01(\tR\tupdatedAt\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\n" +
-	" \x01(\tR\tprojectId\"\xfd\x03\n" +
+	" \x01(\tR\tprojectId\x12\x19\n" +
+	"\bgroup_id\x18\v \x01(\tR\agroupId\"\xb1\x04\n" +
 	"\bSnapshot\x12+\n" +
 	"\bfeatures\x18\x01 \x03(\v2\x0f.nnx.v1.FeatureR\bfeatures\x12\"\n" +
 	"\x05tasks\x18\x02 \x03(\v2\f.nnx.v1.TaskR\x05tasks\x126\n" +
@@ -10496,7 +10914,9 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"\vstale_tasks\x18\t \x03(\v2\f.nnx.v1.TaskR\n" +
 	"staleTasks\x12+\n" +
 	"\bprojects\x18\n" +
-	" \x03(\v2\x0f.nnx.v1.ProjectR\bprojects\"\x14\n" +
+	" \x03(\v2\x0f.nnx.v1.ProjectR\bprojects\x122\n" +
+	"\vtask_groups\x18\v \x03(\v2\x11.nnx.v1.TaskGroupR\n" +
+	"taskGroups\"\x14\n" +
 	"\x12GetSnapshotRequest\"C\n" +
 	"\x13GetSnapshotResponse\x12,\n" +
 	"\bsnapshot\x18\x01 \x01(\v2\x10.nnx.v1.SnapshotR\bsnapshot\"\x16\n" +
@@ -10555,31 +10975,56 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"\x14DeleteFeatureRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\acascade\x18\x02 \x01(\bR\acascade\"\x17\n" +
-	"\x15DeleteFeatureResponse\"\x9d\x01\n" +
+	"\x15DeleteFeatureResponse\"\xb8\x01\n" +
 	"\x11CreateTaskRequest\x12\x1d\n" +
 	"\n" +
 	"feature_id\x18\x01 \x01(\tR\tfeatureId\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x1a\n" +
 	"\bassignee\x18\x05 \x01(\tR\bassignee\x12$\n" +
-	"\x04kind\x18\x06 \x01(\x0e2\x10.nnx.v1.TaskKindR\x04kindJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05R\x05scope\"6\n" +
+	"\x04kind\x18\x06 \x01(\x0e2\x10.nnx.v1.TaskKindR\x04kind\x12\x19\n" +
+	"\bgroup_id\x18\a \x01(\tR\agroupIdJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05R\x05scope\"6\n" +
 	"\x12CreateTaskResponse\x12 \n" +
-	"\x04task\x18\x01 \x01(\v2\f.nnx.v1.TaskR\x04task\"\xf3\x01\n" +
+	"\x04task\x18\x01 \x01(\v2\f.nnx.v1.TaskR\x04task\"\xa0\x02\n" +
 	"\x11UpdateTaskRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x19\n" +
 	"\x05title\x18\x02 \x01(\tH\x00R\x05title\x88\x01\x01\x12/\n" +
 	"\x06status\x18\x04 \x01(\x0e2\x12.nnx.v1.TaskStatusH\x01R\x06status\x88\x01\x01\x12\x1f\n" +
 	"\bassignee\x18\x05 \x01(\tH\x02R\bassignee\x88\x01\x01\x12)\n" +
-	"\x04kind\x18\x06 \x01(\x0e2\x10.nnx.v1.TaskKindH\x03R\x04kind\x88\x01\x01B\b\n" +
+	"\x04kind\x18\x06 \x01(\x0e2\x10.nnx.v1.TaskKindH\x03R\x04kind\x88\x01\x01\x12\x1e\n" +
+	"\bgroup_id\x18\a \x01(\tH\x04R\agroupId\x88\x01\x01B\b\n" +
 	"\x06_titleB\t\n" +
 	"\a_statusB\v\n" +
 	"\t_assigneeB\a\n" +
-	"\x05_kindJ\x04\b\x03\x10\x04R\x05scope\"6\n" +
+	"\x05_kindB\v\n" +
+	"\t_group_idJ\x04\b\x03\x10\x04R\x05scope\"6\n" +
 	"\x12UpdateTaskResponse\x12 \n" +
 	"\x04task\x18\x01 \x01(\v2\f.nnx.v1.TaskR\x04task\"=\n" +
 	"\x11DeleteTaskRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\acascade\x18\x02 \x01(\bR\acascade\"\x14\n" +
-	"\x12DeleteTaskResponse\"f\n" +
+	"\x12DeleteTaskResponse\"N\n" +
+	"\tTaskGroup\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
+	"\n" +
+	"feature_id\x18\x02 \x01(\tR\tfeatureId\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\"K\n" +
+	"\x16CreateTaskGroupRequest\x12\x1d\n" +
+	"\n" +
+	"feature_id\x18\x01 \x01(\tR\tfeatureId\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\"K\n" +
+	"\x17CreateTaskGroupResponse\x120\n" +
+	"\n" +
+	"task_group\x18\x01 \x01(\v2\x11.nnx.v1.TaskGroupR\ttaskGroup\"<\n" +
+	"\x16RenameTaskGroupRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\"K\n" +
+	"\x17RenameTaskGroupResponse\x120\n" +
+	"\n" +
+	"task_group\x18\x01 \x01(\v2\x11.nnx.v1.TaskGroupR\ttaskGroup\"B\n" +
+	"\x16DeleteTaskGroupRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
+	"\acascade\x18\x02 \x01(\bR\acascade\"\x19\n" +
+	"\x17DeleteTaskGroupResponse\"f\n" +
 	"\x14AddDependencyRequest\x12&\n" +
 	"\x0fblocker_task_id\x18\x01 \x01(\tR\rblockerTaskId\x12&\n" +
 	"\x0fblocked_task_id\x18\x02 \x01(\tR\rblockedTaskId\"K\n" +
@@ -10598,7 +11043,7 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"\fpull_request\x18\x01 \x01(\v2\x13.nnx.v1.PullRequestR\vpullRequest\"3\n" +
 	"\x18DetachPullRequestRequest\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\"\x1b\n" +
-	"\x19DetachPullRequestResponse\"\x94\x02\n" +
+	"\x19DetachPullRequestResponse\"\xaf\x02\n" +
 	"\x12AddDocumentRequest\x12\x1d\n" +
 	"\n" +
 	"feature_id\x18\x01 \x01(\tR\tfeatureId\x12\x17\n" +
@@ -10610,7 +11055,8 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"\bmarkdown\x18\x06 \x01(\tH\x00R\bmarkdown\x124\n" +
 	"\x16is_implementation_plan\x18\a \x01(\bR\x14isImplementationPlan\x12\x1d\n" +
 	"\n" +
-	"project_id\x18\b \x01(\tR\tprojectIdB\b\n" +
+	"project_id\x18\b \x01(\tR\tprojectId\x12\x19\n" +
+	"\bgroup_id\x18\t \x01(\tR\agroupIdB\b\n" +
 	"\x06source\"C\n" +
 	"\x13AddDocumentResponse\x12,\n" +
 	"\bdocument\x18\x01 \x01(\v2\x10.nnx.v1.DocumentR\bdocument\"$\n" +
@@ -11117,7 +11563,7 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"\x11BlockedReasonCode\x12#\n" +
 	"\x1fBLOCKED_REASON_CODE_UNSPECIFIED\x10\x00\x122\n" +
 	".BLOCKED_REASON_CODE_DEPENDENCY_DATA_INCOMPLETE\x10\x01\x12+\n" +
-	"'BLOCKED_REASON_CODE_WAITING_FOR_BLOCKER\x10\x03\"\x04\b\x02\x10\x02*\xd7\v\n" +
+	"'BLOCKED_REASON_CODE_WAITING_FOR_BLOCKER\x10\x03\"\x04\b\x02\x10\x02*\x88\f\n" +
 	"\x0fDomainErrorCode\x12!\n" +
 	"\x1dDOMAIN_ERROR_CODE_UNSPECIFIED\x10\x00\x12.\n" +
 	"*DOMAIN_ERROR_CODE_CROSS_FEATURE_DEPENDENCY\x10\x02\x12\x1b\n" +
@@ -11149,7 +11595,8 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"\x1fDOMAIN_ERROR_CODE_UPDATE_FAILED\x10!\x12(\n" +
 	"$DOMAIN_ERROR_CODE_INVALID_TASK_LABEL\x10\"\x12'\n" +
 	"#DOMAIN_ERROR_CODE_INVALID_TASK_KIND\x10#\x12/\n" +
-	"+DOMAIN_ERROR_CODE_PULL_REQUEST_ON_WORK_TASK\x10$\"\x04\b\n" +
+	"+DOMAIN_ERROR_CODE_PULL_REQUEST_ON_WORK_TASK\x10$\x12/\n" +
+	"+DOMAIN_ERROR_CODE_DUPLICATE_TASK_GROUP_NAME\x10%\"\x04\b\n" +
 	"\x10\n" +
 	"\"\x04\b\r\x10\r\"\x04\b\x0e\x10\x0e\"\x04\b\x13\x10\x13\"\x04\b\x14\x10\x14*\x1eDOMAIN_ERROR_CODE_INVALID_KIND*\x1eDOMAIN_ERROR_CODE_INVALID_SEED*\x1eDOMAIN_ERROR_CODE_INVALID_SLUG*-DOMAIN_ERROR_CODE_PULL_REQUEST_ON_MANUAL_TASK*\xd6\x01\n" +
 	"\x14GithubAuthMethodType\x12'\n" +
@@ -11184,7 +11631,7 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"\"UPDATE_DISABLED_REASON_UNSPECIFIED\x10\x00\x12,\n" +
 	"(UPDATE_DISABLED_REASON_DEVELOPMENT_BUILD\x10\x01\x12\x1f\n" +
 	"\x1bUPDATE_DISABLED_REASON_DEMO\x10\x02\x12.\n" +
-	"*UPDATE_DISABLED_REASON_EXCLUDED_FROM_BUILD\x10\x032\x94\x1e\n" +
+	"*UPDATE_DISABLED_REASON_EXCLUDED_FROM_BUILD\x10\x032\x90 \n" +
 	"\n" +
 	"NNXService\x12F\n" +
 	"\vGetSnapshot\x12\x1a.nnx.v1.GetSnapshotRequest\x1a\x1b.nnx.v1.GetSnapshotResponse\x12N\n" +
@@ -11200,7 +11647,10 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"\n" +
 	"UpdateTask\x12\x19.nnx.v1.UpdateTaskRequest\x1a\x1a.nnx.v1.UpdateTaskResponse\x12C\n" +
 	"\n" +
-	"DeleteTask\x12\x19.nnx.v1.DeleteTaskRequest\x1a\x1a.nnx.v1.DeleteTaskResponse\x12L\n" +
+	"DeleteTask\x12\x19.nnx.v1.DeleteTaskRequest\x1a\x1a.nnx.v1.DeleteTaskResponse\x12R\n" +
+	"\x0fCreateTaskGroup\x12\x1e.nnx.v1.CreateTaskGroupRequest\x1a\x1f.nnx.v1.CreateTaskGroupResponse\x12R\n" +
+	"\x0fRenameTaskGroup\x12\x1e.nnx.v1.RenameTaskGroupRequest\x1a\x1f.nnx.v1.RenameTaskGroupResponse\x12R\n" +
+	"\x0fDeleteTaskGroup\x12\x1e.nnx.v1.DeleteTaskGroupRequest\x1a\x1f.nnx.v1.DeleteTaskGroupResponse\x12L\n" +
 	"\rAddDependency\x12\x1c.nnx.v1.AddDependencyRequest\x1a\x1d.nnx.v1.AddDependencyResponse\x12U\n" +
 	"\x10RemoveDependency\x12\x1f.nnx.v1.RemoveDependencyRequest\x1a .nnx.v1.RemoveDependencyResponse\x12X\n" +
 	"\x11AttachPullRequest\x12 .nnx.v1.AttachPullRequestRequest\x1a!.nnx.v1.AttachPullRequestResponse\x12X\n" +
@@ -11250,7 +11700,7 @@ func file_nnx_v1_nnx_proto_rawDescGZIP() []byte {
 }
 
 var file_nnx_v1_nnx_proto_enumTypes = make([]protoimpl.EnumInfo, 17)
-var file_nnx_v1_nnx_proto_msgTypes = make([]protoimpl.MessageInfo, 137)
+var file_nnx_v1_nnx_proto_msgTypes = make([]protoimpl.MessageInfo, 144)
 var file_nnx_v1_nnx_proto_goTypes = []any{
 	(FeatureStatus)(0),                       // 0: nnx.v1.FeatureStatus
 	(TaskKind)(0),                            // 1: nnx.v1.TaskKind
@@ -11308,104 +11758,111 @@ var file_nnx_v1_nnx_proto_goTypes = []any{
 	(*UpdateTaskResponse)(nil),               // 53: nnx.v1.UpdateTaskResponse
 	(*DeleteTaskRequest)(nil),                // 54: nnx.v1.DeleteTaskRequest
 	(*DeleteTaskResponse)(nil),               // 55: nnx.v1.DeleteTaskResponse
-	(*AddDependencyRequest)(nil),             // 56: nnx.v1.AddDependencyRequest
-	(*AddDependencyResponse)(nil),            // 57: nnx.v1.AddDependencyResponse
-	(*RemoveDependencyRequest)(nil),          // 58: nnx.v1.RemoveDependencyRequest
-	(*RemoveDependencyResponse)(nil),         // 59: nnx.v1.RemoveDependencyResponse
-	(*AttachPullRequestRequest)(nil),         // 60: nnx.v1.AttachPullRequestRequest
-	(*AttachPullRequestResponse)(nil),        // 61: nnx.v1.AttachPullRequestResponse
-	(*DetachPullRequestRequest)(nil),         // 62: nnx.v1.DetachPullRequestRequest
-	(*DetachPullRequestResponse)(nil),        // 63: nnx.v1.DetachPullRequestResponse
-	(*AddDocumentRequest)(nil),               // 64: nnx.v1.AddDocumentRequest
-	(*AddDocumentResponse)(nil),              // 65: nnx.v1.AddDocumentResponse
-	(*GetDocumentRequest)(nil),               // 66: nnx.v1.GetDocumentRequest
-	(*GetDocumentResponse)(nil),              // 67: nnx.v1.GetDocumentResponse
-	(*UpdateDocumentRequest)(nil),            // 68: nnx.v1.UpdateDocumentRequest
-	(*UpdateDocumentResponse)(nil),           // 69: nnx.v1.UpdateDocumentResponse
-	(*DeleteDocumentRequest)(nil),            // 70: nnx.v1.DeleteDocumentRequest
-	(*DeleteDocumentResponse)(nil),           // 71: nnx.v1.DeleteDocumentResponse
-	(*ReadDocumentContentRequest)(nil),       // 72: nnx.v1.ReadDocumentContentRequest
-	(*ReadDocumentContentResponse)(nil),      // 73: nnx.v1.ReadDocumentContentResponse
-	(*SelectLocalFileRequest)(nil),           // 74: nnx.v1.SelectLocalFileRequest
-	(*SelectLocalFileResponse)(nil),          // 75: nnx.v1.SelectLocalFileResponse
-	(*GitHubHost)(nil),                       // 76: nnx.v1.GitHubHost
-	(*GitHubAuthMethod)(nil),                 // 77: nnx.v1.GitHubAuthMethod
-	(*GitHubConfig)(nil),                     // 78: nnx.v1.GitHubConfig
-	(*GetConfigRequest)(nil),                 // 79: nnx.v1.GetConfigRequest
-	(*GetConfigResponse)(nil),                // 80: nnx.v1.GetConfigResponse
-	(*GetTaskLabelConfigRequest)(nil),        // 81: nnx.v1.GetTaskLabelConfigRequest
-	(*TaskLabelConfig)(nil),                  // 82: nnx.v1.TaskLabelConfig
-	(*GetTaskLabelConfigResponse)(nil),       // 83: nnx.v1.GetTaskLabelConfigResponse
-	(*UpdateTaskLabelConfigRequest)(nil),     // 84: nnx.v1.UpdateTaskLabelConfigRequest
-	(*UpdateTaskLabelConfigResponse)(nil),    // 85: nnx.v1.UpdateTaskLabelConfigResponse
-	(*UpdateGitHubSyncConfigRequest)(nil),    // 86: nnx.v1.UpdateGitHubSyncConfigRequest
-	(*UpdateGitHubSyncConfigResponse)(nil),   // 87: nnx.v1.UpdateGitHubSyncConfigResponse
-	(*UpdateLanguageConfigRequest)(nil),      // 88: nnx.v1.UpdateLanguageConfigRequest
-	(*UpdateLanguageConfigResponse)(nil),     // 89: nnx.v1.UpdateLanguageConfigResponse
-	(*AddGitHubHostRequest)(nil),             // 90: nnx.v1.AddGitHubHostRequest
-	(*AddGitHubHostResponse)(nil),            // 91: nnx.v1.AddGitHubHostResponse
-	(*UpdateGitHubHostRequest)(nil),          // 92: nnx.v1.UpdateGitHubHostRequest
-	(*UpdateGitHubHostResponse)(nil),         // 93: nnx.v1.UpdateGitHubHostResponse
-	(*DeleteGitHubHostRequest)(nil),          // 94: nnx.v1.DeleteGitHubHostRequest
-	(*DeleteGitHubHostResponse)(nil),         // 95: nnx.v1.DeleteGitHubHostResponse
-	(*AddGitHubAuthMethodRequest)(nil),       // 96: nnx.v1.AddGitHubAuthMethodRequest
-	(*AddGitHubAuthMethodResponse)(nil),      // 97: nnx.v1.AddGitHubAuthMethodResponse
-	(*UpdateGitHubAuthMethodRequest)(nil),    // 98: nnx.v1.UpdateGitHubAuthMethodRequest
-	(*UpdateGitHubAuthMethodResponse)(nil),   // 99: nnx.v1.UpdateGitHubAuthMethodResponse
-	(*DeleteGitHubAuthMethodRequest)(nil),    // 100: nnx.v1.DeleteGitHubAuthMethodRequest
-	(*DeleteGitHubAuthMethodResponse)(nil),   // 101: nnx.v1.DeleteGitHubAuthMethodResponse
-	(*ReorderGitHubAuthMethodsRequest)(nil),  // 102: nnx.v1.ReorderGitHubAuthMethodsRequest
-	(*ReorderGitHubAuthMethodsResponse)(nil), // 103: nnx.v1.ReorderGitHubAuthMethodsResponse
-	(*ValidateConfigRequest)(nil),            // 104: nnx.v1.ValidateConfigRequest
-	(*ValidateConfigResponse)(nil),           // 105: nnx.v1.ValidateConfigResponse
-	(*PromptTemplates)(nil),                  // 106: nnx.v1.PromptTemplates
-	(*GetPromptTemplatesRequest)(nil),        // 107: nnx.v1.GetPromptTemplatesRequest
-	(*GetPromptTemplatesResponse)(nil),       // 108: nnx.v1.GetPromptTemplatesResponse
-	(*UpdatePromptTemplatesRequest)(nil),     // 109: nnx.v1.UpdatePromptTemplatesRequest
-	(*UpdatePromptTemplatesResponse)(nil),    // 110: nnx.v1.UpdatePromptTemplatesResponse
-	(*GetTaskPromptRequest)(nil),             // 111: nnx.v1.GetTaskPromptRequest
-	(*GetTaskPromptResponse)(nil),            // 112: nnx.v1.GetTaskPromptResponse
-	(*GetBatchPromptRequest)(nil),            // 113: nnx.v1.GetBatchPromptRequest
-	(*GetBatchPromptResponse)(nil),           // 114: nnx.v1.GetBatchPromptResponse
-	(*SyncRequest)(nil),                      // 115: nnx.v1.SyncRequest
-	(*SyncResponse)(nil),                     // 116: nnx.v1.SyncResponse
-	(*GitHubSyncStatus)(nil),                 // 117: nnx.v1.GitHubSyncStatus
-	(*GetGitHubSyncStatusRequest)(nil),       // 118: nnx.v1.GetGitHubSyncStatusRequest
-	(*GetGitHubSyncStatusResponse)(nil),      // 119: nnx.v1.GetGitHubSyncStatusResponse
-	(*SyncGitHubIfDueRequest)(nil),           // 120: nnx.v1.SyncGitHubIfDueRequest
-	(*SyncGitHubIfDueResponse)(nil),          // 121: nnx.v1.SyncGitHubIfDueResponse
-	(*UpdateRelease)(nil),                    // 122: nnx.v1.UpdateRelease
-	(*UpdateStatus)(nil),                     // 123: nnx.v1.UpdateStatus
-	(*GetUpdateStatusRequest)(nil),           // 124: nnx.v1.GetUpdateStatusRequest
-	(*GetUpdateStatusResponse)(nil),          // 125: nnx.v1.GetUpdateStatusResponse
-	(*SkipUpdateVersionRequest)(nil),         // 126: nnx.v1.SkipUpdateVersionRequest
-	(*SkipUpdateVersionResponse)(nil),        // 127: nnx.v1.SkipUpdateVersionResponse
-	(*ApplyUpdateRequest)(nil),               // 128: nnx.v1.ApplyUpdateRequest
-	(*ApplyUpdateResponse)(nil),              // 129: nnx.v1.ApplyUpdateResponse
-	(*ValidateRequest)(nil),                  // 130: nnx.v1.ValidateRequest
-	(*ValidateResponse)(nil),                 // 131: nnx.v1.ValidateResponse
-	(*DebugProblem)(nil),                     // 132: nnx.v1.DebugProblem
-	(*DebugBuild)(nil),                       // 133: nnx.v1.DebugBuild
-	(*DebugRuntime)(nil),                     // 134: nnx.v1.DebugRuntime
-	(*DebugDaemon)(nil),                      // 135: nnx.v1.DebugDaemon
-	(*DebugEnvironmentVariable)(nil),         // 136: nnx.v1.DebugEnvironmentVariable
-	(*DebugPaths)(nil),                       // 137: nnx.v1.DebugPaths
-	(*DebugConfigHost)(nil),                  // 138: nnx.v1.DebugConfigHost
-	(*DebugConfigAuthMethod)(nil),            // 139: nnx.v1.DebugConfigAuthMethod
-	(*DebugConfig)(nil),                      // 140: nnx.v1.DebugConfig
-	(*DebugDatabaseFile)(nil),                // 141: nnx.v1.DebugDatabaseFile
-	(*DebugStorage)(nil),                     // 142: nnx.v1.DebugStorage
-	(*DebugCount)(nil),                       // 143: nnx.v1.DebugCount
-	(*DebugData)(nil),                        // 144: nnx.v1.DebugData
-	(*DebugSyncFailure)(nil),                 // 145: nnx.v1.DebugSyncFailure
-	(*DebugErrorGroup)(nil),                  // 146: nnx.v1.DebugErrorGroup
-	(*DebugAuthCacheEntry)(nil),              // 147: nnx.v1.DebugAuthCacheEntry
-	(*DebugGitHubSync)(nil),                  // 148: nnx.v1.DebugGitHubSync
-	(*DebugReport)(nil),                      // 149: nnx.v1.DebugReport
-	(*GetDebugReportRequest)(nil),            // 150: nnx.v1.GetDebugReportRequest
-	(*GetDebugReportResponse)(nil),           // 151: nnx.v1.GetDebugReportResponse
-	nil,                                      // 152: nnx.v1.TaskLabelOverrides.ValuesEntry
-	nil,                                      // 153: nnx.v1.TaskLabelOverridesUpdate.ValuesEntry
+	(*TaskGroup)(nil),                        // 56: nnx.v1.TaskGroup
+	(*CreateTaskGroupRequest)(nil),           // 57: nnx.v1.CreateTaskGroupRequest
+	(*CreateTaskGroupResponse)(nil),          // 58: nnx.v1.CreateTaskGroupResponse
+	(*RenameTaskGroupRequest)(nil),           // 59: nnx.v1.RenameTaskGroupRequest
+	(*RenameTaskGroupResponse)(nil),          // 60: nnx.v1.RenameTaskGroupResponse
+	(*DeleteTaskGroupRequest)(nil),           // 61: nnx.v1.DeleteTaskGroupRequest
+	(*DeleteTaskGroupResponse)(nil),          // 62: nnx.v1.DeleteTaskGroupResponse
+	(*AddDependencyRequest)(nil),             // 63: nnx.v1.AddDependencyRequest
+	(*AddDependencyResponse)(nil),            // 64: nnx.v1.AddDependencyResponse
+	(*RemoveDependencyRequest)(nil),          // 65: nnx.v1.RemoveDependencyRequest
+	(*RemoveDependencyResponse)(nil),         // 66: nnx.v1.RemoveDependencyResponse
+	(*AttachPullRequestRequest)(nil),         // 67: nnx.v1.AttachPullRequestRequest
+	(*AttachPullRequestResponse)(nil),        // 68: nnx.v1.AttachPullRequestResponse
+	(*DetachPullRequestRequest)(nil),         // 69: nnx.v1.DetachPullRequestRequest
+	(*DetachPullRequestResponse)(nil),        // 70: nnx.v1.DetachPullRequestResponse
+	(*AddDocumentRequest)(nil),               // 71: nnx.v1.AddDocumentRequest
+	(*AddDocumentResponse)(nil),              // 72: nnx.v1.AddDocumentResponse
+	(*GetDocumentRequest)(nil),               // 73: nnx.v1.GetDocumentRequest
+	(*GetDocumentResponse)(nil),              // 74: nnx.v1.GetDocumentResponse
+	(*UpdateDocumentRequest)(nil),            // 75: nnx.v1.UpdateDocumentRequest
+	(*UpdateDocumentResponse)(nil),           // 76: nnx.v1.UpdateDocumentResponse
+	(*DeleteDocumentRequest)(nil),            // 77: nnx.v1.DeleteDocumentRequest
+	(*DeleteDocumentResponse)(nil),           // 78: nnx.v1.DeleteDocumentResponse
+	(*ReadDocumentContentRequest)(nil),       // 79: nnx.v1.ReadDocumentContentRequest
+	(*ReadDocumentContentResponse)(nil),      // 80: nnx.v1.ReadDocumentContentResponse
+	(*SelectLocalFileRequest)(nil),           // 81: nnx.v1.SelectLocalFileRequest
+	(*SelectLocalFileResponse)(nil),          // 82: nnx.v1.SelectLocalFileResponse
+	(*GitHubHost)(nil),                       // 83: nnx.v1.GitHubHost
+	(*GitHubAuthMethod)(nil),                 // 84: nnx.v1.GitHubAuthMethod
+	(*GitHubConfig)(nil),                     // 85: nnx.v1.GitHubConfig
+	(*GetConfigRequest)(nil),                 // 86: nnx.v1.GetConfigRequest
+	(*GetConfigResponse)(nil),                // 87: nnx.v1.GetConfigResponse
+	(*GetTaskLabelConfigRequest)(nil),        // 88: nnx.v1.GetTaskLabelConfigRequest
+	(*TaskLabelConfig)(nil),                  // 89: nnx.v1.TaskLabelConfig
+	(*GetTaskLabelConfigResponse)(nil),       // 90: nnx.v1.GetTaskLabelConfigResponse
+	(*UpdateTaskLabelConfigRequest)(nil),     // 91: nnx.v1.UpdateTaskLabelConfigRequest
+	(*UpdateTaskLabelConfigResponse)(nil),    // 92: nnx.v1.UpdateTaskLabelConfigResponse
+	(*UpdateGitHubSyncConfigRequest)(nil),    // 93: nnx.v1.UpdateGitHubSyncConfigRequest
+	(*UpdateGitHubSyncConfigResponse)(nil),   // 94: nnx.v1.UpdateGitHubSyncConfigResponse
+	(*UpdateLanguageConfigRequest)(nil),      // 95: nnx.v1.UpdateLanguageConfigRequest
+	(*UpdateLanguageConfigResponse)(nil),     // 96: nnx.v1.UpdateLanguageConfigResponse
+	(*AddGitHubHostRequest)(nil),             // 97: nnx.v1.AddGitHubHostRequest
+	(*AddGitHubHostResponse)(nil),            // 98: nnx.v1.AddGitHubHostResponse
+	(*UpdateGitHubHostRequest)(nil),          // 99: nnx.v1.UpdateGitHubHostRequest
+	(*UpdateGitHubHostResponse)(nil),         // 100: nnx.v1.UpdateGitHubHostResponse
+	(*DeleteGitHubHostRequest)(nil),          // 101: nnx.v1.DeleteGitHubHostRequest
+	(*DeleteGitHubHostResponse)(nil),         // 102: nnx.v1.DeleteGitHubHostResponse
+	(*AddGitHubAuthMethodRequest)(nil),       // 103: nnx.v1.AddGitHubAuthMethodRequest
+	(*AddGitHubAuthMethodResponse)(nil),      // 104: nnx.v1.AddGitHubAuthMethodResponse
+	(*UpdateGitHubAuthMethodRequest)(nil),    // 105: nnx.v1.UpdateGitHubAuthMethodRequest
+	(*UpdateGitHubAuthMethodResponse)(nil),   // 106: nnx.v1.UpdateGitHubAuthMethodResponse
+	(*DeleteGitHubAuthMethodRequest)(nil),    // 107: nnx.v1.DeleteGitHubAuthMethodRequest
+	(*DeleteGitHubAuthMethodResponse)(nil),   // 108: nnx.v1.DeleteGitHubAuthMethodResponse
+	(*ReorderGitHubAuthMethodsRequest)(nil),  // 109: nnx.v1.ReorderGitHubAuthMethodsRequest
+	(*ReorderGitHubAuthMethodsResponse)(nil), // 110: nnx.v1.ReorderGitHubAuthMethodsResponse
+	(*ValidateConfigRequest)(nil),            // 111: nnx.v1.ValidateConfigRequest
+	(*ValidateConfigResponse)(nil),           // 112: nnx.v1.ValidateConfigResponse
+	(*PromptTemplates)(nil),                  // 113: nnx.v1.PromptTemplates
+	(*GetPromptTemplatesRequest)(nil),        // 114: nnx.v1.GetPromptTemplatesRequest
+	(*GetPromptTemplatesResponse)(nil),       // 115: nnx.v1.GetPromptTemplatesResponse
+	(*UpdatePromptTemplatesRequest)(nil),     // 116: nnx.v1.UpdatePromptTemplatesRequest
+	(*UpdatePromptTemplatesResponse)(nil),    // 117: nnx.v1.UpdatePromptTemplatesResponse
+	(*GetTaskPromptRequest)(nil),             // 118: nnx.v1.GetTaskPromptRequest
+	(*GetTaskPromptResponse)(nil),            // 119: nnx.v1.GetTaskPromptResponse
+	(*GetBatchPromptRequest)(nil),            // 120: nnx.v1.GetBatchPromptRequest
+	(*GetBatchPromptResponse)(nil),           // 121: nnx.v1.GetBatchPromptResponse
+	(*SyncRequest)(nil),                      // 122: nnx.v1.SyncRequest
+	(*SyncResponse)(nil),                     // 123: nnx.v1.SyncResponse
+	(*GitHubSyncStatus)(nil),                 // 124: nnx.v1.GitHubSyncStatus
+	(*GetGitHubSyncStatusRequest)(nil),       // 125: nnx.v1.GetGitHubSyncStatusRequest
+	(*GetGitHubSyncStatusResponse)(nil),      // 126: nnx.v1.GetGitHubSyncStatusResponse
+	(*SyncGitHubIfDueRequest)(nil),           // 127: nnx.v1.SyncGitHubIfDueRequest
+	(*SyncGitHubIfDueResponse)(nil),          // 128: nnx.v1.SyncGitHubIfDueResponse
+	(*UpdateRelease)(nil),                    // 129: nnx.v1.UpdateRelease
+	(*UpdateStatus)(nil),                     // 130: nnx.v1.UpdateStatus
+	(*GetUpdateStatusRequest)(nil),           // 131: nnx.v1.GetUpdateStatusRequest
+	(*GetUpdateStatusResponse)(nil),          // 132: nnx.v1.GetUpdateStatusResponse
+	(*SkipUpdateVersionRequest)(nil),         // 133: nnx.v1.SkipUpdateVersionRequest
+	(*SkipUpdateVersionResponse)(nil),        // 134: nnx.v1.SkipUpdateVersionResponse
+	(*ApplyUpdateRequest)(nil),               // 135: nnx.v1.ApplyUpdateRequest
+	(*ApplyUpdateResponse)(nil),              // 136: nnx.v1.ApplyUpdateResponse
+	(*ValidateRequest)(nil),                  // 137: nnx.v1.ValidateRequest
+	(*ValidateResponse)(nil),                 // 138: nnx.v1.ValidateResponse
+	(*DebugProblem)(nil),                     // 139: nnx.v1.DebugProblem
+	(*DebugBuild)(nil),                       // 140: nnx.v1.DebugBuild
+	(*DebugRuntime)(nil),                     // 141: nnx.v1.DebugRuntime
+	(*DebugDaemon)(nil),                      // 142: nnx.v1.DebugDaemon
+	(*DebugEnvironmentVariable)(nil),         // 143: nnx.v1.DebugEnvironmentVariable
+	(*DebugPaths)(nil),                       // 144: nnx.v1.DebugPaths
+	(*DebugConfigHost)(nil),                  // 145: nnx.v1.DebugConfigHost
+	(*DebugConfigAuthMethod)(nil),            // 146: nnx.v1.DebugConfigAuthMethod
+	(*DebugConfig)(nil),                      // 147: nnx.v1.DebugConfig
+	(*DebugDatabaseFile)(nil),                // 148: nnx.v1.DebugDatabaseFile
+	(*DebugStorage)(nil),                     // 149: nnx.v1.DebugStorage
+	(*DebugCount)(nil),                       // 150: nnx.v1.DebugCount
+	(*DebugData)(nil),                        // 151: nnx.v1.DebugData
+	(*DebugSyncFailure)(nil),                 // 152: nnx.v1.DebugSyncFailure
+	(*DebugErrorGroup)(nil),                  // 153: nnx.v1.DebugErrorGroup
+	(*DebugAuthCacheEntry)(nil),              // 154: nnx.v1.DebugAuthCacheEntry
+	(*DebugGitHubSync)(nil),                  // 155: nnx.v1.DebugGitHubSync
+	(*DebugReport)(nil),                      // 156: nnx.v1.DebugReport
+	(*GetDebugReportRequest)(nil),            // 157: nnx.v1.GetDebugReportRequest
+	(*GetDebugReportResponse)(nil),           // 158: nnx.v1.GetDebugReportResponse
+	nil,                                      // 159: nnx.v1.TaskLabelOverrides.ValuesEntry
+	nil,                                      // 160: nnx.v1.TaskLabelOverridesUpdate.ValuesEntry
 }
 var file_nnx_v1_nnx_proto_depIdxs = []int32{
 	11,  // 0: nnx.v1.BlockedReason.code:type_name -> nnx.v1.BlockedReasonCode
@@ -11417,8 +11874,8 @@ var file_nnx_v1_nnx_proto_depIdxs = []int32{
 	21,  // 6: nnx.v1.Feature.prompt_overrides:type_name -> nnx.v1.PromptTemplateOverrides
 	24,  // 7: nnx.v1.Feature.task_label_overrides:type_name -> nnx.v1.TaskLabelOverrides
 	28,  // 8: nnx.v1.Feature.task_label_appearances:type_name -> nnx.v1.TaskLabelAppearances
-	152, // 9: nnx.v1.TaskLabelOverrides.values:type_name -> nnx.v1.TaskLabelOverrides.ValuesEntry
-	153, // 10: nnx.v1.TaskLabelOverridesUpdate.values:type_name -> nnx.v1.TaskLabelOverridesUpdate.ValuesEntry
+	159, // 9: nnx.v1.TaskLabelOverrides.values:type_name -> nnx.v1.TaskLabelOverrides.ValuesEntry
+	160, // 10: nnx.v1.TaskLabelOverridesUpdate.values:type_name -> nnx.v1.TaskLabelOverridesUpdate.ValuesEntry
 	27,  // 11: nnx.v1.TaskLabelAppearances.values:type_name -> nnx.v1.TaskLabelAppearance
 	2,   // 12: nnx.v1.Task.status:type_name -> nnx.v1.TaskStatus
 	3,   // 13: nnx.v1.Task.display_state:type_name -> nnx.v1.TaskDisplayState
@@ -11441,184 +11898,193 @@ var file_nnx_v1_nnx_proto_depIdxs = []int32{
 	29,  // 30: nnx.v1.Snapshot.conflict_tasks:type_name -> nnx.v1.Task
 	29,  // 31: nnx.v1.Snapshot.stale_tasks:type_name -> nnx.v1.Task
 	19,  // 32: nnx.v1.Snapshot.projects:type_name -> nnx.v1.Project
-	33,  // 33: nnx.v1.GetSnapshotResponse.snapshot:type_name -> nnx.v1.Snapshot
-	19,  // 34: nnx.v1.CreateProjectResponse.project:type_name -> nnx.v1.Project
-	22,  // 35: nnx.v1.UpdateProjectRequest.prompt_overrides:type_name -> nnx.v1.PromptTemplateOverridesUpdate
-	26,  // 36: nnx.v1.UpdateProjectRequest.task_label_overrides:type_name -> nnx.v1.TaskLabelOverridesUpdate
-	19,  // 37: nnx.v1.UpdateProjectResponse.project:type_name -> nnx.v1.Project
-	20,  // 38: nnx.v1.CreateFeatureResponse.feature:type_name -> nnx.v1.Feature
-	0,   // 39: nnx.v1.UpdateFeatureRequest.status:type_name -> nnx.v1.FeatureStatus
-	22,  // 40: nnx.v1.UpdateFeatureRequest.prompt_overrides:type_name -> nnx.v1.PromptTemplateOverridesUpdate
-	26,  // 41: nnx.v1.UpdateFeatureRequest.task_label_overrides:type_name -> nnx.v1.TaskLabelOverridesUpdate
-	20,  // 42: nnx.v1.UpdateFeatureResponse.feature:type_name -> nnx.v1.Feature
-	1,   // 43: nnx.v1.CreateTaskRequest.kind:type_name -> nnx.v1.TaskKind
-	29,  // 44: nnx.v1.CreateTaskResponse.task:type_name -> nnx.v1.Task
-	2,   // 45: nnx.v1.UpdateTaskRequest.status:type_name -> nnx.v1.TaskStatus
-	1,   // 46: nnx.v1.UpdateTaskRequest.kind:type_name -> nnx.v1.TaskKind
-	29,  // 47: nnx.v1.UpdateTaskResponse.task:type_name -> nnx.v1.Task
-	30,  // 48: nnx.v1.AddDependencyResponse.dependency:type_name -> nnx.v1.Dependency
-	31,  // 49: nnx.v1.AttachPullRequestResponse.pull_request:type_name -> nnx.v1.PullRequest
-	32,  // 50: nnx.v1.AddDocumentResponse.document:type_name -> nnx.v1.Document
-	32,  // 51: nnx.v1.GetDocumentResponse.document:type_name -> nnx.v1.Document
-	32,  // 52: nnx.v1.UpdateDocumentResponse.document:type_name -> nnx.v1.Document
-	13,  // 53: nnx.v1.GitHubAuthMethod.type:type_name -> nnx.v1.GithubAuthMethodType
-	76,  // 54: nnx.v1.GitHubConfig.hosts:type_name -> nnx.v1.GitHubHost
-	77,  // 55: nnx.v1.GitHubConfig.auth_methods:type_name -> nnx.v1.GitHubAuthMethod
-	24,  // 56: nnx.v1.GitHubConfig.task_label_overrides:type_name -> nnx.v1.TaskLabelOverrides
-	28,  // 57: nnx.v1.GitHubConfig.built_in_task_label_appearances:type_name -> nnx.v1.TaskLabelAppearances
-	78,  // 58: nnx.v1.GetConfigResponse.config:type_name -> nnx.v1.GitHubConfig
-	24,  // 59: nnx.v1.TaskLabelConfig.overrides:type_name -> nnx.v1.TaskLabelOverrides
-	28,  // 60: nnx.v1.TaskLabelConfig.built_in:type_name -> nnx.v1.TaskLabelAppearances
-	82,  // 61: nnx.v1.GetTaskLabelConfigResponse.config:type_name -> nnx.v1.TaskLabelConfig
-	26,  // 62: nnx.v1.UpdateTaskLabelConfigRequest.overrides:type_name -> nnx.v1.TaskLabelOverridesUpdate
-	82,  // 63: nnx.v1.UpdateTaskLabelConfigResponse.config:type_name -> nnx.v1.TaskLabelConfig
-	78,  // 64: nnx.v1.UpdateGitHubSyncConfigResponse.config:type_name -> nnx.v1.GitHubConfig
-	78,  // 65: nnx.v1.UpdateLanguageConfigResponse.config:type_name -> nnx.v1.GitHubConfig
-	76,  // 66: nnx.v1.AddGitHubHostResponse.host:type_name -> nnx.v1.GitHubHost
-	76,  // 67: nnx.v1.UpdateGitHubHostResponse.host:type_name -> nnx.v1.GitHubHost
-	13,  // 68: nnx.v1.AddGitHubAuthMethodRequest.type:type_name -> nnx.v1.GithubAuthMethodType
-	77,  // 69: nnx.v1.AddGitHubAuthMethodResponse.auth_method:type_name -> nnx.v1.GitHubAuthMethod
-	13,  // 70: nnx.v1.UpdateGitHubAuthMethodRequest.type:type_name -> nnx.v1.GithubAuthMethodType
-	77,  // 71: nnx.v1.UpdateGitHubAuthMethodResponse.auth_method:type_name -> nnx.v1.GitHubAuthMethod
-	77,  // 72: nnx.v1.ReorderGitHubAuthMethodsResponse.auth_methods:type_name -> nnx.v1.GitHubAuthMethod
-	106, // 73: nnx.v1.GetPromptTemplatesResponse.templates:type_name -> nnx.v1.PromptTemplates
-	106, // 74: nnx.v1.GetPromptTemplatesResponse.built_in:type_name -> nnx.v1.PromptTemplates
-	106, // 75: nnx.v1.UpdatePromptTemplatesResponse.templates:type_name -> nnx.v1.PromptTemplates
-	14,  // 76: nnx.v1.GetTaskPromptRequest.kind:type_name -> nnx.v1.TaskPromptKind
-	14,  // 77: nnx.v1.GetTaskPromptResponse.kind:type_name -> nnx.v1.TaskPromptKind
-	14,  // 78: nnx.v1.GetBatchPromptRequest.kind:type_name -> nnx.v1.TaskPromptKind
-	14,  // 79: nnx.v1.GetBatchPromptResponse.kind:type_name -> nnx.v1.TaskPromptKind
-	117, // 80: nnx.v1.GetGitHubSyncStatusResponse.status:type_name -> nnx.v1.GitHubSyncStatus
-	117, // 81: nnx.v1.SyncGitHubIfDueResponse.status:type_name -> nnx.v1.GitHubSyncStatus
-	16,  // 82: nnx.v1.UpdateStatus.disabled_reason:type_name -> nnx.v1.UpdateDisabledReason
-	122, // 83: nnx.v1.UpdateStatus.releases:type_name -> nnx.v1.UpdateRelease
-	123, // 84: nnx.v1.GetUpdateStatusResponse.status:type_name -> nnx.v1.UpdateStatus
-	123, // 85: nnx.v1.SkipUpdateVersionResponse.status:type_name -> nnx.v1.UpdateStatus
-	15,  // 86: nnx.v1.DebugProblem.code:type_name -> nnx.v1.DebugProblemCode
-	136, // 87: nnx.v1.DebugPaths.environment_variables:type_name -> nnx.v1.DebugEnvironmentVariable
-	138, // 88: nnx.v1.DebugConfig.hosts:type_name -> nnx.v1.DebugConfigHost
-	139, // 89: nnx.v1.DebugConfig.auth_methods:type_name -> nnx.v1.DebugConfigAuthMethod
-	141, // 90: nnx.v1.DebugStorage.database_file:type_name -> nnx.v1.DebugDatabaseFile
-	143, // 91: nnx.v1.DebugData.feature_statuses:type_name -> nnx.v1.DebugCount
-	143, // 92: nnx.v1.DebugData.task_display_states:type_name -> nnx.v1.DebugCount
-	143, // 93: nnx.v1.DebugData.pull_request_display_states:type_name -> nnx.v1.DebugCount
-	143, // 94: nnx.v1.DebugData.pull_request_hosts:type_name -> nnx.v1.DebugCount
-	143, // 95: nnx.v1.DebugData.document_kinds:type_name -> nnx.v1.DebugCount
-	143, // 96: nnx.v1.DebugData.project_states:type_name -> nnx.v1.DebugCount
-	117, // 97: nnx.v1.DebugGitHubSync.status:type_name -> nnx.v1.GitHubSyncStatus
-	145, // 98: nnx.v1.DebugGitHubSync.host_failures:type_name -> nnx.v1.DebugSyncFailure
-	145, // 99: nnx.v1.DebugGitHubSync.repository_failures:type_name -> nnx.v1.DebugSyncFailure
-	146, // 100: nnx.v1.DebugGitHubSync.error_groups:type_name -> nnx.v1.DebugErrorGroup
-	147, // 101: nnx.v1.DebugGitHubSync.auth_cache:type_name -> nnx.v1.DebugAuthCacheEntry
-	132, // 102: nnx.v1.DebugReport.problems:type_name -> nnx.v1.DebugProblem
-	133, // 103: nnx.v1.DebugReport.build:type_name -> nnx.v1.DebugBuild
-	134, // 104: nnx.v1.DebugReport.runtime:type_name -> nnx.v1.DebugRuntime
-	137, // 105: nnx.v1.DebugReport.paths:type_name -> nnx.v1.DebugPaths
-	135, // 106: nnx.v1.DebugReport.daemon:type_name -> nnx.v1.DebugDaemon
-	140, // 107: nnx.v1.DebugReport.config:type_name -> nnx.v1.DebugConfig
-	142, // 108: nnx.v1.DebugReport.storage:type_name -> nnx.v1.DebugStorage
-	144, // 109: nnx.v1.DebugReport.records:type_name -> nnx.v1.DebugData
-	148, // 110: nnx.v1.DebugReport.github_sync:type_name -> nnx.v1.DebugGitHubSync
-	149, // 111: nnx.v1.GetDebugReportResponse.report:type_name -> nnx.v1.DebugReport
-	23,  // 112: nnx.v1.TaskLabelOverrides.ValuesEntry.value:type_name -> nnx.v1.TaskLabelOverride
-	25,  // 113: nnx.v1.TaskLabelOverridesUpdate.ValuesEntry.value:type_name -> nnx.v1.TaskLabelOverrideUpdate
-	34,  // 114: nnx.v1.NNXService.GetSnapshot:input_type -> nnx.v1.GetSnapshotRequest
-	36,  // 115: nnx.v1.NNXService.WatchRevision:input_type -> nnx.v1.WatchRevisionRequest
-	38,  // 116: nnx.v1.NNXService.CreateProject:input_type -> nnx.v1.CreateProjectRequest
-	40,  // 117: nnx.v1.NNXService.UpdateProject:input_type -> nnx.v1.UpdateProjectRequest
-	42,  // 118: nnx.v1.NNXService.DeleteProject:input_type -> nnx.v1.DeleteProjectRequest
-	44,  // 119: nnx.v1.NNXService.CreateFeature:input_type -> nnx.v1.CreateFeatureRequest
-	46,  // 120: nnx.v1.NNXService.UpdateFeature:input_type -> nnx.v1.UpdateFeatureRequest
-	48,  // 121: nnx.v1.NNXService.DeleteFeature:input_type -> nnx.v1.DeleteFeatureRequest
-	50,  // 122: nnx.v1.NNXService.CreateTask:input_type -> nnx.v1.CreateTaskRequest
-	52,  // 123: nnx.v1.NNXService.UpdateTask:input_type -> nnx.v1.UpdateTaskRequest
-	54,  // 124: nnx.v1.NNXService.DeleteTask:input_type -> nnx.v1.DeleteTaskRequest
-	56,  // 125: nnx.v1.NNXService.AddDependency:input_type -> nnx.v1.AddDependencyRequest
-	58,  // 126: nnx.v1.NNXService.RemoveDependency:input_type -> nnx.v1.RemoveDependencyRequest
-	60,  // 127: nnx.v1.NNXService.AttachPullRequest:input_type -> nnx.v1.AttachPullRequestRequest
-	62,  // 128: nnx.v1.NNXService.DetachPullRequest:input_type -> nnx.v1.DetachPullRequestRequest
-	64,  // 129: nnx.v1.NNXService.AddDocument:input_type -> nnx.v1.AddDocumentRequest
-	66,  // 130: nnx.v1.NNXService.GetDocument:input_type -> nnx.v1.GetDocumentRequest
-	68,  // 131: nnx.v1.NNXService.UpdateDocument:input_type -> nnx.v1.UpdateDocumentRequest
-	70,  // 132: nnx.v1.NNXService.DeleteDocument:input_type -> nnx.v1.DeleteDocumentRequest
-	72,  // 133: nnx.v1.NNXService.ReadDocumentContent:input_type -> nnx.v1.ReadDocumentContentRequest
-	74,  // 134: nnx.v1.NNXService.SelectLocalFile:input_type -> nnx.v1.SelectLocalFileRequest
-	115, // 135: nnx.v1.NNXService.Sync:input_type -> nnx.v1.SyncRequest
-	118, // 136: nnx.v1.NNXService.GetGitHubSyncStatus:input_type -> nnx.v1.GetGitHubSyncStatusRequest
-	120, // 137: nnx.v1.NNXService.SyncGitHubIfDue:input_type -> nnx.v1.SyncGitHubIfDueRequest
-	124, // 138: nnx.v1.NNXService.GetUpdateStatus:input_type -> nnx.v1.GetUpdateStatusRequest
-	126, // 139: nnx.v1.NNXService.SkipUpdateVersion:input_type -> nnx.v1.SkipUpdateVersionRequest
-	128, // 140: nnx.v1.NNXService.ApplyUpdate:input_type -> nnx.v1.ApplyUpdateRequest
-	130, // 141: nnx.v1.NNXService.Validate:input_type -> nnx.v1.ValidateRequest
-	150, // 142: nnx.v1.NNXService.GetDebugReport:input_type -> nnx.v1.GetDebugReportRequest
-	79,  // 143: nnx.v1.NNXService.GetConfig:input_type -> nnx.v1.GetConfigRequest
-	81,  // 144: nnx.v1.NNXService.GetTaskLabelConfig:input_type -> nnx.v1.GetTaskLabelConfigRequest
-	84,  // 145: nnx.v1.NNXService.UpdateTaskLabelConfig:input_type -> nnx.v1.UpdateTaskLabelConfigRequest
-	86,  // 146: nnx.v1.NNXService.UpdateGitHubSyncConfig:input_type -> nnx.v1.UpdateGitHubSyncConfigRequest
-	88,  // 147: nnx.v1.NNXService.UpdateLanguageConfig:input_type -> nnx.v1.UpdateLanguageConfigRequest
-	90,  // 148: nnx.v1.NNXService.AddGitHubHost:input_type -> nnx.v1.AddGitHubHostRequest
-	92,  // 149: nnx.v1.NNXService.UpdateGitHubHost:input_type -> nnx.v1.UpdateGitHubHostRequest
-	94,  // 150: nnx.v1.NNXService.DeleteGitHubHost:input_type -> nnx.v1.DeleteGitHubHostRequest
-	96,  // 151: nnx.v1.NNXService.AddGitHubAuthMethod:input_type -> nnx.v1.AddGitHubAuthMethodRequest
-	98,  // 152: nnx.v1.NNXService.UpdateGitHubAuthMethod:input_type -> nnx.v1.UpdateGitHubAuthMethodRequest
-	100, // 153: nnx.v1.NNXService.DeleteGitHubAuthMethod:input_type -> nnx.v1.DeleteGitHubAuthMethodRequest
-	102, // 154: nnx.v1.NNXService.ReorderGitHubAuthMethods:input_type -> nnx.v1.ReorderGitHubAuthMethodsRequest
-	104, // 155: nnx.v1.NNXService.ValidateConfig:input_type -> nnx.v1.ValidateConfigRequest
-	107, // 156: nnx.v1.NNXService.GetPromptTemplates:input_type -> nnx.v1.GetPromptTemplatesRequest
-	109, // 157: nnx.v1.NNXService.UpdatePromptTemplates:input_type -> nnx.v1.UpdatePromptTemplatesRequest
-	111, // 158: nnx.v1.NNXService.GetTaskPrompt:input_type -> nnx.v1.GetTaskPromptRequest
-	113, // 159: nnx.v1.NNXService.GetBatchPrompt:input_type -> nnx.v1.GetBatchPromptRequest
-	35,  // 160: nnx.v1.NNXService.GetSnapshot:output_type -> nnx.v1.GetSnapshotResponse
-	37,  // 161: nnx.v1.NNXService.WatchRevision:output_type -> nnx.v1.WatchRevisionResponse
-	39,  // 162: nnx.v1.NNXService.CreateProject:output_type -> nnx.v1.CreateProjectResponse
-	41,  // 163: nnx.v1.NNXService.UpdateProject:output_type -> nnx.v1.UpdateProjectResponse
-	43,  // 164: nnx.v1.NNXService.DeleteProject:output_type -> nnx.v1.DeleteProjectResponse
-	45,  // 165: nnx.v1.NNXService.CreateFeature:output_type -> nnx.v1.CreateFeatureResponse
-	47,  // 166: nnx.v1.NNXService.UpdateFeature:output_type -> nnx.v1.UpdateFeatureResponse
-	49,  // 167: nnx.v1.NNXService.DeleteFeature:output_type -> nnx.v1.DeleteFeatureResponse
-	51,  // 168: nnx.v1.NNXService.CreateTask:output_type -> nnx.v1.CreateTaskResponse
-	53,  // 169: nnx.v1.NNXService.UpdateTask:output_type -> nnx.v1.UpdateTaskResponse
-	55,  // 170: nnx.v1.NNXService.DeleteTask:output_type -> nnx.v1.DeleteTaskResponse
-	57,  // 171: nnx.v1.NNXService.AddDependency:output_type -> nnx.v1.AddDependencyResponse
-	59,  // 172: nnx.v1.NNXService.RemoveDependency:output_type -> nnx.v1.RemoveDependencyResponse
-	61,  // 173: nnx.v1.NNXService.AttachPullRequest:output_type -> nnx.v1.AttachPullRequestResponse
-	63,  // 174: nnx.v1.NNXService.DetachPullRequest:output_type -> nnx.v1.DetachPullRequestResponse
-	65,  // 175: nnx.v1.NNXService.AddDocument:output_type -> nnx.v1.AddDocumentResponse
-	67,  // 176: nnx.v1.NNXService.GetDocument:output_type -> nnx.v1.GetDocumentResponse
-	69,  // 177: nnx.v1.NNXService.UpdateDocument:output_type -> nnx.v1.UpdateDocumentResponse
-	71,  // 178: nnx.v1.NNXService.DeleteDocument:output_type -> nnx.v1.DeleteDocumentResponse
-	73,  // 179: nnx.v1.NNXService.ReadDocumentContent:output_type -> nnx.v1.ReadDocumentContentResponse
-	75,  // 180: nnx.v1.NNXService.SelectLocalFile:output_type -> nnx.v1.SelectLocalFileResponse
-	116, // 181: nnx.v1.NNXService.Sync:output_type -> nnx.v1.SyncResponse
-	119, // 182: nnx.v1.NNXService.GetGitHubSyncStatus:output_type -> nnx.v1.GetGitHubSyncStatusResponse
-	121, // 183: nnx.v1.NNXService.SyncGitHubIfDue:output_type -> nnx.v1.SyncGitHubIfDueResponse
-	125, // 184: nnx.v1.NNXService.GetUpdateStatus:output_type -> nnx.v1.GetUpdateStatusResponse
-	127, // 185: nnx.v1.NNXService.SkipUpdateVersion:output_type -> nnx.v1.SkipUpdateVersionResponse
-	129, // 186: nnx.v1.NNXService.ApplyUpdate:output_type -> nnx.v1.ApplyUpdateResponse
-	131, // 187: nnx.v1.NNXService.Validate:output_type -> nnx.v1.ValidateResponse
-	151, // 188: nnx.v1.NNXService.GetDebugReport:output_type -> nnx.v1.GetDebugReportResponse
-	80,  // 189: nnx.v1.NNXService.GetConfig:output_type -> nnx.v1.GetConfigResponse
-	83,  // 190: nnx.v1.NNXService.GetTaskLabelConfig:output_type -> nnx.v1.GetTaskLabelConfigResponse
-	85,  // 191: nnx.v1.NNXService.UpdateTaskLabelConfig:output_type -> nnx.v1.UpdateTaskLabelConfigResponse
-	87,  // 192: nnx.v1.NNXService.UpdateGitHubSyncConfig:output_type -> nnx.v1.UpdateGitHubSyncConfigResponse
-	89,  // 193: nnx.v1.NNXService.UpdateLanguageConfig:output_type -> nnx.v1.UpdateLanguageConfigResponse
-	91,  // 194: nnx.v1.NNXService.AddGitHubHost:output_type -> nnx.v1.AddGitHubHostResponse
-	93,  // 195: nnx.v1.NNXService.UpdateGitHubHost:output_type -> nnx.v1.UpdateGitHubHostResponse
-	95,  // 196: nnx.v1.NNXService.DeleteGitHubHost:output_type -> nnx.v1.DeleteGitHubHostResponse
-	97,  // 197: nnx.v1.NNXService.AddGitHubAuthMethod:output_type -> nnx.v1.AddGitHubAuthMethodResponse
-	99,  // 198: nnx.v1.NNXService.UpdateGitHubAuthMethod:output_type -> nnx.v1.UpdateGitHubAuthMethodResponse
-	101, // 199: nnx.v1.NNXService.DeleteGitHubAuthMethod:output_type -> nnx.v1.DeleteGitHubAuthMethodResponse
-	103, // 200: nnx.v1.NNXService.ReorderGitHubAuthMethods:output_type -> nnx.v1.ReorderGitHubAuthMethodsResponse
-	105, // 201: nnx.v1.NNXService.ValidateConfig:output_type -> nnx.v1.ValidateConfigResponse
-	108, // 202: nnx.v1.NNXService.GetPromptTemplates:output_type -> nnx.v1.GetPromptTemplatesResponse
-	110, // 203: nnx.v1.NNXService.UpdatePromptTemplates:output_type -> nnx.v1.UpdatePromptTemplatesResponse
-	112, // 204: nnx.v1.NNXService.GetTaskPrompt:output_type -> nnx.v1.GetTaskPromptResponse
-	114, // 205: nnx.v1.NNXService.GetBatchPrompt:output_type -> nnx.v1.GetBatchPromptResponse
-	160, // [160:206] is the sub-list for method output_type
-	114, // [114:160] is the sub-list for method input_type
-	114, // [114:114] is the sub-list for extension type_name
-	114, // [114:114] is the sub-list for extension extendee
-	0,   // [0:114] is the sub-list for field type_name
+	56,  // 33: nnx.v1.Snapshot.task_groups:type_name -> nnx.v1.TaskGroup
+	33,  // 34: nnx.v1.GetSnapshotResponse.snapshot:type_name -> nnx.v1.Snapshot
+	19,  // 35: nnx.v1.CreateProjectResponse.project:type_name -> nnx.v1.Project
+	22,  // 36: nnx.v1.UpdateProjectRequest.prompt_overrides:type_name -> nnx.v1.PromptTemplateOverridesUpdate
+	26,  // 37: nnx.v1.UpdateProjectRequest.task_label_overrides:type_name -> nnx.v1.TaskLabelOverridesUpdate
+	19,  // 38: nnx.v1.UpdateProjectResponse.project:type_name -> nnx.v1.Project
+	20,  // 39: nnx.v1.CreateFeatureResponse.feature:type_name -> nnx.v1.Feature
+	0,   // 40: nnx.v1.UpdateFeatureRequest.status:type_name -> nnx.v1.FeatureStatus
+	22,  // 41: nnx.v1.UpdateFeatureRequest.prompt_overrides:type_name -> nnx.v1.PromptTemplateOverridesUpdate
+	26,  // 42: nnx.v1.UpdateFeatureRequest.task_label_overrides:type_name -> nnx.v1.TaskLabelOverridesUpdate
+	20,  // 43: nnx.v1.UpdateFeatureResponse.feature:type_name -> nnx.v1.Feature
+	1,   // 44: nnx.v1.CreateTaskRequest.kind:type_name -> nnx.v1.TaskKind
+	29,  // 45: nnx.v1.CreateTaskResponse.task:type_name -> nnx.v1.Task
+	2,   // 46: nnx.v1.UpdateTaskRequest.status:type_name -> nnx.v1.TaskStatus
+	1,   // 47: nnx.v1.UpdateTaskRequest.kind:type_name -> nnx.v1.TaskKind
+	29,  // 48: nnx.v1.UpdateTaskResponse.task:type_name -> nnx.v1.Task
+	56,  // 49: nnx.v1.CreateTaskGroupResponse.task_group:type_name -> nnx.v1.TaskGroup
+	56,  // 50: nnx.v1.RenameTaskGroupResponse.task_group:type_name -> nnx.v1.TaskGroup
+	30,  // 51: nnx.v1.AddDependencyResponse.dependency:type_name -> nnx.v1.Dependency
+	31,  // 52: nnx.v1.AttachPullRequestResponse.pull_request:type_name -> nnx.v1.PullRequest
+	32,  // 53: nnx.v1.AddDocumentResponse.document:type_name -> nnx.v1.Document
+	32,  // 54: nnx.v1.GetDocumentResponse.document:type_name -> nnx.v1.Document
+	32,  // 55: nnx.v1.UpdateDocumentResponse.document:type_name -> nnx.v1.Document
+	13,  // 56: nnx.v1.GitHubAuthMethod.type:type_name -> nnx.v1.GithubAuthMethodType
+	83,  // 57: nnx.v1.GitHubConfig.hosts:type_name -> nnx.v1.GitHubHost
+	84,  // 58: nnx.v1.GitHubConfig.auth_methods:type_name -> nnx.v1.GitHubAuthMethod
+	24,  // 59: nnx.v1.GitHubConfig.task_label_overrides:type_name -> nnx.v1.TaskLabelOverrides
+	28,  // 60: nnx.v1.GitHubConfig.built_in_task_label_appearances:type_name -> nnx.v1.TaskLabelAppearances
+	85,  // 61: nnx.v1.GetConfigResponse.config:type_name -> nnx.v1.GitHubConfig
+	24,  // 62: nnx.v1.TaskLabelConfig.overrides:type_name -> nnx.v1.TaskLabelOverrides
+	28,  // 63: nnx.v1.TaskLabelConfig.built_in:type_name -> nnx.v1.TaskLabelAppearances
+	89,  // 64: nnx.v1.GetTaskLabelConfigResponse.config:type_name -> nnx.v1.TaskLabelConfig
+	26,  // 65: nnx.v1.UpdateTaskLabelConfigRequest.overrides:type_name -> nnx.v1.TaskLabelOverridesUpdate
+	89,  // 66: nnx.v1.UpdateTaskLabelConfigResponse.config:type_name -> nnx.v1.TaskLabelConfig
+	85,  // 67: nnx.v1.UpdateGitHubSyncConfigResponse.config:type_name -> nnx.v1.GitHubConfig
+	85,  // 68: nnx.v1.UpdateLanguageConfigResponse.config:type_name -> nnx.v1.GitHubConfig
+	83,  // 69: nnx.v1.AddGitHubHostResponse.host:type_name -> nnx.v1.GitHubHost
+	83,  // 70: nnx.v1.UpdateGitHubHostResponse.host:type_name -> nnx.v1.GitHubHost
+	13,  // 71: nnx.v1.AddGitHubAuthMethodRequest.type:type_name -> nnx.v1.GithubAuthMethodType
+	84,  // 72: nnx.v1.AddGitHubAuthMethodResponse.auth_method:type_name -> nnx.v1.GitHubAuthMethod
+	13,  // 73: nnx.v1.UpdateGitHubAuthMethodRequest.type:type_name -> nnx.v1.GithubAuthMethodType
+	84,  // 74: nnx.v1.UpdateGitHubAuthMethodResponse.auth_method:type_name -> nnx.v1.GitHubAuthMethod
+	84,  // 75: nnx.v1.ReorderGitHubAuthMethodsResponse.auth_methods:type_name -> nnx.v1.GitHubAuthMethod
+	113, // 76: nnx.v1.GetPromptTemplatesResponse.templates:type_name -> nnx.v1.PromptTemplates
+	113, // 77: nnx.v1.GetPromptTemplatesResponse.built_in:type_name -> nnx.v1.PromptTemplates
+	113, // 78: nnx.v1.UpdatePromptTemplatesResponse.templates:type_name -> nnx.v1.PromptTemplates
+	14,  // 79: nnx.v1.GetTaskPromptRequest.kind:type_name -> nnx.v1.TaskPromptKind
+	14,  // 80: nnx.v1.GetTaskPromptResponse.kind:type_name -> nnx.v1.TaskPromptKind
+	14,  // 81: nnx.v1.GetBatchPromptRequest.kind:type_name -> nnx.v1.TaskPromptKind
+	14,  // 82: nnx.v1.GetBatchPromptResponse.kind:type_name -> nnx.v1.TaskPromptKind
+	124, // 83: nnx.v1.GetGitHubSyncStatusResponse.status:type_name -> nnx.v1.GitHubSyncStatus
+	124, // 84: nnx.v1.SyncGitHubIfDueResponse.status:type_name -> nnx.v1.GitHubSyncStatus
+	16,  // 85: nnx.v1.UpdateStatus.disabled_reason:type_name -> nnx.v1.UpdateDisabledReason
+	129, // 86: nnx.v1.UpdateStatus.releases:type_name -> nnx.v1.UpdateRelease
+	130, // 87: nnx.v1.GetUpdateStatusResponse.status:type_name -> nnx.v1.UpdateStatus
+	130, // 88: nnx.v1.SkipUpdateVersionResponse.status:type_name -> nnx.v1.UpdateStatus
+	15,  // 89: nnx.v1.DebugProblem.code:type_name -> nnx.v1.DebugProblemCode
+	143, // 90: nnx.v1.DebugPaths.environment_variables:type_name -> nnx.v1.DebugEnvironmentVariable
+	145, // 91: nnx.v1.DebugConfig.hosts:type_name -> nnx.v1.DebugConfigHost
+	146, // 92: nnx.v1.DebugConfig.auth_methods:type_name -> nnx.v1.DebugConfigAuthMethod
+	148, // 93: nnx.v1.DebugStorage.database_file:type_name -> nnx.v1.DebugDatabaseFile
+	150, // 94: nnx.v1.DebugData.feature_statuses:type_name -> nnx.v1.DebugCount
+	150, // 95: nnx.v1.DebugData.task_display_states:type_name -> nnx.v1.DebugCount
+	150, // 96: nnx.v1.DebugData.pull_request_display_states:type_name -> nnx.v1.DebugCount
+	150, // 97: nnx.v1.DebugData.pull_request_hosts:type_name -> nnx.v1.DebugCount
+	150, // 98: nnx.v1.DebugData.document_kinds:type_name -> nnx.v1.DebugCount
+	150, // 99: nnx.v1.DebugData.project_states:type_name -> nnx.v1.DebugCount
+	124, // 100: nnx.v1.DebugGitHubSync.status:type_name -> nnx.v1.GitHubSyncStatus
+	152, // 101: nnx.v1.DebugGitHubSync.host_failures:type_name -> nnx.v1.DebugSyncFailure
+	152, // 102: nnx.v1.DebugGitHubSync.repository_failures:type_name -> nnx.v1.DebugSyncFailure
+	153, // 103: nnx.v1.DebugGitHubSync.error_groups:type_name -> nnx.v1.DebugErrorGroup
+	154, // 104: nnx.v1.DebugGitHubSync.auth_cache:type_name -> nnx.v1.DebugAuthCacheEntry
+	139, // 105: nnx.v1.DebugReport.problems:type_name -> nnx.v1.DebugProblem
+	140, // 106: nnx.v1.DebugReport.build:type_name -> nnx.v1.DebugBuild
+	141, // 107: nnx.v1.DebugReport.runtime:type_name -> nnx.v1.DebugRuntime
+	144, // 108: nnx.v1.DebugReport.paths:type_name -> nnx.v1.DebugPaths
+	142, // 109: nnx.v1.DebugReport.daemon:type_name -> nnx.v1.DebugDaemon
+	147, // 110: nnx.v1.DebugReport.config:type_name -> nnx.v1.DebugConfig
+	149, // 111: nnx.v1.DebugReport.storage:type_name -> nnx.v1.DebugStorage
+	151, // 112: nnx.v1.DebugReport.records:type_name -> nnx.v1.DebugData
+	155, // 113: nnx.v1.DebugReport.github_sync:type_name -> nnx.v1.DebugGitHubSync
+	156, // 114: nnx.v1.GetDebugReportResponse.report:type_name -> nnx.v1.DebugReport
+	23,  // 115: nnx.v1.TaskLabelOverrides.ValuesEntry.value:type_name -> nnx.v1.TaskLabelOverride
+	25,  // 116: nnx.v1.TaskLabelOverridesUpdate.ValuesEntry.value:type_name -> nnx.v1.TaskLabelOverrideUpdate
+	34,  // 117: nnx.v1.NNXService.GetSnapshot:input_type -> nnx.v1.GetSnapshotRequest
+	36,  // 118: nnx.v1.NNXService.WatchRevision:input_type -> nnx.v1.WatchRevisionRequest
+	38,  // 119: nnx.v1.NNXService.CreateProject:input_type -> nnx.v1.CreateProjectRequest
+	40,  // 120: nnx.v1.NNXService.UpdateProject:input_type -> nnx.v1.UpdateProjectRequest
+	42,  // 121: nnx.v1.NNXService.DeleteProject:input_type -> nnx.v1.DeleteProjectRequest
+	44,  // 122: nnx.v1.NNXService.CreateFeature:input_type -> nnx.v1.CreateFeatureRequest
+	46,  // 123: nnx.v1.NNXService.UpdateFeature:input_type -> nnx.v1.UpdateFeatureRequest
+	48,  // 124: nnx.v1.NNXService.DeleteFeature:input_type -> nnx.v1.DeleteFeatureRequest
+	50,  // 125: nnx.v1.NNXService.CreateTask:input_type -> nnx.v1.CreateTaskRequest
+	52,  // 126: nnx.v1.NNXService.UpdateTask:input_type -> nnx.v1.UpdateTaskRequest
+	54,  // 127: nnx.v1.NNXService.DeleteTask:input_type -> nnx.v1.DeleteTaskRequest
+	57,  // 128: nnx.v1.NNXService.CreateTaskGroup:input_type -> nnx.v1.CreateTaskGroupRequest
+	59,  // 129: nnx.v1.NNXService.RenameTaskGroup:input_type -> nnx.v1.RenameTaskGroupRequest
+	61,  // 130: nnx.v1.NNXService.DeleteTaskGroup:input_type -> nnx.v1.DeleteTaskGroupRequest
+	63,  // 131: nnx.v1.NNXService.AddDependency:input_type -> nnx.v1.AddDependencyRequest
+	65,  // 132: nnx.v1.NNXService.RemoveDependency:input_type -> nnx.v1.RemoveDependencyRequest
+	67,  // 133: nnx.v1.NNXService.AttachPullRequest:input_type -> nnx.v1.AttachPullRequestRequest
+	69,  // 134: nnx.v1.NNXService.DetachPullRequest:input_type -> nnx.v1.DetachPullRequestRequest
+	71,  // 135: nnx.v1.NNXService.AddDocument:input_type -> nnx.v1.AddDocumentRequest
+	73,  // 136: nnx.v1.NNXService.GetDocument:input_type -> nnx.v1.GetDocumentRequest
+	75,  // 137: nnx.v1.NNXService.UpdateDocument:input_type -> nnx.v1.UpdateDocumentRequest
+	77,  // 138: nnx.v1.NNXService.DeleteDocument:input_type -> nnx.v1.DeleteDocumentRequest
+	79,  // 139: nnx.v1.NNXService.ReadDocumentContent:input_type -> nnx.v1.ReadDocumentContentRequest
+	81,  // 140: nnx.v1.NNXService.SelectLocalFile:input_type -> nnx.v1.SelectLocalFileRequest
+	122, // 141: nnx.v1.NNXService.Sync:input_type -> nnx.v1.SyncRequest
+	125, // 142: nnx.v1.NNXService.GetGitHubSyncStatus:input_type -> nnx.v1.GetGitHubSyncStatusRequest
+	127, // 143: nnx.v1.NNXService.SyncGitHubIfDue:input_type -> nnx.v1.SyncGitHubIfDueRequest
+	131, // 144: nnx.v1.NNXService.GetUpdateStatus:input_type -> nnx.v1.GetUpdateStatusRequest
+	133, // 145: nnx.v1.NNXService.SkipUpdateVersion:input_type -> nnx.v1.SkipUpdateVersionRequest
+	135, // 146: nnx.v1.NNXService.ApplyUpdate:input_type -> nnx.v1.ApplyUpdateRequest
+	137, // 147: nnx.v1.NNXService.Validate:input_type -> nnx.v1.ValidateRequest
+	157, // 148: nnx.v1.NNXService.GetDebugReport:input_type -> nnx.v1.GetDebugReportRequest
+	86,  // 149: nnx.v1.NNXService.GetConfig:input_type -> nnx.v1.GetConfigRequest
+	88,  // 150: nnx.v1.NNXService.GetTaskLabelConfig:input_type -> nnx.v1.GetTaskLabelConfigRequest
+	91,  // 151: nnx.v1.NNXService.UpdateTaskLabelConfig:input_type -> nnx.v1.UpdateTaskLabelConfigRequest
+	93,  // 152: nnx.v1.NNXService.UpdateGitHubSyncConfig:input_type -> nnx.v1.UpdateGitHubSyncConfigRequest
+	95,  // 153: nnx.v1.NNXService.UpdateLanguageConfig:input_type -> nnx.v1.UpdateLanguageConfigRequest
+	97,  // 154: nnx.v1.NNXService.AddGitHubHost:input_type -> nnx.v1.AddGitHubHostRequest
+	99,  // 155: nnx.v1.NNXService.UpdateGitHubHost:input_type -> nnx.v1.UpdateGitHubHostRequest
+	101, // 156: nnx.v1.NNXService.DeleteGitHubHost:input_type -> nnx.v1.DeleteGitHubHostRequest
+	103, // 157: nnx.v1.NNXService.AddGitHubAuthMethod:input_type -> nnx.v1.AddGitHubAuthMethodRequest
+	105, // 158: nnx.v1.NNXService.UpdateGitHubAuthMethod:input_type -> nnx.v1.UpdateGitHubAuthMethodRequest
+	107, // 159: nnx.v1.NNXService.DeleteGitHubAuthMethod:input_type -> nnx.v1.DeleteGitHubAuthMethodRequest
+	109, // 160: nnx.v1.NNXService.ReorderGitHubAuthMethods:input_type -> nnx.v1.ReorderGitHubAuthMethodsRequest
+	111, // 161: nnx.v1.NNXService.ValidateConfig:input_type -> nnx.v1.ValidateConfigRequest
+	114, // 162: nnx.v1.NNXService.GetPromptTemplates:input_type -> nnx.v1.GetPromptTemplatesRequest
+	116, // 163: nnx.v1.NNXService.UpdatePromptTemplates:input_type -> nnx.v1.UpdatePromptTemplatesRequest
+	118, // 164: nnx.v1.NNXService.GetTaskPrompt:input_type -> nnx.v1.GetTaskPromptRequest
+	120, // 165: nnx.v1.NNXService.GetBatchPrompt:input_type -> nnx.v1.GetBatchPromptRequest
+	35,  // 166: nnx.v1.NNXService.GetSnapshot:output_type -> nnx.v1.GetSnapshotResponse
+	37,  // 167: nnx.v1.NNXService.WatchRevision:output_type -> nnx.v1.WatchRevisionResponse
+	39,  // 168: nnx.v1.NNXService.CreateProject:output_type -> nnx.v1.CreateProjectResponse
+	41,  // 169: nnx.v1.NNXService.UpdateProject:output_type -> nnx.v1.UpdateProjectResponse
+	43,  // 170: nnx.v1.NNXService.DeleteProject:output_type -> nnx.v1.DeleteProjectResponse
+	45,  // 171: nnx.v1.NNXService.CreateFeature:output_type -> nnx.v1.CreateFeatureResponse
+	47,  // 172: nnx.v1.NNXService.UpdateFeature:output_type -> nnx.v1.UpdateFeatureResponse
+	49,  // 173: nnx.v1.NNXService.DeleteFeature:output_type -> nnx.v1.DeleteFeatureResponse
+	51,  // 174: nnx.v1.NNXService.CreateTask:output_type -> nnx.v1.CreateTaskResponse
+	53,  // 175: nnx.v1.NNXService.UpdateTask:output_type -> nnx.v1.UpdateTaskResponse
+	55,  // 176: nnx.v1.NNXService.DeleteTask:output_type -> nnx.v1.DeleteTaskResponse
+	58,  // 177: nnx.v1.NNXService.CreateTaskGroup:output_type -> nnx.v1.CreateTaskGroupResponse
+	60,  // 178: nnx.v1.NNXService.RenameTaskGroup:output_type -> nnx.v1.RenameTaskGroupResponse
+	62,  // 179: nnx.v1.NNXService.DeleteTaskGroup:output_type -> nnx.v1.DeleteTaskGroupResponse
+	64,  // 180: nnx.v1.NNXService.AddDependency:output_type -> nnx.v1.AddDependencyResponse
+	66,  // 181: nnx.v1.NNXService.RemoveDependency:output_type -> nnx.v1.RemoveDependencyResponse
+	68,  // 182: nnx.v1.NNXService.AttachPullRequest:output_type -> nnx.v1.AttachPullRequestResponse
+	70,  // 183: nnx.v1.NNXService.DetachPullRequest:output_type -> nnx.v1.DetachPullRequestResponse
+	72,  // 184: nnx.v1.NNXService.AddDocument:output_type -> nnx.v1.AddDocumentResponse
+	74,  // 185: nnx.v1.NNXService.GetDocument:output_type -> nnx.v1.GetDocumentResponse
+	76,  // 186: nnx.v1.NNXService.UpdateDocument:output_type -> nnx.v1.UpdateDocumentResponse
+	78,  // 187: nnx.v1.NNXService.DeleteDocument:output_type -> nnx.v1.DeleteDocumentResponse
+	80,  // 188: nnx.v1.NNXService.ReadDocumentContent:output_type -> nnx.v1.ReadDocumentContentResponse
+	82,  // 189: nnx.v1.NNXService.SelectLocalFile:output_type -> nnx.v1.SelectLocalFileResponse
+	123, // 190: nnx.v1.NNXService.Sync:output_type -> nnx.v1.SyncResponse
+	126, // 191: nnx.v1.NNXService.GetGitHubSyncStatus:output_type -> nnx.v1.GetGitHubSyncStatusResponse
+	128, // 192: nnx.v1.NNXService.SyncGitHubIfDue:output_type -> nnx.v1.SyncGitHubIfDueResponse
+	132, // 193: nnx.v1.NNXService.GetUpdateStatus:output_type -> nnx.v1.GetUpdateStatusResponse
+	134, // 194: nnx.v1.NNXService.SkipUpdateVersion:output_type -> nnx.v1.SkipUpdateVersionResponse
+	136, // 195: nnx.v1.NNXService.ApplyUpdate:output_type -> nnx.v1.ApplyUpdateResponse
+	138, // 196: nnx.v1.NNXService.Validate:output_type -> nnx.v1.ValidateResponse
+	158, // 197: nnx.v1.NNXService.GetDebugReport:output_type -> nnx.v1.GetDebugReportResponse
+	87,  // 198: nnx.v1.NNXService.GetConfig:output_type -> nnx.v1.GetConfigResponse
+	90,  // 199: nnx.v1.NNXService.GetTaskLabelConfig:output_type -> nnx.v1.GetTaskLabelConfigResponse
+	92,  // 200: nnx.v1.NNXService.UpdateTaskLabelConfig:output_type -> nnx.v1.UpdateTaskLabelConfigResponse
+	94,  // 201: nnx.v1.NNXService.UpdateGitHubSyncConfig:output_type -> nnx.v1.UpdateGitHubSyncConfigResponse
+	96,  // 202: nnx.v1.NNXService.UpdateLanguageConfig:output_type -> nnx.v1.UpdateLanguageConfigResponse
+	98,  // 203: nnx.v1.NNXService.AddGitHubHost:output_type -> nnx.v1.AddGitHubHostResponse
+	100, // 204: nnx.v1.NNXService.UpdateGitHubHost:output_type -> nnx.v1.UpdateGitHubHostResponse
+	102, // 205: nnx.v1.NNXService.DeleteGitHubHost:output_type -> nnx.v1.DeleteGitHubHostResponse
+	104, // 206: nnx.v1.NNXService.AddGitHubAuthMethod:output_type -> nnx.v1.AddGitHubAuthMethodResponse
+	106, // 207: nnx.v1.NNXService.UpdateGitHubAuthMethod:output_type -> nnx.v1.UpdateGitHubAuthMethodResponse
+	108, // 208: nnx.v1.NNXService.DeleteGitHubAuthMethod:output_type -> nnx.v1.DeleteGitHubAuthMethodResponse
+	110, // 209: nnx.v1.NNXService.ReorderGitHubAuthMethods:output_type -> nnx.v1.ReorderGitHubAuthMethodsResponse
+	112, // 210: nnx.v1.NNXService.ValidateConfig:output_type -> nnx.v1.ValidateConfigResponse
+	115, // 211: nnx.v1.NNXService.GetPromptTemplates:output_type -> nnx.v1.GetPromptTemplatesResponse
+	117, // 212: nnx.v1.NNXService.UpdatePromptTemplates:output_type -> nnx.v1.UpdatePromptTemplatesResponse
+	119, // 213: nnx.v1.NNXService.GetTaskPrompt:output_type -> nnx.v1.GetTaskPromptResponse
+	121, // 214: nnx.v1.NNXService.GetBatchPrompt:output_type -> nnx.v1.GetBatchPromptResponse
+	166, // [166:215] is the sub-list for method output_type
+	117, // [117:166] is the sub-list for method input_type
+	117, // [117:117] is the sub-list for extension type_name
+	117, // [117:117] is the sub-list for extension extendee
+	0,   // [0:117] is the sub-list for field type_name
 }
 
 func init() { file_nnx_v1_nnx_proto_init() }
@@ -11631,28 +12097,28 @@ func file_nnx_v1_nnx_proto_init() {
 	file_nnx_v1_nnx_proto_msgTypes[23].OneofWrappers = []any{}
 	file_nnx_v1_nnx_proto_msgTypes[29].OneofWrappers = []any{}
 	file_nnx_v1_nnx_proto_msgTypes[35].OneofWrappers = []any{}
-	file_nnx_v1_nnx_proto_msgTypes[47].OneofWrappers = []any{
+	file_nnx_v1_nnx_proto_msgTypes[54].OneofWrappers = []any{
 		(*AddDocumentRequest_Url)(nil),
 		(*AddDocumentRequest_LocalFile)(nil),
 		(*AddDocumentRequest_Markdown)(nil),
 	}
-	file_nnx_v1_nnx_proto_msgTypes[51].OneofWrappers = []any{
+	file_nnx_v1_nnx_proto_msgTypes[58].OneofWrappers = []any{
 		(*UpdateDocumentRequest_Url)(nil),
 		(*UpdateDocumentRequest_LocalFile)(nil),
 		(*UpdateDocumentRequest_Markdown)(nil),
 	}
-	file_nnx_v1_nnx_proto_msgTypes[75].OneofWrappers = []any{}
-	file_nnx_v1_nnx_proto_msgTypes[79].OneofWrappers = []any{}
-	file_nnx_v1_nnx_proto_msgTypes[81].OneofWrappers = []any{}
-	file_nnx_v1_nnx_proto_msgTypes[100].OneofWrappers = []any{}
-	file_nnx_v1_nnx_proto_msgTypes[106].OneofWrappers = []any{}
+	file_nnx_v1_nnx_proto_msgTypes[82].OneofWrappers = []any{}
+	file_nnx_v1_nnx_proto_msgTypes[86].OneofWrappers = []any{}
+	file_nnx_v1_nnx_proto_msgTypes[88].OneofWrappers = []any{}
+	file_nnx_v1_nnx_proto_msgTypes[107].OneofWrappers = []any{}
+	file_nnx_v1_nnx_proto_msgTypes[113].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_nnx_v1_nnx_proto_rawDesc), len(file_nnx_v1_nnx_proto_rawDesc)),
 			NumEnums:      17,
-			NumMessages:   137,
+			NumMessages:   144,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

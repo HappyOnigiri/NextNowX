@@ -20,6 +20,7 @@ import { CopyableIdentifier } from "./CopyableIdentifier";
 import { EntityIcon } from "./EntityIcon";
 import { IconButton } from "./IconButton";
 import { PullRequestFlags } from "./PullRequestFlags";
+import { TaskGroupRow } from "./TaskGroupRow";
 import { TaskKindLabel } from "./TaskKindLabel";
 import { TaskPromptCopyButton } from "./TaskPromptCopyButton";
 import { TaskBlockLabels, TaskStatusBadge } from "./TaskStateBadges";
@@ -42,6 +43,7 @@ const emptyPorts: TaskNodePort[] = [];
 
 interface TaskNodeData extends Record<string, unknown> {
   title: string;
+  compact?: boolean;
   assignee: string;
   state: TaskDisplayState;
   kind?: TaskKind;
@@ -67,6 +69,11 @@ interface TaskNodeData extends Record<string, unknown> {
   onAddReference?: (trigger: HTMLButtonElement) => void;
 }
 export type TaskFlowNode = Node<TaskNodeData, "task">;
+type TaskGroupFlowNode = Node<
+  { incomingPorts: TaskNodePort[]; outgoingPorts: TaskNodePort[] },
+  "taskGroup"
+>;
+export type GraphFlowNode = TaskFlowNode | TaskGroupFlowNode;
 
 // React Flow は接続可否で絞らず距離だけで接続先を選ぶため、接続を拒む port が
 // スナップ半径を奪ってしまう。そこで port は接続の終端を受け入れ、結果として
@@ -116,6 +123,23 @@ function TaskEdgePorts({
   );
 }
 
+export function TaskGroupNode({ id, data }: NodeProps<TaskGroupFlowNode>) {
+  const updateNodeInternals = useUpdateNodeInternals();
+  const { incomingPorts, outgoingPorts } = data;
+
+  useEffect(() => {
+    updateNodeInternals(id);
+  }, [id, incomingPorts, outgoingPorts, updateNodeInternals]);
+
+  return (
+    <TaskEdgePorts
+      incoming={incomingPorts}
+      outgoing={outgoingPorts}
+      isConnectable={false}
+    />
+  );
+}
+
 // このスタブは、非表示の完了タスクへの依存を切れたエッジとして見せ、代表して
 // いる非表示タスクの名前を示す。
 // docs/design/webui.md を参照。
@@ -149,6 +173,25 @@ function HiddenDependencyStub({
   );
 }
 
+function TaskHiddenDependencies({
+  dependencies,
+}: {
+  dependencies: HiddenDependencies | undefined;
+}) {
+  return (
+    <>
+      <HiddenDependencyStub
+        direction="in"
+        titles={dependencies?.blockers ?? []}
+      />
+      <HiddenDependencyStub
+        direction="out"
+        titles={dependencies?.blocked ?? []}
+      />
+    </>
+  );
+}
+
 export function TaskNode({
   id,
   data,
@@ -163,6 +206,21 @@ export function TaskNode({
   useEffect(() => {
     updateNodeInternals(id);
   }, [id, incomingPorts, outgoingPorts, updateNodeInternals]);
+
+  if (data.compact) {
+    return (
+      <div className="graph-group-row">
+        <TaskHiddenDependencies dependencies={data.hiddenDependencies} />
+        <TaskGroupRow
+          state={data.state}
+          kind={data.kind}
+          appearances={data.taskLabelAppearances}
+          title={data.title}
+          onOpen={data.onEdit}
+        />
+      </div>
+    );
+  }
 
   return (
     <div
@@ -182,14 +240,7 @@ export function TaskNode({
         isConnectable={isConnectable}
         outgoing={outgoingPorts}
       />
-      <HiddenDependencyStub
-        direction="in"
-        titles={data.hiddenDependencies?.blockers ?? []}
-      />
-      <HiddenDependencyStub
-        direction="out"
-        titles={data.hiddenDependencies?.blocked ?? []}
-      />
+      <TaskHiddenDependencies dependencies={data.hiddenDependencies} />
       <div className="task-node-head">
         <div className="task-node-actions nodrag nowheel nopan">
           <CopyableIdentifier label={t("common.taskId")} value={id} valueOnly />

@@ -1,16 +1,25 @@
-import type { ELK as ElkInstance, ElkNode } from "elkjs/lib/elk-api.js";
+import type {
+  ElkExtendedEdge,
+  ELK as ElkInstance,
+  ElkNode,
+} from "elkjs/lib/elk-api.js";
 import ELK from "elkjs/lib/elk-api.js";
 import elkWorkerUrl from "elkjs/lib/elk-worker.min.js?url";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type RefObject } from "react";
 import type {
-  Dependency,
   PullRequest,
   Task,
+  TaskGroup,
   TaskLabelAppearances,
 } from "../gen/nnx/v1/nnx_pb";
 import { isDependencyBlockedTask, isDormantTask } from "../task-attention";
 import { dependencyEdgeId, type DependencyEdgeRoute } from "./dependencyGraph";
-import { type TaskFlowNode, type TaskNodeDocument } from "./TaskNode";
+import {
+  buildTaskGroupLayout,
+  readTaskGroupLayout,
+  type GraphDependency,
+} from "./taskGroupGraphLayout";
+import { type GraphFlowNode, type TaskNodeDocument } from "./TaskNode";
 import {
   emptyHiddenDependencies,
   type HiddenDependencies,
@@ -18,7 +27,9 @@ import {
 
 interface GraphLayoutOptions {
   tasks: Task[];
-  dependencies: Dependency[];
+  dependencies: GraphDependency[];
+  groups?: TaskGroup[] | undefined;
+  groupHeaderMeasurements?: RefObject<HTMLDivElement | null> | undefined;
   pullRequests: Map<string, PullRequest>;
   documentsByTask: Map<string, TaskNodeDocument[]>;
   hiddenDependencies?: Map<string, HiddenDependencies>;
@@ -81,6 +92,8 @@ function isSameLayoutRequest(
   return (
     completed?.tasks === requested.tasks &&
     completed.dependencies === requested.dependencies &&
+    completed.groups === requested.groups &&
+    completed.groupHeaderMeasurements === requested.groupHeaderMeasurements &&
     completed.pullRequests === requested.pullRequests &&
     completed.documentsByTask === requested.documentsByTask &&
     completed.hiddenDependencies === requested.hiddenDependencies &&
@@ -120,6 +133,7 @@ function buildRawNodes({
       const syncError = pr?.syncError ?? "";
       return {
         id: task.id,
+        groupId: task.groupId,
         width: nodeWidth,
         height: nodeHeight,
         data: {
@@ -179,7 +193,7 @@ type RawNode = ReturnType<typeof buildRawNodes>[number];
 
 // considerModelOrder は children だけでなくエッジの入力順も見る。サーバーが
 // 返す依存の並びは created_at が同値だと揺れるので、ここで ID 順に揃える。
-function orderedDependencies(dependencies: Dependency[]) {
+function orderedDependencies(dependencies: GraphDependency[]) {
   return [...dependencies].sort(
     (left, right) =>
       taskIdOrder.compare(left.blockerTaskId, right.blockerTaskId) ||
@@ -187,7 +201,10 @@ function orderedDependencies(dependencies: Dependency[]) {
   );
 }
 
-function buildLayoutGraph(raw: RawNode[], dependencies: Dependency[]): ElkNode {
+function buildLayoutGraph(
+  children: ElkNode[],
+  edges: ElkExtendedEdge[],
+): ElkNode {
   return {
     id: "root",
     layoutOptions: {
@@ -201,33 +218,25 @@ function buildLayoutGraph(raw: RawNode[], dependencies: Dependency[]): ElkNode {
       "elk.spacing.nodeNode": "72",
       "elk.layered.spacing.nodeNodeBetweenLayers": "110",
     },
-    children: raw.map(({ id, width, height }) => ({ id, width, height })),
-    edges: orderedDependencies(dependencies).map((dependency) => ({
-      id: dependencyEdgeId(dependency.blockerTaskId, dependency.blockedTaskId),
-      sources: [dependency.blockerTaskId],
-      targets: [dependency.blockedTaskId],
-    })),
+    children,
+    edges,
   };
 }
 
 function readLayout(
   layout: ElkNode,
   raw: RawNode[],
-  dependencies: Dependency[],
+  dependencies: GraphDependency[],
+  grouping: ReturnType<typeof buildTaskGroupLayout>,
 ) {
-  const positions = new Map(
-    layout.children?.map((child) => [
-      child.id,
-      { x: child.x ?? 0, y: child.y ?? 0 },
-    ]),
-  );
+  const { frames, positions } = readTaskGroupLayout(layout, grouping);
   const ports = new Map<
     string,
     {
       incoming: { id: string; top: number }[];
       outgoing: { id: string; top: number }[];
     }
-  >(raw.map((node) => [node.id, { incoming: [], outgoing: [] }]));
+  >(grouping.children.map(({ id }) => [id, { incoming: [], outgoing: [] }]));
   const edgeRoutes = new Map<string, DependencyEdgeRoute>();
 
   for (const dependency of dependencies) {
@@ -264,22 +273,67 @@ function readLayout(
     });
   }
 
-  const nodes: TaskFlowNode[] = raw.map((node) => ({
-    ...node,
-    data: {
-      ...node.data,
-      incomingPorts: ports.get(node.id)?.incoming ?? [],
-      outgoingPorts: ports.get(node.id)?.outgoing ?? [],
+  const nodes: GraphFlowNode[] = raw.map(
+    ({ id, groupId, width, height, data }) => {
+      const group = grouping.groups.get(groupId);
+      const row = grouping.rows.get(id);
+      return {
+        id,
+        width: row?.width ?? width,
+        height: row?.height ?? height,
+        ...(group ? { ariaLabel: `${data.title} (${group.name})` } : {}),
+        data: {
+          ...data,
+          compact: row !== undefined,
+          incomingPorts: ports.get(id)?.incoming ?? [],
+          outgoingPorts: ports.get(id)?.outgoing ?? [],
+        },
+        type: "task",
+        position: positions.get(id) ?? { x: 0, y: 0 },
+      };
     },
-    type: "task",
-    position: positions.get(node.id) ?? { x: 0, y: 0 },
-  }));
-  return { edgeRoutes, nodes };
+  );
+  for (const { group, x, y, width, height } of frames) {
+    nodes.push({
+      id: group.id,
+      type: "taskGroup",
+      position: { x, y },
+      width,
+      height,
+      connectable: false,
+      focusable: false,
+      selectable: false,
+      style: { pointerEvents: "none" },
+      data: {
+        incomingPorts: ports.get(group.id)?.incoming ?? [],
+        outgoingPorts: ports.get(group.id)?.outgoing ?? [],
+      },
+    });
+  }
+  return { edgeRoutes, frames, nodes };
+}
+
+// 計測用のヘッダーはキャンバスの外にあり、ズームに依存しない。
+function readGroupHeaderHeights(
+  measurements: HTMLDivElement | null | undefined,
+) {
+  const heights = new Map<string, number>();
+  for (const header of measurements?.querySelectorAll<HTMLElement>(
+    "[data-group-id]",
+  ) ?? []) {
+    const id = header.dataset["groupId"];
+    const height = header.offsetHeight;
+    // タスク行の起点には、カード上辺の枠線も含める。
+    if (id && height > 0) heights.set(id, height + 1);
+  }
+  return heights;
 }
 
 export function useGraphLayout({
   tasks,
   dependencies,
+  groups,
+  groupHeaderMeasurements,
   pullRequests,
   documentsByTask,
   hiddenDependencies = emptyHiddenDependencies,
@@ -289,10 +343,11 @@ export function useGraphLayout({
   taskLabelAppearances,
   readOnly = false,
 }: GraphLayoutOptions) {
-  const [nodes, setNodes] = useState<TaskFlowNode[]>([]);
-  const [edgeRoutes, setEdgeRoutes] = useState<
-    Map<string, DependencyEdgeRoute>
-  >(() => new Map());
+  const [result, setResult] = useState<ReturnType<typeof readLayout>>(() => ({
+    nodes: [],
+    frames: [],
+    edgeRoutes: new Map(),
+  }));
   // 表示言語を変えてもレイアウトの effect が再実行されてビューポートが
   // リセットされないよう、生のエラーを保持する。
   const [layoutError, setLayoutError] = useState<
@@ -304,6 +359,8 @@ export function useGraphLayout({
     () => ({
       tasks,
       dependencies,
+      groups,
+      groupHeaderMeasurements,
       pullRequests,
       documentsByTask,
       hiddenDependencies,
@@ -317,6 +374,8 @@ export function useGraphLayout({
     [
       tasks,
       dependencies,
+      groups,
+      groupHeaderMeasurements,
       pullRequests,
       documentsByTask,
       hiddenDependencies,
@@ -336,7 +395,7 @@ export function useGraphLayout({
 
     function failLayout(message: string | undefined) {
       if (!current) return;
-      setEdgeRoutes(new Map());
+      setResult((previous) => ({ ...previous, edgeRoutes: new Map() }));
       setLayoutError({ message });
       setCompletedLayout(layoutRequest);
     }
@@ -367,14 +426,19 @@ export function useGraphLayout({
     } catch (error) {
       failLayout(error instanceof Error ? error.message : undefined);
     }
+    const dependencies = orderedDependencies(layoutRequest.dependencies);
+    const grouping = buildTaskGroupLayout(
+      raw,
+      dependencies,
+      layoutRequest.groups ?? [],
+      readGroupHeaderHeights(layoutRequest.groupHeaderMeasurements?.current),
+    );
     elk
-      ?.layout(buildLayoutGraph(raw, layoutRequest.dependencies))
+      ?.layout(buildLayoutGraph(grouping.children, grouping.edges))
       .then((layout) => {
         if (!current) return;
         setLayoutError(undefined);
-        const result = readLayout(layout, raw, layoutRequest.dependencies);
-        setEdgeRoutes(result.edgeRoutes);
-        setNodes(result.nodes);
+        setResult(readLayout(layout, raw, dependencies, grouping));
         setCompletedLayout(layoutRequest);
       })
       .catch((error: unknown) => {
@@ -394,5 +458,5 @@ export function useGraphLayout({
     setLayoutAttempt((attempt) => attempt + 1);
   }
 
-  return { edgeRoutes, nodes, layoutError, layoutPending, retryLayout };
+  return { ...result, layoutError, layoutPending, retryLayout };
 }
