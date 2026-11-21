@@ -640,6 +640,10 @@ it("explicitly clears a task group and follows the refreshed membership", async 
   expect(select).toHaveValue(group.id);
   fireEvent.change(select, { target: { value: "" } });
   fireEvent.click(screen.getByRole("button", { name: "Save task" }));
+  const updateTask = mutationFor("updateTask");
+  updateTask.isPending = true;
+  view.rerender(<TaskInspector {...props} />);
+  expect(select).toBeDisabled();
   await waitFor(() => {
     expect(apiFor("updateTask")).toHaveBeenCalledWith(
       expect.objectContaining({ groupId: "" }),
@@ -647,7 +651,9 @@ it("explicitly clears a task group and follows the refreshed membership", async 
     expect(select).toHaveValue(group.id);
   });
   const refreshed = makeTask({ groupId: "" });
+  updateTask.isPending = false;
   view.rerender(<TaskInspector {...props} task={refreshed} />);
+  expect(select).toBeEnabled();
   expect(select).toHaveValue("");
   view.rerender(<TaskInspector {...props} readOnly />);
   expect(

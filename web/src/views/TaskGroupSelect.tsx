@@ -11,12 +11,14 @@ export function TaskGroupSelect({
   defaultValue,
   onChange,
   createInFeature,
+  disabled,
 }: {
   groups: TaskGroup[];
   value?: string;
   createInFeature?: string;
   defaultValue?: string | undefined;
   onChange?: (value: string) => void;
+  disabled?: boolean;
 }) {
   const { t } = useTranslation();
   const [creating, setCreating] = useState(false);
@@ -29,6 +31,7 @@ export function TaskGroupSelect({
           name="group"
           value={value}
           defaultValue={defaultValue}
+          disabled={disabled}
           onChange={(event) => {
             const selected = event.target.value;
             if (selected === createOption) setCreating(true);

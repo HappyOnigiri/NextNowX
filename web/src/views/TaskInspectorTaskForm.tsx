@@ -68,6 +68,7 @@ export function TaskInspectorTaskForm({
       />
       <TaskGroupSelect
         createInFeature={task.featureId}
+        disabled={controller.pending}
         groups={groups}
         value={draft.groupId ?? task.groupId}
         onChange={(groupId) => {
