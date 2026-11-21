@@ -407,6 +407,26 @@ test("switches between aggregated group edges and individual task edges", async 
     .fill("Publish inputs");
   await expect(rows).toHaveCount(1);
   await expect(stage.locator(".graph-task-group")).toHaveCount(1);
+  await expect(
+    rows.getByRole("img", { name: "Hidden dependents: Ungrouped task" }),
+  ).toBeVisible();
+
+  await page.keyboard.press("Escape");
+  await settleGraph(page);
+  const inspector = await openInspector(page, "Prepare inputs");
+  await inspector.getByLabel("Status").selectOption({ label: "Completed" });
+  await inspector.getByRole("button", { name: "Save task" }).click();
+  await expect(
+    inspector.getByRole("button", { name: "Save task" }),
+  ).toBeDisabled();
+  await inspector.getByRole("button", { name: "Close inspector" }).click();
+  await page.getByRole("switch", { name: "Hide completed" }).check();
+  await expect(cards).toHaveCount(1);
+  await expect(
+    rows
+      .filter({ hasText: "Collect inputs" })
+      .getByRole("img", { name: "Hidden blockers: Prepare inputs" }),
+  ).toBeVisible();
 });
 
 async function graphTaskId(stage: Locator, title: string) {

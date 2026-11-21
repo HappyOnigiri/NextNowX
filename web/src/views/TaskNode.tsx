@@ -173,6 +173,25 @@ function HiddenDependencyStub({
   );
 }
 
+function TaskHiddenDependencies({
+  dependencies,
+}: {
+  dependencies: HiddenDependencies | undefined;
+}) {
+  return (
+    <>
+      <HiddenDependencyStub
+        direction="in"
+        titles={dependencies?.blockers ?? []}
+      />
+      <HiddenDependencyStub
+        direction="out"
+        titles={dependencies?.blocked ?? []}
+      />
+    </>
+  );
+}
+
 export function TaskNode({
   id,
   data,
@@ -191,6 +210,7 @@ export function TaskNode({
   if (data.compact) {
     return (
       <div className="graph-group-row">
+        <TaskHiddenDependencies dependencies={data.hiddenDependencies} />
         <TaskGroupRow
           state={data.state}
           kind={data.kind}
@@ -220,14 +240,7 @@ export function TaskNode({
         isConnectable={isConnectable}
         outgoing={outgoingPorts}
       />
-      <HiddenDependencyStub
-        direction="in"
-        titles={data.hiddenDependencies?.blockers ?? []}
-      />
-      <HiddenDependencyStub
-        direction="out"
-        titles={data.hiddenDependencies?.blocked ?? []}
-      />
+      <TaskHiddenDependencies dependencies={data.hiddenDependencies} />
       <div className="task-node-head">
         <div className="task-node-actions nodrag nowheel nopan">
           <CopyableIdentifier label={t("common.taskId")} value={id} valueOnly />
