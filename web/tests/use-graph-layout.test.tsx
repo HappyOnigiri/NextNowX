@@ -108,10 +108,10 @@ describe("useGraphLayout", () => {
         documents: [document],
       },
     });
-    node?.data.onEdit();
+    if (node?.type === "task") node.data.onEdit();
     expect(onEditTask).toHaveBeenCalledWith("task-1");
     const trigger = globalThis.document.createElement("button");
-    node?.data.onAddReference?.(trigger);
+    if (node?.type === "task") node.data.onAddReference?.(trigger);
     expect(onAddDocument).toHaveBeenCalledWith("task-1", trigger);
     expect(layoutMocks.layout).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -129,7 +129,7 @@ describe("useGraphLayout", () => {
     expect(layoutMocks.terminateWorker).toHaveBeenCalledOnce();
   });
 
-  it("positions group members as rows and routes an edge from the member's port", async () => {
+  it("positions group members as rows and routes an edge from the group card", async () => {
     const group = makeTaskGroup();
     const options = {
       tasks: [
@@ -139,7 +139,7 @@ describe("useGraphLayout", () => {
       ],
       groups: [group, makeTaskGroup({ id: "empty", name: "Empty" })],
       dependencies: [
-        makeDependency({ blockerTaskId: "task-2", blockedTaskId: "task-3" }),
+        makeDependency({ blockerTaskId: group.id, blockedTaskId: "task-3" }),
       ],
       pullRequests: new Map(),
       documentsByTask: new Map(),
@@ -153,7 +153,7 @@ describe("useGraphLayout", () => {
       ],
       edges: [
         {
-          id: "task-2-task-3",
+          id: `${group.id}-task-3`,
           sections: [
             { startPoint: { x: 346, y: 114 }, endPoint: { x: 460, y: 120 } },
           ],
@@ -162,7 +162,7 @@ describe("useGraphLayout", () => {
     });
     const { result } = renderHook(() => useGraphLayout(options));
     await waitFor(() => {
-      expect(result.current.nodes).toHaveLength(3);
+      expect(result.current.nodes).toHaveLength(4);
     });
     expect(layoutMocks.layout).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -172,8 +172,8 @@ describe("useGraphLayout", () => {
         ],
         edges: [
           {
-            id: "task-2-task-3",
-            sources: ["task-2:EAST"],
+            id: `${group.id}-task-3`,
+            sources: [group.id],
             targets: ["task-3"],
           },
         ],
@@ -186,10 +186,16 @@ describe("useGraphLayout", () => {
       { id: "task-1", position: { x: 10, y: 60 }, data: { compact: true } },
       { id: "task-2", position: { x: 10, y: 96 }, data: { compact: true } },
     ]);
-    expect(result.current.nodes[2]?.data.compact).toBe(false);
-    expect(result.current.edgeRoutes.get("task-2-task-3")?.sourcePortTop).toBe(
-      18,
-    );
+    expect(result.current.nodes[2]?.data).toMatchObject({ compact: false });
+    expect(result.current.nodes[3]).toMatchObject({
+      id: group.id,
+      type: "taskGroup",
+      position: { x: 10, y: 20 },
+      data: { outgoingPorts: [{ top: 94 }] },
+    });
+    expect(
+      result.current.edgeRoutes.get(`${group.id}-task-3`)?.sourcePortTop,
+    ).toBe(94);
   });
 
   it("keeps the owner in a node label when the feature spans owners", async () => {
@@ -218,12 +224,14 @@ describe("useGraphLayout", () => {
     await waitFor(() => {
       expect(result.current.nodes).toHaveLength(2);
     });
-    expect(result.current.nodes[0]?.data.pullRequest?.label).toBe(
-      "acme/nnx #42",
-    );
-    expect(result.current.nodes[1]?.data.pullRequest?.label).toBe(
-      "other/nnx #7",
-    );
+    expect(
+      result.current.nodes.find((node) => node.type === "task")?.data
+        .pullRequest?.label,
+    ).toBe("acme/nnx #42");
+    expect(
+      result.current.nodes.filter((node) => node.type === "task")[1]?.data
+        .pullRequest?.label,
+    ).toBe("other/nnx #7");
   });
 
   it("carries hidden dependencies to the node that stands in for them", async () => {
@@ -248,7 +256,9 @@ describe("useGraphLayout", () => {
     await waitFor(() => {
       expect(result.current.nodes).toHaveLength(2);
     });
-    expect(result.current.nodes[0]?.data.hiddenDependencies).toBe(hidden);
+    expect(result.current.nodes[0]?.data).toMatchObject({
+      hiddenDependencies: hidden,
+    });
     expect(result.current.nodes[1]?.data).not.toHaveProperty(
       "hiddenDependencies",
     );

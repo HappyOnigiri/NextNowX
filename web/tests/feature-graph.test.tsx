@@ -53,7 +53,6 @@ vi.mock("../src/hooks", async () =>
 describe("FeatureGraph", () => {
   afterEach(cleanup);
   beforeEach(resetGraphMocks);
-
   it("hides the React Flow attribution", () => {
     render(
       <FeatureGraph
@@ -881,7 +880,7 @@ describe("FeatureGraph", () => {
     expect(retryLayout).toHaveBeenCalledOnce();
   });
 
-  it("links a compact group and draws only external dependencies in the overview", () => {
+  it("combines external dependencies at the group and leaves the summary edge read-only", () => {
     const group = makeTaskGroup();
     graphMocks.useGraphLayout.mockReturnValue({
       frames: [{ group, x: 0, y: 12, width: 336, height: 88 }],
@@ -899,6 +898,7 @@ describe("FeatureGraph", () => {
         dependencies={[
           makeDependency(),
           makeDependency({ blockerTaskId: "task-2", blockedTaskId: "task-3" }),
+          makeDependency({ blockerTaskId: "task-1", blockedTaskId: "task-3" }),
         ]}
         groups={[group]}
         pullRequests={new Map()}
@@ -913,8 +913,9 @@ describe("FeatureGraph", () => {
       `/features/${group.featureId}?group=${group.id}`,
     );
     expect(graphMocks.edges.map((edge) => edge["id"])).toEqual([
-      "task-2-task-3",
+      `${group.id}-task-3`,
     ]);
+    expect(graphMocks.edges[0]?.["deletable"]).toBe(false);
   });
 
   it("centers the viewport only when the visible tasks change", () => {
@@ -949,7 +950,6 @@ describe("FeatureGraph", () => {
     view.rerender(graph());
     expect(graphMocks.flow.setCenter).toHaveBeenCalledOnce();
 
-    // ステータスだけが変わった場合は視点を維持する。
     layoutWith([{ ...firstNode, data: { status: "ready" } }]);
     view.rerender(graph());
     expect(graphMocks.flow.setCenter).toHaveBeenCalledOnce();

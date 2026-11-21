@@ -211,7 +211,7 @@ async function assertGroupedList(
   }
 }
 
-test("opens a compact group as a graph and keeps cross-group dependencies on their task rows", async ({
+test("combines external dependencies at each group card and shows individual edges inside", async ({
   page,
 }) => {
   await createFeature(page, `Grouped graph ${crypto.randomUUID()}`);
@@ -224,22 +224,29 @@ test("opens a compact group as a graph and keeps cross-group dependencies on the
   await addTask(page, "Deliver inputs", "Delivery flow");
   await addTask(page, "Publish inputs", "Checkout flow");
   await addTask(page, "Ungrouped task");
+  await addTask(page, "Prepare inputs");
 
   const stage = page.locator(".graph-stage");
   const cards = stage.locator(".task-node");
   const rows = stage.locator(".graph-group-row");
-  await expect(cards).toHaveCount(1);
+  await expect(cards).toHaveCount(2);
   await expect(rows).toHaveCount(3);
   await expect(stage.locator(".graph-task-group")).toHaveCount(2);
   const collect = await graphTaskId(stage, "Collect inputs");
   const deliver = await graphTaskId(stage, "Deliver inputs");
   const publish = await graphTaskId(stage, "Publish inputs");
+  const ungrouped = await graphTaskId(stage, "Ungrouped task");
+  const prepare = await graphTaskId(stage, "Prepare inputs");
 
   // タスク単位では DAG でも、グループ単位では往復になる依存を作る。
   for (const [blockerTaskId, blockedTaskId] of [
     [collect, deliver],
     [deliver, publish],
     [collect, publish],
+    [collect, ungrouped],
+    [publish, ungrouped],
+    [prepare, collect],
+    [prepare, publish],
   ]) {
     const response = await page.request.post(
       "/nnx.v1.NNXService/AddDependency",
@@ -252,14 +259,32 @@ test("opens a compact group as a graph and keeps cross-group dependencies on the
   }
   await page.reload();
   await settleGraph(page);
-  await expect(stage.locator(".react-flow__edge")).toHaveCount(2);
-  await expect(
-    stage.locator(`.react-flow__edge[data-id="${collect}-${deliver}"]`),
-  ).toBeVisible();
-  await expect(
-    stage.locator(`.react-flow__edge[data-id="${deliver}-${publish}"]`),
-  ).toBeVisible();
   const checkout = stage.getByRole("link", { name: "Checkout flow" });
+  const checkoutGroup = new URL(
+    (await checkout.getAttribute("href")) ?? "",
+    page.url(),
+  ).searchParams.get("group");
+  const deliveryGroup = new URL(
+    (await stage
+      .getByRole("link", { name: "Delivery flow" })
+      .getAttribute("href")) ?? "",
+    page.url(),
+  ).searchParams.get("group");
+  expect(checkoutGroup).toBeTruthy();
+  expect(deliveryGroup).toBeTruthy();
+  await expect(stage.locator(".react-flow__edge")).toHaveCount(4);
+  for (const [source, target] of [
+    [checkoutGroup, deliveryGroup],
+    [deliveryGroup, checkoutGroup],
+    [checkoutGroup, ungrouped],
+    [prepare, checkoutGroup],
+  ]) {
+    await expect(
+      stage.locator(
+        `.react-flow__edge[data-id="${source}-${target}"] .react-flow__edge-path`,
+      ),
+    ).toHaveAttribute("d", /^M[\d.]+ [\d.]+ L/);
+  }
   await checkout.click();
   await expect(
     page.getByRole("heading", { name: "Checkout flow" }),

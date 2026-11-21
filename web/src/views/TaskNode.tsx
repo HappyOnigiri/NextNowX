@@ -69,6 +69,11 @@ interface TaskNodeData extends Record<string, unknown> {
   onAddReference?: (trigger: HTMLButtonElement) => void;
 }
 export type TaskFlowNode = Node<TaskNodeData, "task">;
+type TaskGroupFlowNode = Node<
+  { incomingPorts: TaskNodePort[]; outgoingPorts: TaskNodePort[] },
+  "taskGroup"
+>;
+export type GraphFlowNode = TaskFlowNode | TaskGroupFlowNode;
 
 // React Flow は接続可否で絞らず距離だけで接続先を選ぶため、接続を拒む port が
 // スナップ半径を奪ってしまう。そこで port は接続の終端を受け入れ、結果として
@@ -115,6 +120,23 @@ function TaskEdgePorts({
         />
       ))}
     </>
+  );
+}
+
+export function TaskGroupNode({ id, data }: NodeProps<TaskGroupFlowNode>) {
+  const updateNodeInternals = useUpdateNodeInternals();
+  const { incomingPorts, outgoingPorts } = data;
+
+  useEffect(() => {
+    updateNodeInternals(id);
+  }, [id, incomingPorts, outgoingPorts, updateNodeInternals]);
+
+  return (
+    <TaskEdgePorts
+      incoming={incomingPorts}
+      outgoing={outgoingPorts}
+      isConnectable={false}
+    />
   );
 }
 
@@ -169,11 +191,6 @@ export function TaskNode({
   if (data.compact) {
     return (
       <div className="graph-group-row">
-        <TaskEdgePorts
-          incoming={incomingPorts}
-          outgoing={outgoingPorts}
-          isConnectable={isConnectable}
-        />
         <TaskGroupRow
           state={data.state}
           kind={data.kind}

@@ -7,7 +7,6 @@ import ELK from "elkjs/lib/elk-api.js";
 import elkWorkerUrl from "elkjs/lib/elk-worker.min.js?url";
 import { useEffect, useMemo, useState } from "react";
 import type {
-  Dependency,
   PullRequest,
   Task,
   TaskGroup,
@@ -18,8 +17,9 @@ import { dependencyEdgeId, type DependencyEdgeRoute } from "./dependencyGraph";
 import {
   buildTaskGroupLayout,
   readTaskGroupLayout,
+  type GraphDependency,
 } from "./taskGroupGraphLayout";
-import { type TaskFlowNode, type TaskNodeDocument } from "./TaskNode";
+import { type GraphFlowNode, type TaskNodeDocument } from "./TaskNode";
 import {
   emptyHiddenDependencies,
   type HiddenDependencies,
@@ -27,7 +27,7 @@ import {
 
 interface GraphLayoutOptions {
   tasks: Task[];
-  dependencies: Dependency[];
+  dependencies: GraphDependency[];
   groups?: TaskGroup[] | undefined;
   pullRequests: Map<string, PullRequest>;
   documentsByTask: Map<string, TaskNodeDocument[]>;
@@ -191,7 +191,7 @@ type RawNode = ReturnType<typeof buildRawNodes>[number];
 
 // considerModelOrder は children だけでなくエッジの入力順も見る。サーバーが
 // 返す依存の並びは created_at が同値だと揺れるので、ここで ID 順に揃える。
-function orderedDependencies(dependencies: Dependency[]) {
+function orderedDependencies(dependencies: GraphDependency[]) {
   return [...dependencies].sort(
     (left, right) =>
       taskIdOrder.compare(left.blockerTaskId, right.blockerTaskId) ||
@@ -224,7 +224,7 @@ function buildLayoutGraph(
 function readLayout(
   layout: ElkNode,
   raw: RawNode[],
-  dependencies: Dependency[],
+  dependencies: GraphDependency[],
   grouping: ReturnType<typeof buildTaskGroupLayout>,
 ) {
   const { frames, positions } = readTaskGroupLayout(layout, grouping);
@@ -234,7 +234,7 @@ function readLayout(
       incoming: { id: string; top: number }[];
       outgoing: { id: string; top: number }[];
     }
-  >(raw.map((node) => [node.id, { incoming: [], outgoing: [] }]));
+  >(grouping.children.map(({ id }) => [id, { incoming: [], outgoing: [] }]));
   const edgeRoutes = new Map<string, DependencyEdgeRoute>();
 
   for (const dependency of dependencies) {
@@ -271,7 +271,7 @@ function readLayout(
     });
   }
 
-  const nodes: TaskFlowNode[] = raw.map(
+  const nodes: GraphFlowNode[] = raw.map(
     ({ id, groupId, width, height, data }) => {
       const group = grouping.groups.get(groupId);
       const row = grouping.rows.get(id);
@@ -291,6 +291,23 @@ function readLayout(
       };
     },
   );
+  for (const { group, x, y, width, height } of frames) {
+    nodes.push({
+      id: group.id,
+      type: "taskGroup",
+      position: { x, y },
+      width,
+      height,
+      connectable: false,
+      focusable: false,
+      selectable: false,
+      style: { pointerEvents: "none" },
+      data: {
+        incomingPorts: ports.get(group.id)?.incoming ?? [],
+        outgoingPorts: ports.get(group.id)?.outgoing ?? [],
+      },
+    });
+  }
   return { edgeRoutes, frames, nodes };
 }
 
