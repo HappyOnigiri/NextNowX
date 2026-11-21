@@ -8,7 +8,11 @@ import {
 } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { TaskDisplayState, type Snapshot } from "../src/gen/nnx/v1/nnx_pb";
+import {
+  DocumentKind,
+  TaskDisplayState,
+  type Snapshot,
+} from "../src/gen/nnx/v1/nnx_pb";
 import { readHideCompletedTasks } from "../src/i18n/settings";
 import { FeatureWorkspace } from "../src/views/FeatureWorkspace";
 import type { GroupAction } from "../src/views/GraphTaskGroups";
@@ -131,6 +135,11 @@ vi.mock("../src/views/FeatureGraph", () => ({
       <span>{readOnly ? "Mock read-only graph" : "Mock active graph"}</span>
       {groups?.map((group) => (
         <div key={group.id}>
+          <button
+            onClick={() => onGroupAction?.({ type: "references", group })}
+          >
+            View references for {group.name}
+          </button>
           <button onClick={() => onGroupAction?.({ type: "rename", group })}>
             Edit {group.name}
           </button>
@@ -867,6 +876,70 @@ it("opens rename and deletion from group cards belonging to this feature", () =>
   const deletion = screen.getByRole("dialog", { name: "Delete Checkout" });
   fireEvent.click(within(deletion).getByRole("button", { name: "Cancel" }));
   expect(deletion).not.toBeInTheDocument();
+  cleanup();
+});
+
+it("lists only the selected group's references and returns from preview to the list", async () => {
+  workspaceMocks.snapshot.data = makeSnapshot({
+    features: [makeFeature({ readOnly: true })],
+    taskGroups: [
+      makeTaskGroup(),
+      makeTaskGroup({ id: "group-2", name: "Delivery" }),
+    ],
+    documents: [
+      makeDocument({
+        title: "Group notes",
+        groupId: "group-1",
+        taskId: "",
+        kind: DocumentKind.MARKDOWN,
+        locator: "",
+      }),
+      makeDocument({
+        id: "doc-url",
+        title: "Group runbook",
+        groupId: "group-1",
+        taskId: "",
+      }),
+      makeDocument({ id: "doc-2", title: "Task notes" }),
+    ],
+  });
+  render(<FeatureWorkspace />);
+  const emptyTrigger = screen.getByRole("button", {
+    name: "View references for Delivery",
+  });
+  fireEvent.click(emptyTrigger);
+  expect(
+    screen.getByRole("dialog", { name: "Group references for Delivery" }),
+  ).toHaveTextContent("No references.");
+  fireEvent.keyDown(window, { key: "Escape" });
+
+  const trigger = screen.getByRole("button", {
+    name: "View references for Checkout",
+  });
+  trigger.focus();
+  fireEvent.click(trigger);
+  const dialog = screen.getByRole("dialog", {
+    name: "Group references for Checkout",
+  });
+  expect(dialog).not.toHaveTextContent("Task notes");
+  expect(
+    within(dialog).getByRole("link", { name: /Group runbook/ }),
+  ).toHaveAttribute("href", "https://example.com/runbook");
+  expect(
+    within(dialog).queryByRole("button", { name: "Edit Group notes" }),
+  ).not.toBeInTheDocument();
+  fireEvent.click(within(dialog).getByRole("button", { name: /Group notes/ }));
+  expect(
+    screen.getByRole("dialog", { name: "Mock Markdown preview" }),
+  ).toHaveTextContent("Group notes");
+  expect(dialog).toHaveAttribute("inert");
+  fireEvent.click(screen.getByRole("button", { name: "Mock close preview" }));
+  const close = within(dialog).getByRole("button", { name: "Close" });
+  expect(close).toHaveFocus();
+  fireEvent.click(close);
+  await waitFor(() => {
+    expect(trigger).toHaveFocus();
+  });
   cleanup();
 });
 

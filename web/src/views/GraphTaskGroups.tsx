@@ -1,5 +1,5 @@
 import { ViewportPortal } from "@xyflow/react";
-import { Pencil, Trash2 } from "lucide-react";
+import { Paperclip, Pencil, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { TaskGroup } from "../gen/nnx/v1/nnx_pb";
 import { IconButton } from "./IconButton";
@@ -7,15 +7,17 @@ import type { TaskGroupFrame } from "./taskGroupGraphLayout";
 import { TaskGroupLink } from "./TaskGroupLink";
 
 export interface GroupAction {
-  type: "rename" | "delete";
+  type: "references" | "rename" | "delete";
   group: TaskGroup;
 }
 
 export function GraphTaskGroups({
   frames,
   onGroupAction,
+  readOnly = false,
 }: {
   frames: TaskGroupFrame[];
+  readOnly?: boolean;
   onGroupAction: ((action: GroupAction) => void) | undefined;
 }) {
   const { t } = useTranslation();
@@ -30,6 +32,18 @@ export function GraphTaskGroups({
           <div className="graph-task-group-header nopan">
             <TaskGroupLink group={group} className="graph-task-group-link" />
             {onGroupAction && (
+              <IconButton
+                icon={Paperclip}
+                iconOnly
+                size="compact"
+                aria-haspopup="dialog"
+                label={t("taskGroups.referencesFor", { name: group.name })}
+                onClick={() => {
+                  onGroupAction({ type: "references", group });
+                }}
+              />
+            )}
+            {onGroupAction && !readOnly && (
               <>
                 <IconButton
                   icon={Pencil}

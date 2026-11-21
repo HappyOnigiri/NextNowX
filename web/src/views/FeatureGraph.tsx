@@ -819,7 +819,8 @@ function GraphCanvas({
           />
           <GraphTaskGroups
             frames={frames}
-            onGroupAction={readOnly ? undefined : onGroupAction}
+            onGroupAction={onGroupAction}
+            readOnly={readOnly}
           />
           <Controls showInteractive={false} />
         </ReactFlow>

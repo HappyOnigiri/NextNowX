@@ -46,7 +46,7 @@ import type { GroupAction } from "./GraphTaskGroups";
 import { IconButton } from "./IconButton";
 import { MarkdownPreview } from "./MarkdownPreview";
 import { StatusBadge } from "./StatusBadge";
-import { DeleteTaskGroupDialog, TaskGroupNameDialog } from "./TaskGroupDialogs";
+import { TaskGroupOverlay } from "./TaskGroupDialogs";
 import { TaskInspector } from "./TaskInspector";
 import { type TaskNodeDocument } from "./TaskNode";
 import { useCloseOnEscape } from "./useCloseOnEscape";
@@ -91,7 +91,7 @@ export function FeatureWorkspace() {
   const data = snapshot.data;
   const feature = data?.features.find((item) => item.id === featureId);
   const project = data?.projects.find((item) => item.id === feature?.projectId);
-  const workspaceData = useFeatureWorkspaceData(data, featureId, groupId);
+  const workspaceData = useFeatureWorkspaceData(data, featureId);
   const { groups, tasks, dependencies, pullRequests } = workspaceData;
   const openGroup = groups.find((group) => group.id === groupId);
   const scope = openGroup?.id;
@@ -239,7 +239,6 @@ function deletedFeatureDestination(feature: Feature) {
 function useFeatureWorkspaceData(
   data: Snapshot | undefined,
   featureId: string,
-  groupId: string | undefined,
 ) {
   const tasks = useMemo(
     () => data?.tasks.filter((task) => task.featureId === featureId) ?? [],
@@ -262,15 +261,18 @@ function useFeatureWorkspaceData(
     () => new Map(data?.pullRequests.map((pr) => [pr.taskId, pr]) ?? []),
     [data],
   );
-  const documentsByTask = useMemo(() => {
-    const result = new Map<string, TaskNodeDocument[]>();
+  const { documentsByTask, documentsByGroup } = useMemo(() => {
+    const documentsByTask = new Map<string, TaskNodeDocument[]>();
+    const documentsByGroup = new Map<string, TaskNodeDocument[]>();
     for (const document of data?.documents ?? []) {
-      if (!document.taskId) continue;
-      const documents = result.get(document.taskId) ?? [];
+      const owner = document.taskId || document.groupId;
+      if (!owner) continue;
+      const index = document.taskId ? documentsByTask : documentsByGroup;
+      const documents = index.get(owner) ?? [];
       documents.push(document);
-      result.set(document.taskId, documents);
+      index.set(owner, documents);
     }
-    return result;
+    return { documentsByTask, documentsByGroup };
   }, [data]);
   // feature に属さないドキュメントは ID が欠けるのではなく空文字になるので、
   // 比較では空の値を弾く必要がある。
@@ -282,14 +284,6 @@ function useFeatureWorkspaceData(
       ) ?? [],
     [data, featureId],
   );
-  const groupDocuments = useMemo(
-    () =>
-      groupId
-        ? (data?.documents.filter((document) => document.groupId === groupId) ??
-          [])
-        : [],
-    [data, groupId],
-  );
   return {
     groups,
     tasks,
@@ -297,7 +291,7 @@ function useFeatureWorkspaceData(
     pullRequests,
     documentsByTask,
     featureDocuments,
-    groupDocuments,
+    documentsByGroup,
   };
 }
 
@@ -459,7 +453,7 @@ interface WorkspaceContentProps {
   taskDraft: TaskDraft | undefined;
   showFeatureEdit: boolean;
   groupAction: GroupAction | undefined;
-  groupDocuments: TaskNodeDocument[];
+  documentsByGroup: Map<string, TaskNodeDocument[]>;
   onGroupAction: (action: GroupAction | undefined) => void;
   showBatchPrompt: boolean;
   syncPending: boolean;
@@ -504,7 +498,7 @@ function WorkspaceContent(props: WorkspaceContentProps) {
           <GroupNavigation
             key={props.openGroup.id}
             group={props.openGroup}
-            documents={props.groupDocuments}
+            documents={props.documentsByGroup.get(props.openGroup.id) ?? []}
             onPreview={props.onPreviewDocument}
             readOnly={readOnly}
           />
@@ -928,10 +922,14 @@ function WorkspaceOverlays({ props }: { props: WorkspaceContentProps }) {
           onClose={props.onCloseTask}
         />
       )}
-      {props.groupAction && !props.feature.readOnly && (
+      {props.groupAction && (
         <TaskGroupOverlay
           action={props.groupAction}
+          documents={
+            props.documentsByGroup.get(props.groupAction.group.id) ?? []
+          }
           groups={props.groups}
+          readOnly={props.feature.readOnly}
           onClose={() => {
             props.onGroupAction(undefined);
           }}
@@ -946,28 +944,5 @@ function WorkspaceOverlays({ props }: { props: WorkspaceContentProps }) {
         />
       )}
     </>
-  );
-}
-
-function TaskGroupOverlay({
-  action,
-  groups,
-  onClose,
-}: {
-  action: GroupAction;
-  groups: TaskGroup[];
-  onClose: () => void;
-}) {
-  const { group } = action;
-  if (action.type === "delete")
-    return <DeleteTaskGroupDialog group={group} onClose={onClose} />;
-  return (
-    <TaskGroupNameDialog
-      featureId={group.featureId}
-      group={group}
-      groups={groups}
-      onSaved={onClose}
-      onClose={onClose}
-    />
   );
 }

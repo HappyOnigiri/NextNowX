@@ -141,17 +141,28 @@ it("deletes only after confirmation", async () => {
   });
 });
 
-it("dispatches rename and delete actions from the group card", () => {
+it("dispatches references, rename, and delete actions from the group card", () => {
   const group = makeTaskGroup();
   const onGroupAction = vi.fn();
-  render(
-    <GraphTaskGroups
-      frames={[{ group, x: 0, y: 0, width: 336, height: 48 }]}
-      onGroupAction={onGroupAction}
-    />,
+  const frames = [{ group, x: 0, y: 0, width: 336, height: 48 }];
+  const { rerender } = render(
+    <GraphTaskGroups frames={frames} onGroupAction={onGroupAction} />,
   );
   fireEvent.click(screen.getByRole("button", { name: `Rename ${group.name}` }));
   expect(onGroupAction).toHaveBeenLastCalledWith({ type: "rename", group });
   fireEvent.click(screen.getByRole("button", { name: `Delete ${group.name}` }));
   expect(onGroupAction).toHaveBeenLastCalledWith({ type: "delete", group });
+  rerender(
+    <GraphTaskGroups frames={frames} onGroupAction={onGroupAction} readOnly />,
+  );
+  expect(
+    screen.queryByRole("button", { name: `Rename ${group.name}` }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: `Delete ${group.name}` }),
+  ).not.toBeInTheDocument();
+  fireEvent.click(
+    screen.getByRole("button", { name: `Group references for ${group.name}` }),
+  );
+  expect(onGroupAction).toHaveBeenLastCalledWith({ type: "references", group });
 });

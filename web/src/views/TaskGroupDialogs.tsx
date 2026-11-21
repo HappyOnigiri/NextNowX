@@ -1,13 +1,17 @@
 import { X } from "lucide-react";
-import { useId, useRef, useState, type SyntheticEvent } from "react";
+import { useEffect, useId, useRef, useState, type SyntheticEvent } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { mutations } from "../api";
 import type { TaskGroup } from "../gen/nnx/v1/nnx_pb";
 import { useDomainMutation } from "../hooks";
 import { ConfirmationDialog } from "./ConfirmationDialog";
+import type { GroupAction } from "./GraphTaskGroups";
 import { IconButton } from "./IconButton";
+import { MarkdownPreview } from "./MarkdownPreview";
 import { MutationError } from "./MutationError";
+import { DocumentRow } from "./TaskInspectorReferences";
+import type { TaskNodeDocument } from "./TaskNode";
 import { DiscardChangesDialog, SaveButton } from "./UnsavedChanges";
 import { useCloseOnEscape } from "./useCloseOnEscape";
 import { useDialogFocusTrap } from "./useDialogFocusTrap";
@@ -147,5 +151,110 @@ export function DeleteTaskGroupDialog({
         remove.mutate(group.id, { onSuccess: onClose });
       }}
     />
+  );
+}
+
+export function TaskGroupOverlay({
+  action,
+  documents,
+  groups,
+  readOnly,
+  onClose,
+}: {
+  action: GroupAction;
+  documents: TaskNodeDocument[];
+  groups: TaskGroup[];
+  readOnly: boolean;
+  onClose: () => void;
+}) {
+  const { group } = action;
+  if (action.type === "references")
+    return (
+      <TaskGroupReferencesDialog
+        group={group}
+        documents={documents}
+        onClose={onClose}
+      />
+    );
+  if (readOnly) return null;
+  if (action.type === "delete")
+    return <DeleteTaskGroupDialog group={group} onClose={onClose} />;
+  return (
+    <TaskGroupNameDialog
+      featureId={group.featureId}
+      group={group}
+      groups={groups}
+      onSaved={onClose}
+      onClose={onClose}
+    />
+  );
+}
+
+function TaskGroupReferencesDialog({
+  group,
+  documents,
+  onClose,
+}: {
+  group: TaskGroup;
+  documents: TaskNodeDocument[];
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const titleId = useId();
+  const close = useRef<HTMLButtonElement>(null);
+  const [preview, setPreview] = useState<TaskNodeDocument>();
+  const { dialogRef, onKeyDown } = useDialogFocusTrap<HTMLElement>(close);
+  useCloseOnEscape(onClose);
+  useEffect(() => {
+    if (!preview) close.current?.focus();
+  }, [preview]);
+
+  return (
+    <>
+      <div className="scrim" role="presentation" onKeyDown={onKeyDown}>
+        <section
+          ref={dialogRef}
+          className="dialog task-groups-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          aria-hidden={preview ? true : undefined}
+          inert={preview !== undefined}
+        >
+          <header className="task-group-references-header">
+            <h2 id={titleId}>
+              {t("taskGroups.referencesFor", { name: group.name })}
+            </h2>
+            <IconButton
+              ref={close}
+              icon={X}
+              label={t("common.close")}
+              iconOnly
+              onClick={onClose}
+            />
+          </header>
+          {documents.length === 0 && (
+            <p className="read-only-empty">{t("inspector.noReferences")}</p>
+          )}
+          {documents.map((document) => (
+            <DocumentRow
+              key={document.id}
+              document={document}
+              onPreview={setPreview}
+              canEdit={false}
+              canDelete={false}
+            />
+          ))}
+        </section>
+      </div>
+      {preview && (
+        <MarkdownPreview
+          document={preview}
+          onClose={() => {
+            setPreview(undefined);
+          }}
+        />
+      )}
+    </>
   );
 }

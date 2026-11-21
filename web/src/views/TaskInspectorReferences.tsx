@@ -79,7 +79,7 @@ export function DocumentRow({
   document: TaskNodeDocument;
   onPreview: (document: TaskNodeDocument) => void;
   onDelete?: (document: TaskNodeDocument) => void;
-  onEdit: (document: TaskNodeDocument, trigger: HTMLElement | null) => void;
+  onEdit?: (document: TaskNodeDocument, trigger: HTMLElement | null) => void;
   canEdit: boolean;
   canDelete: boolean;
 }) {
@@ -120,7 +120,7 @@ export function DocumentRow({
               size="compact"
               iconOnly
               onClick={(event) => {
-                onEdit(document, event.currentTarget);
+                onEdit?.(document, event.currentTarget);
               }}
             />
           )}

@@ -10,6 +10,7 @@ export const tasks = {
       create: "Create group",
       rename: "Rename group",
       renameGroup: "Rename {{name}}",
+      referencesFor: "Group references for {{name}}",
       deleteGroup: "Delete {{name}}",
       delete: "Delete group",
       deleteDetail:
@@ -58,6 +59,7 @@ export const tasks = {
       create: "グループを作成",
       rename: "名前を変更",
       renameGroup: "「{{name}}」の名前を変更",
+      referencesFor: "「{{name}}」の資料",
       deleteGroup: "「{{name}}」を削除",
       delete: "グループを削除",
       deleteDetail:

@@ -428,10 +428,11 @@ test("opens a group task from the overview and uses its references and prompt", 
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(value);
 });
 
-test("attaches and edits a group reference, then deletes the group from its card", async ({
+test("attaches a group reference and opens it from the group card", async ({
   page,
 }) => {
   await createFeature(page, `Group references ${crypto.randomUUID()}`);
+  const overview = page.url();
   await addTask(page, "Plan the rollout");
   const inspector = await openInspector(page, "Plan the rollout");
   await createGroupFromInspector(page, inspector, "Rollout");
@@ -444,7 +445,10 @@ test("attaches and edits a group reference, then deletes the group from its card
 
   const viewport = page.viewportSize();
   await page.setViewportSize({ width: 390, height: 844 });
-  const references = page.getByRole("button", { name: "Group references" });
+  const references = page.getByRole("button", {
+    name: "Group references",
+    exact: true,
+  });
   const panel = page.getByRole("region", { name: "Group references" });
   await references.click();
   await panel
@@ -484,6 +488,27 @@ test("attaches and edits a group reference, then deletes the group from its card
 
   if (viewport) await page.setViewportSize(viewport);
   await page.getByRole("link", { name: "Back to feature" }).click();
+  await settleGraph(page);
+  const showReferences = group.getByRole("button", {
+    name: "Group references for Rollout",
+  });
+  await showReferences.click();
+  const groupReferences = page.getByRole("dialog", {
+    name: "Group references for Rollout",
+  });
+  await expect(page).toHaveURL(overview);
+  await groupReferences.getByRole("button", { name: /Reviewed notes/ }).click();
+  await expect(
+    page
+      .getByRole("dialog", { name: "Reviewed notes" })
+      .getByRole("heading", { name: "Rollout checklist" }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(groupReferences).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(groupReferences).toBeHidden();
+  await expect(showReferences).toBeFocused();
+
   await group.getByRole("button", { name: "Delete Rollout" }).click();
   const deletion = page.getByRole("dialog", { name: "Delete Rollout" });
   await expect(deletion).toContainText("Group references will be deleted");
