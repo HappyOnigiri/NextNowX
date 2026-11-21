@@ -440,6 +440,39 @@ async function graphTaskId(stage: Locator, title: string) {
   return id;
 }
 
+test("keeps the detail graph visible beside a scrollable long group name", async ({
+  page,
+}) => {
+  await createFeature(page, `Long group ${crypto.randomUUID()}`);
+  await addTask(page, "Verify detail layout");
+  const name = "LongGroupHeading".repeat(120);
+  await groupTask(page, "Verify detail layout", name);
+  const groupURL = await page
+    .getByRole("link", { name, exact: true })
+    .getAttribute("href");
+  if (!groupURL) throw new Error("Group detail URL missing");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(groupURL);
+
+  const heading = page.getByRole("heading", { name, exact: true });
+  await expect(heading).toBeVisible();
+  expect(
+    await heading.evaluate((element) => element.scrollHeight),
+  ).toBeGreaterThan(await heading.evaluate((element) => element.clientHeight));
+  await heading.focus();
+  await expect(heading).toBeFocused();
+  await page.keyboard.press("End");
+  await expect
+    .poll(() =>
+      heading.evaluate(
+        (element) =>
+          element.scrollHeight - element.clientHeight - element.scrollTop,
+      ),
+    )
+    .toBeLessThanOrEqual(1);
+  await expect(page.locator(".graph-stage .task-node")).toBeInViewport();
+});
+
 test("opens a group task from the overview and uses its references and prompt", async ({
   page,
   context,

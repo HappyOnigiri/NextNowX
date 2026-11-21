@@ -325,7 +325,7 @@
 }
 
 .workspace-body.is-group-detail {
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, auto) minmax(50%, 1fr);
 }
 
 .workspace-body.is-group-detail > .graph-status-notice {
@@ -358,8 +358,10 @@
 
 .workspace-group-navigation > h2 {
   min-width: 0;
+  max-height: 25dvh;
   flex: 1;
   margin: 0;
+  overflow-y: auto;
   font-size: var(--text-md);
   overflow-wrap: anywhere;
   white-space: pre-wrap;

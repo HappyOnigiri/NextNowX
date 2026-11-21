@@ -603,7 +603,8 @@ function GroupNavigation({
         <ArrowLeft size={15} aria-hidden="true" />
         {t("taskGroups.backToFeature")}
       </Link>
-      <h2>{group.name}</h2>
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- 長いグループ名をキーボードでスクロールできるようにする。 */}
+      <h2 tabIndex={0}>{group.name}</h2>
       <DocumentReferences
         parent={{ groupId: group.id }}
         documents={documents}
