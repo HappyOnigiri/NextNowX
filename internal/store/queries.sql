@@ -189,12 +189,12 @@ DELETE FROM pull_requests WHERE task_id IN (SELECT id FROM tasks WHERE feature_i
 
 -- name: CreateDocument :one
 INSERT INTO documents (
-  id, project_id, feature_id, task_id, kind, title, locator, content,
+  id, project_id, feature_id, task_id, group_id, kind, title, locator, content,
   is_implementation_plan, created_at, updated_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *;
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *;
 
 -- name: ListDocuments :many
-SELECT id, project_id, feature_id, task_id, kind, title, locator, NULL AS content,
+SELECT id, project_id, feature_id, task_id, group_id, kind, title, locator, NULL AS content,
   is_implementation_plan, created_at, updated_at
 FROM documents ORDER BY is_implementation_plan DESC, created_at, id;
 

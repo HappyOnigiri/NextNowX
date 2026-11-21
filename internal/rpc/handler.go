@@ -387,6 +387,7 @@ func (h *Handler) AddDocument(
 			ProjectID: req.Msg.GetProjectId(),
 			FeatureID: req.Msg.GetFeatureId(),
 			TaskID:    req.Msg.GetTaskId(),
+			GroupID:   req.Msg.GetGroupId(),
 		},
 		source.Kind,
 		req.Msg.GetTitle(),

@@ -138,6 +138,7 @@ function useDialogState(props: DocumentDialogProps) {
     };
     if (added.projectId !== undefined) input.projectId = added.projectId;
     if (added.featureId !== undefined) input.featureId = added.featureId;
+    if (added.groupId !== undefined) input.groupId = added.groupId;
     if (added.taskId !== undefined) {
       input.taskId = added.taskId;
       input.isImplementationPlan = implementationPlan;
@@ -292,11 +293,13 @@ function trapFocus(
 // 専用ダイアログを用意せずに済ませる。
 function documentDialogTitleKey(state: DialogState) {
   if (state.mode === "edit") {
+    if (state.document.groupId) return "documentDialog.editGroupTitle";
     if (state.document.taskId !== "") return "documentDialog.editTaskTitle";
     if (state.document.featureId !== "")
       return "documentDialog.editFeatureTitle";
     return "documentDialog.editProjectTitle";
   }
+  if (state.groupId !== undefined) return "documentDialog.groupTitle";
   if (state.projectId !== undefined) return "documentDialog.projectTitle";
   if (state.featureId !== undefined) return "documentDialog.featureTitle";
   return "documentDialog.taskTitle";

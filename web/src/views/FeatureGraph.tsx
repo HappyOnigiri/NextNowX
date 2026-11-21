@@ -4,7 +4,6 @@ import {
   Controls,
   MarkerType,
   ReactFlow,
-  ViewportPortal,
   type AriaLabelConfig,
   type Connection,
   type Edge,
@@ -47,6 +46,7 @@ import {
   type DependencyFlowEdge,
   type PendingDependency,
 } from "./dependencyGraph";
+import { GraphTaskGroups, type GroupAction } from "./GraphTaskGroups";
 import { IconButton } from "./IconButton";
 import { MutationError } from "./MutationError";
 import {
@@ -54,7 +54,6 @@ import {
   type GraphDependency,
   type TaskGroupFrame,
 } from "./taskGroupGraphLayout";
-import { TaskGroupLink } from "./TaskGroupLink";
 import {
   TaskGroupNode,
   TaskNode,
@@ -518,6 +517,7 @@ interface FeatureGraphProps {
   tasks: Task[];
   dependencies: Dependency[];
   groups?: TaskGroup[];
+  onGroupAction?: ((action: GroupAction) => void) | undefined;
   pullRequests: Map<string, PullRequest>;
   documentsByTask: Map<string, TaskNodeDocument[]>;
   hiddenDependencies?: Map<string, HiddenDependencies>;
@@ -535,6 +535,7 @@ export function FeatureGraph({
   tasks,
   dependencies: allDependencies,
   groups,
+  onGroupAction,
   pullRequests,
   documentsByTask,
   hiddenDependencies = emptyHiddenDependencies,
@@ -604,6 +605,7 @@ export function FeatureGraph({
         searching={searching}
         nodes={nodes}
         frames={frames}
+        onGroupAction={onGroupAction}
         edges={edges}
         initialGraphZoom={initialGraphZoom}
         onInit={setFlow}
@@ -689,6 +691,7 @@ interface GraphCanvasProps {
   searching: boolean;
   nodes: GraphFlowNode[];
   frames: TaskGroupFrame[];
+  onGroupAction: ((action: GroupAction) => void) | undefined;
   edges: DependencyFlowEdge[];
   initialGraphZoom: number;
   onInit: (
@@ -738,6 +741,7 @@ function GraphCanvas({
   searching,
   nodes,
   frames,
+  onGroupAction,
   edges,
   initialGraphZoom,
   onInit,
@@ -813,7 +817,10 @@ function GraphCanvas({
             size={1}
             color="var(--border)"
           />
-          <GraphTaskGroups frames={frames} />
+          <GraphTaskGroups
+            frames={frames}
+            onGroupAction={readOnly ? undefined : onGroupAction}
+          />
           <Controls showInteractive={false} />
         </ReactFlow>
       </HoveredEdgeContext.Provider>
@@ -824,6 +831,7 @@ function GraphCanvas({
       )}
       <GraphState
         taskCount={tasks.length}
+        hasGroups={frames.length > 0}
         hiddenTaskCount={hiddenTaskCount}
         searching={searching}
         layoutError={layoutError}
@@ -835,27 +843,9 @@ function GraphCanvas({
   );
 }
 
-function GraphTaskGroups({ frames }: { frames: TaskGroupFrame[] }) {
-  return (
-    <ViewportPortal>
-      {frames.map(({ group, x, y, width, height }) => (
-        <div
-          key={group.id}
-          className="graph-task-group"
-          style={{ left: x, top: y, width, height }}
-        >
-          <TaskGroupLink
-            group={group}
-            className="graph-task-group-link nopan"
-          />
-        </div>
-      ))}
-    </ViewportPortal>
-  );
-}
-
 function GraphState({
   taskCount,
+  hasGroups,
   hiddenTaskCount,
   searching,
   layoutError,
@@ -864,6 +854,7 @@ function GraphState({
   readOnly,
 }: {
   taskCount: number;
+  hasGroups: boolean;
   hiddenTaskCount: number;
   searching: boolean;
   layoutError: { message: string | undefined } | undefined;
@@ -874,7 +865,7 @@ function GraphState({
   const { t } = useTranslation();
   // 検索で何も残らなかったときは、完了非表示の説明を出すと理由を取り違える。
   // 絞り込みが効いている限り、そちらを先に答える。
-  if (taskCount === 0 && searching && !layoutError)
+  if (!hasGroups && taskCount === 0 && searching && !layoutError)
     return (
       <div className="graph-empty">
         <span>
@@ -887,7 +878,7 @@ function GraphState({
   // 全タスクが完了した feature にもグラフはあり、非表示は読み手が選んだ見え方
   // にすぎない。ここで最初のノードを促すと feature が空だと言うことになり、
   // 本来はトグルで解決する場面にタスク追加ボタンを置いてしまう。
-  if (taskCount === 0 && hiddenTaskCount > 0 && !layoutError)
+  if (!hasGroups && taskCount === 0 && hiddenTaskCount > 0 && !layoutError)
     return (
       <div className="graph-empty">
         <span>
@@ -897,7 +888,7 @@ function GraphState({
         <p>{t("workspace.graphAllHiddenDetail", { total: hiddenTaskCount })}</p>
       </div>
     );
-  if (taskCount === 0 && !layoutError)
+  if (!hasGroups && taskCount === 0 && !layoutError)
     return (
       <div className="graph-empty">
         <span>

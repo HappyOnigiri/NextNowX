@@ -618,7 +618,7 @@ message PullRequest {
   CheckState check_state = 22;
 }
 
-// Document は project、feature、task のいずれか 1 つだけに紐づく参照。
+// Document は project、feature、task、task group のいずれか 1 つだけに紐づく参照。
 message Document {
   // id は document 参照の安定識別子。
   string id = 1;
@@ -640,6 +640,8 @@ message Document {
   string updated_at = 9;
   // project_id は project 単位の document のとき、親 project を公開 ID の P-<number> で示す。
   string project_id = 10;
+  // group_id はグループ単位の document のとき、親グループの公開 ID を示す。
+  string group_id = 11;
 }
 
 // Snapshot は正規化されたデータ一式と、導出した task のキュー。
@@ -960,9 +962,9 @@ message DetachPullRequestResponse {}
 
 // AddDocumentRequest は document の取得元を 1 つの親のもとに登録する。
 message AddDocumentRequest {
-  // feature_id は project_id と task_id が空のとき、親 feature を示す。
+  // feature_id は feature に添付するときだけ指定する。
   string feature_id = 1;
-  // task_id は project_id と feature_id が空のとき、親 task を示す。
+  // task_id は task に添付するときだけ指定する。
   string task_id = 2;
   // title は人が読む document のラベル。
   string title = 3;
@@ -977,8 +979,10 @@ message AddDocumentRequest {
   }
   // is_implementation_plan はこの task document を計画として印付ける。
   bool is_implementation_plan = 7;
-  // project_id は feature_id と task_id が空のとき、親 project を示す。
+  // project_id は project に添付するときだけ指定する。
   string project_id = 8;
+  // group_id は task group に添付するときだけ指定する。
+  string group_id = 9;
 }
 
 // AddDocumentResponse は登録された document を返す。

@@ -7,7 +7,6 @@ import {
 import {
   ArrowLeft,
   ClipboardList,
-  FolderOpen,
   Pencil,
   Plus,
   RefreshCw,
@@ -43,10 +42,11 @@ import { EditFeatureDialog } from "./EditFeatureDialog";
 import { EntityIcon } from "./EntityIcon";
 import { FeatureGraph } from "./FeatureGraph";
 import { matchesGraphSearch } from "./graphSearch";
+import type { GroupAction } from "./GraphTaskGroups";
 import { IconButton } from "./IconButton";
 import { MarkdownPreview } from "./MarkdownPreview";
 import { StatusBadge } from "./StatusBadge";
-import { TaskGroupsDialog } from "./TaskGroupsDialog";
+import { DeleteTaskGroupDialog, TaskGroupNameDialog } from "./TaskGroupDialogs";
 import { TaskInspector } from "./TaskInspector";
 import { type TaskNodeDocument } from "./TaskNode";
 import { useCloseOnEscape } from "./useCloseOnEscape";
@@ -75,7 +75,7 @@ export function FeatureWorkspace() {
   const navigate = useNavigate();
   const snapshot = useSnapshot();
   const [taskDraft, setTaskDraft] = useState<TaskDraft>();
-  const [showTaskGroups, setShowTaskGroups] = useState(false);
+  const [groupAction, setGroupAction] = useState<GroupAction>();
   const [showFeatureEdit, setShowFeatureEdit] = useState(false);
   const [showBatchPrompt, setShowBatchPrompt] = useState(false);
   const [previewDocument, setPreviewDocument] = useState<TaskNodeDocument>();
@@ -91,7 +91,7 @@ export function FeatureWorkspace() {
   const data = snapshot.data;
   const feature = data?.features.find((item) => item.id === featureId);
   const project = data?.projects.find((item) => item.id === feature?.projectId);
-  const workspaceData = useFeatureWorkspaceData(data, featureId);
+  const workspaceData = useFeatureWorkspaceData(data, featureId, groupId);
   const { groups, tasks, dependencies, pullRequests } = workspaceData;
   const openGroup = groups.find((group) => group.id === groupId);
   const scope = openGroup?.id;
@@ -115,7 +115,7 @@ export function FeatureWorkspace() {
     previewDocument !== undefined ||
     documentTarget !== undefined ||
     showFeatureEdit ||
-    showTaskGroups ||
+    groupAction !== undefined ||
     showBatchPrompt;
   useGraphSearchShortcut(Boolean(feature) && !overlayOpen, search.open);
   // 開いている作成ダイアログは開き直しても置き換えない。背景のツールバーへ
@@ -157,8 +157,8 @@ export function FeatureWorkspace() {
       documentTarget={documentTarget}
       taskDraft={taskDraft}
       showFeatureEdit={showFeatureEdit}
-      showTaskGroups={showTaskGroups}
-      onTaskGroupsChange={setShowTaskGroups}
+      groupAction={groupAction}
+      onGroupAction={setGroupAction}
       showBatchPrompt={showBatchPrompt}
       syncPending={sync.isPending}
       onSync={() => {
@@ -239,6 +239,7 @@ function deletedFeatureDestination(feature: Feature) {
 function useFeatureWorkspaceData(
   data: Snapshot | undefined,
   featureId: string,
+  groupId: string | undefined,
 ) {
   const tasks = useMemo(
     () => data?.tasks.filter((task) => task.featureId === featureId) ?? [],
@@ -281,6 +282,14 @@ function useFeatureWorkspaceData(
       ) ?? [],
     [data, featureId],
   );
+  const groupDocuments = useMemo(
+    () =>
+      groupId
+        ? (data?.documents.filter((document) => document.groupId === groupId) ??
+          [])
+        : [],
+    [data, groupId],
+  );
   return {
     groups,
     tasks,
@@ -288,6 +297,7 @@ function useFeatureWorkspaceData(
     pullRequests,
     documentsByTask,
     featureDocuments,
+    groupDocuments,
   };
 }
 
@@ -413,6 +423,11 @@ function useGraphSearchShortcut(enabled: boolean, open: () => void) {
     const handle = (event: KeyboardEvent) => {
       if (event.key !== "f" || event.altKey || event.shiftKey) return;
       if (!event.metaKey && !event.ctrlKey) return;
+      if (
+        event.target instanceof Element &&
+        event.target.closest('[aria-modal="true"]')
+      )
+        return;
       event.preventDefault();
       latest.current();
     };
@@ -443,8 +458,9 @@ interface WorkspaceContentProps {
   documentTarget: DocumentTarget | undefined;
   taskDraft: TaskDraft | undefined;
   showFeatureEdit: boolean;
-  showTaskGroups: boolean;
-  onTaskGroupsChange: (open: boolean) => void;
+  groupAction: GroupAction | undefined;
+  groupDocuments: TaskNodeDocument[];
+  onGroupAction: (action: GroupAction | undefined) => void;
   showBatchPrompt: boolean;
   syncPending: boolean;
   onSync: () => void;
@@ -468,6 +484,13 @@ function WorkspaceContent(props: WorkspaceContentProps) {
   // アーカイブフラグとプロジェクトの状態を組み合わせない。
   const readOnly = props.feature.readOnly;
   const hiddenTaskCount = graphTaskCount(props) - props.visible.tasks.length;
+  const searching = props.search.query !== "";
+  const graphGroups = useGraphGroups(
+    props.groups,
+    props.tasks,
+    props.visible.tasks,
+    searching,
+  );
   return (
     <div className={readOnly ? "workspace is-archived" : "workspace"}>
       <FeatureWorkspaceHead props={props} readOnly={readOnly} />
@@ -477,12 +500,21 @@ function WorkspaceContent(props: WorkspaceContentProps) {
           props.openGroup ? "workspace-body is-group-detail" : "workspace-body"
         }
       >
-        {props.openGroup && <GroupNavigation group={props.openGroup} />}
+        {props.openGroup && (
+          <GroupNavigation
+            key={props.openGroup.id}
+            group={props.openGroup}
+            documents={props.groupDocuments}
+            onPreview={props.onPreviewDocument}
+            readOnly={readOnly}
+          />
+        )}
         <FeatureGraph
           {...props.visible}
-          {...(props.openGroup ? {} : { groups: props.groups })}
+          {...(props.openGroup ? {} : { groups: graphGroups })}
+          onGroupAction={props.onGroupAction}
           hiddenTaskCount={hiddenTaskCount}
-          searching={props.search.query !== ""}
+          searching={searching}
           pullRequests={props.pullRequests}
           documentsByTask={props.documentsByTask}
           onEditTask={props.onEditTask}
@@ -521,7 +553,34 @@ function graphTaskCount({ tasks, openGroup }: WorkspaceContentProps) {
     : tasks.length;
 }
 
-function GroupNavigation({ group }: { group: TaskGroup }) {
+function useGraphGroups(
+  groups: TaskGroup[],
+  tasks: Task[],
+  visible: Task[],
+  searching: boolean,
+) {
+  return useMemo(() => {
+    if (!searching && tasks === visible) return groups;
+    const populated = new Set(tasks.map((task) => task.groupId));
+    const visibleGroups = new Set(visible.map((task) => task.groupId));
+    return groups.filter(
+      (group) =>
+        visibleGroups.has(group.id) || (!searching && !populated.has(group.id)),
+    );
+  }, [groups, tasks, visible, searching]);
+}
+
+function GroupNavigation({
+  group,
+  documents,
+  onPreview,
+  readOnly,
+}: {
+  group: TaskGroup;
+  documents: TaskNodeDocument[];
+  onPreview: (document: TaskNodeDocument) => void;
+  readOnly: boolean;
+}) {
   const { t } = useTranslation();
   return (
     <nav
@@ -537,6 +596,12 @@ function GroupNavigation({ group }: { group: TaskGroup }) {
         {t("taskGroups.backToFeature")}
       </Link>
       <h2>{group.name}</h2>
+      <DocumentReferences
+        parent={{ groupId: group.id }}
+        documents={documents}
+        onPreview={onPreview}
+        readOnly={readOnly}
+      />
     </nav>
   );
 }
@@ -612,17 +677,6 @@ function FeatureWorkspaceHead({
           variant="secondary"
           onClick={props.onCopyBatchPrompt}
         />
-        {!readOnly && (
-          <IconButton
-            icon={FolderOpen}
-            iconOnly
-            label={t("taskGroups.manage")}
-            className="workspace-task-groups"
-            onClick={() => {
-              props.onTaskGroupsChange(true);
-            }}
-          />
-        )}
         {!readOnly && (
           <IconButton
             icon={Plus}
@@ -874,13 +928,12 @@ function WorkspaceOverlays({ props }: { props: WorkspaceContentProps }) {
           onClose={props.onCloseTask}
         />
       )}
-      {props.showTaskGroups && !props.feature.readOnly && (
-        <TaskGroupsDialog
-          key={props.featureId}
-          featureId={props.featureId}
+      {props.groupAction && !props.feature.readOnly && (
+        <TaskGroupOverlay
+          action={props.groupAction}
           groups={props.groups}
           onClose={() => {
-            props.onTaskGroupsChange(false);
+            props.onGroupAction(undefined);
           }}
         />
       )}
@@ -893,5 +946,28 @@ function WorkspaceOverlays({ props }: { props: WorkspaceContentProps }) {
         />
       )}
     </>
+  );
+}
+
+function TaskGroupOverlay({
+  action,
+  groups,
+  onClose,
+}: {
+  action: GroupAction;
+  groups: TaskGroup[];
+  onClose: () => void;
+}) {
+  const { group } = action;
+  if (action.type === "delete")
+    return <DeleteTaskGroupDialog group={group} onClose={onClose} />;
+  return (
+    <TaskGroupNameDialog
+      featureId={group.featureId}
+      group={group}
+      groups={groups}
+      onSaved={onClose}
+      onClose={onClose}
+    />
   );
 }

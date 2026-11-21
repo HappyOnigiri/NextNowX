@@ -172,10 +172,6 @@
     display: none;
   }
 
-  .workspace-actions > .workspace-task-groups {
-    display: inline-flex;
-  }
-
   .document-references-trigger {
     display: inline-flex;
   }
@@ -340,7 +336,7 @@
   background: var(--surface);
 }
 
-.workspace-group-navigation a {
+.workspace-group-navigation > a {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
@@ -349,13 +345,14 @@
   font-size: var(--text-sm);
 }
 
-.workspace-group-navigation a:hover {
+.workspace-group-navigation > a:hover {
   color: var(--text);
   text-decoration: underline;
 }
 
-.workspace-group-navigation h2 {
+.workspace-group-navigation > h2 {
   min-width: 0;
+  flex: 1;
   margin: 0;
   overflow: hidden;
   font-size: var(--text-md);

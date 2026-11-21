@@ -19,6 +19,7 @@ type Document struct {
 	ProjectID            sql.NullString `json:"project_id"`
 	FeatureID            sql.NullString `json:"feature_id"`
 	TaskID               sql.NullString `json:"task_id"`
+	GroupID              sql.NullString `json:"group_id"`
 	Kind                 string         `json:"kind"`
 	Title                string         `json:"title"`
 	Locator              sql.NullString `json:"locator"`

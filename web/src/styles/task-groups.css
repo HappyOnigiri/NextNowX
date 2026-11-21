@@ -6,24 +6,3 @@
 .task-groups-dialog footer {
   flex-wrap: wrap;
 }
-
-.task-groups-list {
-  display: grid;
-  gap: 4px;
-  margin: 0 0 20px;
-  padding: 0;
-  list-style: none;
-}
-
-.task-groups-list li {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 6px;
-  padding-block: 6px;
-  border-bottom: 1px solid var(--border);
-}
-
-.task-groups-list span {
-  overflow-wrap: anywhere;
-}

@@ -2638,7 +2638,7 @@ func (x *PullRequest) GetCheckState() CheckState {
 	return CheckState_CHECK_STATE_UNSPECIFIED
 }
 
-// Document は project、feature、task のいずれか 1 つだけに紐づく参照。
+// Document は project、feature、task、task group のいずれか 1 つだけに紐づく参照。
 type Document struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// id は document 参照の安定識別子。
@@ -2660,7 +2660,9 @@ type Document struct {
 	// updated_at は RFC 3339 形式の最終更新時刻。
 	UpdatedAt string `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	// project_id は project 単位の document のとき、親 project を公開 ID の P-<number> で示す。
-	ProjectId     string `protobuf:"bytes,10,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,10,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	// group_id はグループ単位の document のとき、親グループの公開 ID を示す。
+	GroupId       string `protobuf:"bytes,11,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2761,6 +2763,13 @@ func (x *Document) GetUpdatedAt() string {
 func (x *Document) GetProjectId() string {
 	if x != nil {
 		return x.ProjectId
+	}
+	return ""
+}
+
+func (x *Document) GetGroupId() string {
+	if x != nil {
+		return x.GroupId
 	}
 	return ""
 }
@@ -4850,9 +4859,9 @@ func (*DetachPullRequestResponse) Descriptor() ([]byte, []int) {
 // AddDocumentRequest は document の取得元を 1 つの親のもとに登録する。
 type AddDocumentRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// feature_id は project_id と task_id が空のとき、親 feature を示す。
+	// feature_id は feature に添付するときだけ指定する。
 	FeatureId string `protobuf:"bytes,1,opt,name=feature_id,json=featureId,proto3" json:"feature_id,omitempty"`
-	// task_id は project_id と feature_id が空のとき、親 task を示す。
+	// task_id は task に添付するときだけ指定する。
 	TaskId string `protobuf:"bytes,2,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
 	// title は人が読む document のラベル。
 	Title string `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
@@ -4866,8 +4875,10 @@ type AddDocumentRequest struct {
 	Source isAddDocumentRequest_Source `protobuf_oneof:"source"`
 	// is_implementation_plan はこの task document を計画として印付ける。
 	IsImplementationPlan bool `protobuf:"varint,7,opt,name=is_implementation_plan,json=isImplementationPlan,proto3" json:"is_implementation_plan,omitempty"`
-	// project_id は feature_id と task_id が空のとき、親 project を示す。
-	ProjectId     string `protobuf:"bytes,8,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	// project_id は project に添付するときだけ指定する。
+	ProjectId string `protobuf:"bytes,8,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	// group_id は task group に添付するときだけ指定する。
+	GroupId       string `protobuf:"bytes,9,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4967,6 +4978,13 @@ func (x *AddDocumentRequest) GetIsImplementationPlan() bool {
 func (x *AddDocumentRequest) GetProjectId() string {
 	if x != nil {
 		return x.ProjectId
+	}
+	return ""
+}
+
+func (x *AddDocumentRequest) GetGroupId() string {
+	if x != nil {
+		return x.GroupId
 	}
 	return ""
 }
@@ -10856,7 +10874,7 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"\x14changes_requested_at\x18\x14 \x01(\tR\x12changesRequestedAt\x12$\n" +
 	"\x0elast_pushed_at\x18\x15 \x01(\tR\flastPushedAt\x123\n" +
 	"\vcheck_state\x18\x16 \x01(\x0e2\x12.nnx.v1.CheckStateR\n" +
-	"checkState\"\xbf\x02\n" +
+	"checkState\"\xda\x02\n" +
 	"\bDocument\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -10872,7 +10890,8 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"updated_at\x18\t \x01(\tR\tupdatedAt\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\n" +
-	" \x01(\tR\tprojectId\"\xb1\x04\n" +
+	" \x01(\tR\tprojectId\x12\x19\n" +
+	"\bgroup_id\x18\v \x01(\tR\agroupId\"\xb1\x04\n" +
 	"\bSnapshot\x12+\n" +
 	"\bfeatures\x18\x01 \x03(\v2\x0f.nnx.v1.FeatureR\bfeatures\x12\"\n" +
 	"\x05tasks\x18\x02 \x03(\v2\f.nnx.v1.TaskR\x05tasks\x126\n" +
@@ -11014,7 +11033,7 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"\fpull_request\x18\x01 \x01(\v2\x13.nnx.v1.PullRequestR\vpullRequest\"3\n" +
 	"\x18DetachPullRequestRequest\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\"\x1b\n" +
-	"\x19DetachPullRequestResponse\"\x94\x02\n" +
+	"\x19DetachPullRequestResponse\"\xaf\x02\n" +
 	"\x12AddDocumentRequest\x12\x1d\n" +
 	"\n" +
 	"feature_id\x18\x01 \x01(\tR\tfeatureId\x12\x17\n" +
@@ -11026,7 +11045,8 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"\bmarkdown\x18\x06 \x01(\tH\x00R\bmarkdown\x124\n" +
 	"\x16is_implementation_plan\x18\a \x01(\bR\x14isImplementationPlan\x12\x1d\n" +
 	"\n" +
-	"project_id\x18\b \x01(\tR\tprojectIdB\b\n" +
+	"project_id\x18\b \x01(\tR\tprojectId\x12\x19\n" +
+	"\bgroup_id\x18\t \x01(\tR\agroupIdB\b\n" +
 	"\x06source\"C\n" +
 	"\x13AddDocumentResponse\x12,\n" +
 	"\bdocument\x18\x01 \x01(\v2\x10.nnx.v1.DocumentR\bdocument\"$\n" +

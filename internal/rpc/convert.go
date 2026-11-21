@@ -195,6 +195,7 @@ func protoDocument(v domain.Document) *nnxv1.Document {
 		ProjectId:            v.ProjectID,
 		FeatureId:            v.FeatureID,
 		TaskId:               v.TaskID,
+		GroupId:              v.GroupID,
 		Kind:                 protoDocumentKind(v.Kind),
 		Title:                v.Title,
 		Locator:              v.Locator,

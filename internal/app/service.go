@@ -573,11 +573,11 @@ func (s *Service) AddDocument(
 	if parent.Count() != 1 {
 		return domain.Document{}, domain.NewError(
 			domain.DomainErrorCodeInvalidParent,
-			"set exactly one of project_id, feature_id, or task_id",
+			"set exactly one of project_id, feature_id, task_id, or group_id",
 		)
 	}
 	document := domain.Document{
-		ProjectID: parent.ProjectID, FeatureID: parent.FeatureID, TaskID: parent.TaskID,
+		ProjectID: parent.ProjectID, FeatureID: parent.FeatureID, TaskID: parent.TaskID, GroupID: parent.GroupID,
 		Kind: kind, Title: strings.TrimSpace(title),
 		Locator: locator, Content: content, IsImplementationPlan: isImplementationPlan,
 	}
@@ -625,6 +625,9 @@ func (s *Service) resolveDocumentParent(
 			return domain.DocumentParent{}, err
 		}
 		return domain.DocumentParent{FeatureID: feature.ID}, nil
+	case parent.GroupID != "":
+		group, err := s.writableTaskGroup(ctx, parent.GroupID)
+		return domain.DocumentParent{GroupID: group.ID}, err
 	}
 	if err := s.guardTaskID(ctx, parent.TaskID); err != nil {
 		return domain.DocumentParent{}, err

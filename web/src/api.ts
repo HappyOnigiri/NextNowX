@@ -235,6 +235,7 @@ export const mutations = {
     projectId?: string;
     featureId?: string;
     taskId?: string;
+    groupId?: string;
     title: string;
     kind: DocumentKind;
     value: string;
@@ -250,6 +251,7 @@ export const mutations = {
       projectId?: string;
       featureId?: string;
       taskId?: string;
+      groupId?: string;
       title: string;
       source: typeof source;
       isImplementationPlan?: boolean;
@@ -257,6 +259,7 @@ export const mutations = {
     if (input.projectId !== undefined) request.projectId = input.projectId;
     if (input.featureId !== undefined) request.featureId = input.featureId;
     if (input.taskId !== undefined) request.taskId = input.taskId;
+    if (input.groupId !== undefined) request.groupId = input.groupId;
     if (input.isImplementationPlan !== undefined)
       request.isImplementationPlan = input.isImplementationPlan;
     return client.addDocument(create(AddDocumentRequestSchema, request));

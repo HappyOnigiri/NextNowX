@@ -131,13 +131,14 @@ describe("useGraphLayout", () => {
 
   it("positions group members as rows and routes an edge from the group card", async () => {
     const group = makeTaskGroup();
+    const empty = makeTaskGroup({ id: "empty", name: "Empty" });
     const options = {
       tasks: [
         makeTask({ id: "task-2", title: "Second", groupId: group.id }),
         makeTask({ id: "task-1", title: "First", groupId: group.id }),
         makeTask({ id: "task-3", title: "External" }),
       ],
-      groups: [group, makeTaskGroup({ id: "empty", name: "Empty" })],
+      groups: [group, empty],
       dependencies: [
         makeDependency({ blockerTaskId: group.id, blockedTaskId: "task-3" }),
       ],
@@ -150,6 +151,7 @@ describe("useGraphLayout", () => {
       children: [
         { id: group.id, x: 10, y: 20, width: 336, height: 120 },
         { id: "task-3", x: 460, y: 30 },
+        { id: empty.id, x: 10, y: 200, width: 336, height: 48 },
       ],
       edges: [
         {
@@ -162,13 +164,14 @@ describe("useGraphLayout", () => {
     });
     const { result } = renderHook(() => useGraphLayout(options));
     await waitFor(() => {
-      expect(result.current.nodes).toHaveLength(4);
+      expect(result.current.nodes).toHaveLength(5);
     });
     expect(layoutMocks.layout).toHaveBeenCalledWith(
       expect.objectContaining({
         children: [
           expect.objectContaining({ id: group.id, width: 336, height: 120 }),
           expect.objectContaining({ id: "task-3" }),
+          expect.objectContaining({ id: empty.id, width: 336, height: 48 }),
         ],
         edges: [
           {
@@ -181,6 +184,7 @@ describe("useGraphLayout", () => {
     );
     expect(result.current.frames).toEqual([
       { group, x: 10, y: 20, width: 336, height: 120 },
+      { group: empty, x: 10, y: 200, width: 336, height: 48 },
     ]);
     expect(result.current.nodes.slice(0, 2)).toMatchObject([
       { id: "task-1", position: { x: 10, y: 60 }, data: { compact: true } },

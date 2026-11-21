@@ -128,18 +128,14 @@ test("keeps controls usable at a narrow viewport", async ({ page }) => {
   await expect(
     page.locator(".workspace-actions > .icon-button-danger"),
   ).toHaveCount(0);
-  const taskGroupsButton = workspaceActions.getByRole("button", {
-    name: "Task groups",
-    exact: true,
-  });
-  await expect(taskGroupsButton).toBeVisible();
-  for (const button of [taskGroupsButton, addTaskButton]) {
-    const bounds = await button.boundingBox();
-    expect(bounds).not.toBeNull();
-    if (bounds) {
-      expect(bounds.x).toBeGreaterThanOrEqual(0);
-      expect(bounds.x + bounds.width).toBeLessThanOrEqual(320);
-    }
+  await expect(
+    workspaceActions.getByRole("button", { name: "Task groups", exact: true }),
+  ).toHaveCount(0);
+  const bounds = await addTaskButton.boundingBox();
+  expect(bounds).not.toBeNull();
+  if (bounds) {
+    expect(bounds.x).toBeGreaterThanOrEqual(0);
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(320);
   }
 });
 

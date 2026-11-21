@@ -87,14 +87,14 @@ document は URL でもローカルファイルでもなくインラインの Ma
 
 snapshot 中の document の項目は、派生状態に必要なメタデータだけを持つ。
 
-document は project・feature・task いずれの参照にも同じモデルを使い、各 document はそのうちちょうど 1 つに属する。
+document は project・feature・task・タスクグループのうちちょうど 1 つに属する。
 各 document が持つ source はちょうど 1 つで、HTTP または HTTPS の URL、登録済みのローカルファイルパス、インラインの Markdown のいずれかである。
 インラインの Markdown は 1 MiB までで、詳細読み取りのときにだけ読み込む。
 
 task は最大 1 つの document を implementation plan に指定できる。
-この指定は task だけのものである。project や feature の document が plan になることはない。
+この指定は task だけのものである。project・feature・グループの document は plan にならない。
 この指定により、pull request のない未着手または designing の task は designed の表示状態に移る。readiness、依存の充足、完了状態は変わらない。
-plan 以外の document、feature の document、project の document には、アプリケーション層での件数制限はない。
+plan 以外の document には、アプリケーション層での件数制限はない。
 
 ## タスクの作業範囲から添付資料への移行
 
@@ -106,4 +106,4 @@ plan 以外の document、feature の document、project の document には、�
 
 グループの所属先は feature とし、タスクはグループの公開 ID を参照する。移行時は既存のタスクを未所属にする。
 所属の設定時には同じトランザクションでグループの存在と feature の一致を確認する。
-グループを削除すると同じ書き込みでタスクの所属を解除する。feature の cascade 削除ではそのグループも削除する。
+グループを削除すると同じ書き込みでタスクの所属を解除し、グループの document を削除する。feature の cascade 削除ではそのグループも削除する。

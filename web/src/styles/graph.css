@@ -597,9 +597,19 @@ span.node-hidden-dependency svg {
   pointer-events: none;
 }
 
+.graph-task-group-header {
+  display: flex;
+  align-items: center;
+  height: 39px;
+  gap: 4px;
+  padding-inline: 12px 6px;
+  pointer-events: auto;
+}
+
 .graph-task-group-link {
+  flex: 1;
+  min-width: 0;
   justify-content: space-between;
-  padding: 9px 12px;
   color: var(--text);
   font-weight: 650;
   pointer-events: auto;

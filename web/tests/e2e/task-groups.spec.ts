@@ -9,17 +9,28 @@ import {
 test.use({ baseURL: e2eBaseURL });
 guardBrowserErrors();
 
-async function openGroups(page: Page) {
-  await page.getByRole("button", { name: "Task groups" }).click();
-  return page.getByRole("dialog", { name: "Task groups", exact: true });
+async function createGroupFromInspector(
+  page: Page,
+  inspector: Locator,
+  name: string,
+) {
+  const select = inspector.getByLabel("Task group");
+  await select.selectOption({ label: "Add new group…" });
+  const dialog = page.getByRole("dialog", { name: "Create group" });
+  await dialog.getByLabel("Group name").fill(name);
+  await dialog.getByRole("button", { name: "Create group" }).click();
+  await expect(select.locator("option:checked")).toHaveText(name);
 }
 
-async function addGroup(manager: Locator, name: string) {
-  await manager.getByLabel("New group name").fill(name);
-  await manager.getByRole("button", { name: "Create group" }).click();
+async function groupTask(page: Page, title: string, name: string) {
+  const inspector = await openInspector(page, title);
+  await createGroupFromInspector(page, inspector, name);
+  await inspector.getByRole("button", { name: "Save task" }).click();
   await expect(
-    manager.getByRole("button", { name: `Rename ${name}` }),
-  ).toBeVisible();
+    inspector.getByRole("button", { name: "Save task" }),
+  ).toBeDisabled();
+  await inspector.getByRole("button", { name: "Close inspector" }).click();
+  await settleGraph(page);
 }
 
 async function addTask(page: Page, title: string, group?: string) {
@@ -57,13 +68,12 @@ test("manages membership and shows the same ordered group frames in search and r
 
   await createFeature(page, `Group manager ${prefix}`);
   const featureURL = page.url();
-  let manager = await openGroups(page);
-  await addGroup(manager, name);
-  await addGroup(manager, empty);
-  await manager.getByRole("button", { name: "Close", exact: true }).click();
-
+  await expect(
+    page.getByRole("button", { name: "Task groups", exact: true }),
+  ).toHaveCount(0);
   const hidden = `Filtered member ${prefix}`;
-  await addTask(page, hidden, name);
+  await addTask(page, hidden);
+  await groupTask(page, hidden, name);
   await page.getByRole("link", { name, exact: true }).click();
   let inspector = await openInspector(page, hidden);
   await inspector.getByLabel("Status").selectOption({ label: "Completed" });
@@ -78,7 +88,7 @@ test("manages membership and shows the same ordered group frames in search and r
   await addTask(page, looseSecond);
   await addTask(page, groupedSecond);
   inspector = await openInspector(page, groupedSecond);
-  await inspector.getByLabel("Task group").selectOption({ label: empty });
+  await createGroupFromInspector(page, inspector, empty);
   await inspector.getByRole("button", { name: "Save task" }).click();
   await expect(
     inspector.getByRole("button", { name: "Save task" }),
@@ -101,10 +111,8 @@ test("manages membership and shows the same ordered group frames in search and r
   ).toBeVisible();
 
   await createFeature(page, `Second feature ${prefix}`);
-  manager = await openGroups(page);
-  await addGroup(manager, name);
-  await manager.getByRole("button", { name: "Close", exact: true }).click();
-  await addTask(page, other, name);
+  await addTask(page, other);
+  await groupTask(page, other, name);
 
   await page.goto(search);
   const results = page.getByRole("list", { name: "Matching active tasks" });
@@ -154,14 +162,20 @@ test("manages membership and shows the same ordered group frames in search and r
   ]);
 
   await page.goto(featureURL);
-  manager = await openGroups(page);
-  await manager.getByRole("button", { name: `Rename ${name}` }).click();
-  await manager.getByLabel("Group name", { exact: true }).fill(renamed);
-  await manager
-    .getByRole("button", { name: "Rename group", exact: true })
+  await page.setViewportSize({ width: 1280, height: 844 });
+  await settleGraph(page);
+  await page.locator(".react-flow__controls-fitview").click();
+  await page
+    .getByRole("button", { name: `Rename ${name}`, exact: true })
     .click();
+  const edit = page.getByRole("dialog", {
+    name: `Rename ${name}`,
+    exact: true,
+  });
+  await edit.getByLabel("Group name", { exact: true }).fill(renamed);
+  await edit.getByRole("button", { name: "Rename group", exact: true }).click();
   await expect(
-    manager.getByRole("button", { name: `Rename ${renamed}` }),
+    page.getByRole("link", { name: renamed, exact: true }),
   ).toBeVisible();
   await page.goto(search);
   const renamedGroup = results.getByRole("list", {
@@ -176,14 +190,15 @@ test("manages membership and shows the same ordered group frames in search and r
   ).toBeVisible();
 
   await page.goto(featureURL);
-  manager = await openGroups(page);
-  await manager.getByRole("button", { name: `Delete ${renamed}` }).click();
+  await settleGraph(page);
+  await page.locator(".react-flow__controls-fitview").click();
+  await page.getByRole("button", { name: `Delete ${renamed}` }).click();
   await page
     .getByRole("dialog", { name: `Delete ${renamed}` })
     .getByRole("button", { name: "Delete group" })
     .click();
   await expect(
-    manager.getByRole("button", { name: `Delete ${renamed}` }),
+    page.getByRole("button", { name: `Delete ${renamed}` }),
   ).toHaveCount(0);
   await page.goto(search);
   await expect(renamedGroup).toHaveCount(0);
@@ -226,13 +241,10 @@ test("combines external dependencies at each group card and shows individual edg
   page,
 }) => {
   await createFeature(page, `Grouped graph ${crypto.randomUUID()}`);
-  const manager = await openGroups(page);
-  await addGroup(manager, "Checkout flow");
-  await addGroup(manager, "Delivery flow");
-  await addGroup(manager, "Empty group");
-  await manager.getByRole("button", { name: "Close", exact: true }).click();
-  await addTask(page, "Collect inputs", "Checkout flow");
-  await addTask(page, "Deliver inputs", "Delivery flow");
+  await addTask(page, "Collect inputs");
+  await groupTask(page, "Collect inputs", "Checkout flow");
+  await addTask(page, "Deliver inputs");
+  await groupTask(page, "Deliver inputs", "Delivery flow");
   await addTask(page, "Publish inputs", "Checkout flow");
   await addTask(page, "Ungrouped task");
   await addTask(page, "Prepare inputs");
@@ -346,11 +358,9 @@ test("opens a group task from the overview and uses its references and prompt", 
 }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await createFeature(page, `Grouped task details ${crypto.randomUUID()}`);
-  const manager = await openGroups(page);
-  await addGroup(manager, "Checkout flow");
-  await manager.getByRole("button", { name: "Close", exact: true }).click();
   const title = "Collect and validate the inputs for the checkout flow";
-  await addTask(page, title, "Checkout flow");
+  await addTask(page, title);
+  await groupTask(page, title, "Checkout flow");
   const row = page.locator(".graph-group-row").getByRole("button", {
     name: title,
   });
@@ -416,4 +426,70 @@ test("opens a group task from the overview and uses its references and prompt", 
     .click();
   await expect(prompt.getByText("Design prompt copied.")).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(value);
+});
+
+test("attaches and edits a group reference, then deletes the group from its card", async ({
+  page,
+}) => {
+  await createFeature(page, `Group references ${crypto.randomUUID()}`);
+  await addTask(page, "Plan the rollout");
+  const inspector = await openInspector(page, "Plan the rollout");
+  await createGroupFromInspector(page, inspector, "Rollout");
+  await inspector.getByRole("button", { name: "Close inspector" }).click();
+  await page.getByRole("button", { name: "Discard", exact: true }).click();
+  await settleGraph(page);
+  const group = page.locator(".graph-task-group");
+  await expect(group.getByRole("link", { name: "Rollout" })).toBeVisible();
+  await group.getByRole("link", { name: "Rollout" }).click();
+
+  const viewport = page.viewportSize();
+  await page.setViewportSize({ width: 390, height: 844 });
+  const references = page.getByRole("button", { name: "Group references" });
+  const panel = page.getByRole("region", { name: "Group references" });
+  await references.click();
+  await panel
+    .getByRole("button", { name: "Add reference", exact: true })
+    .click();
+  const add = page.getByRole("dialog", { name: "Add group reference" });
+  await add.getByRole("tab", { name: "Markdown" }).click();
+  await add.getByLabel("Reference title (optional)").fill("Rollout notes");
+  await add.getByLabel("Markdown content").fill("# Rollout checklist");
+  await add.getByRole("button", { name: "Add reference" }).click();
+  await expect(add).toBeHidden();
+  await page.reload();
+  await references.click();
+  await panel
+    .getByRole("button", { name: /Rollout notes/ })
+    .first()
+    .click();
+  const preview = page.getByRole("dialog", { name: "Rollout notes" });
+  await expect(
+    preview.getByRole("heading", { name: "Rollout checklist" }),
+  ).toBeVisible();
+  await preview.getByRole("button", { name: "Close" }).click();
+  await references.click();
+  await panel.getByRole("button", { name: /Edit.*Rollout notes/ }).click();
+  const editReference = page.getByRole("dialog", {
+    name: "Edit group reference",
+  });
+  await editReference
+    .getByLabel("Reference title (optional)")
+    .fill("Reviewed notes");
+  await editReference.getByRole("button", { name: "Save" }).click();
+  await expect(editReference).toBeHidden();
+  await references.click();
+  await expect(
+    panel.getByText("Reviewed notes", { exact: true }),
+  ).toBeVisible();
+
+  if (viewport) await page.setViewportSize(viewport);
+  await page.getByRole("link", { name: "Back to feature" }).click();
+  await group.getByRole("button", { name: "Delete Rollout" }).click();
+  const deletion = page.getByRole("dialog", { name: "Delete Rollout" });
+  await expect(deletion).toContainText("Group references will be deleted");
+  await deletion.getByRole("button", { name: "Delete group" }).click();
+  await expect(group).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Edit Plan the rollout" }),
+  ).toBeVisible();
 });

@@ -87,6 +87,16 @@ export function buildTaskGroupLayout(
     container.height = top + rowHeight + bottomPadding;
   }
 
+  for (const group of groupList) {
+    if (!containers.has(group.id)) {
+      children.push({
+        id: group.id,
+        width: groupWidth,
+        height: headerHeight + bottomPadding,
+      });
+    }
+  }
+
   const edges = dependencies.map(({ blockerTaskId, blockedTaskId }) => ({
     id: dependencyEdgeId(blockerTaskId, blockedTaskId),
     sources: [blockerTaskId],

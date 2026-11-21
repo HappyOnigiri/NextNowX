@@ -53,6 +53,7 @@ project、feature、task は、ストレージ上の識別子とは別の公開�
 document は意図的な例外で、独立した公開識別子を持たない。
 そのため `document get`、`document update`、`document delete` に渡す識別子はストレージの識別子そのものである。
 この識別子は不透明であり、移行された document は UUID の形式ではない値を持つことがある。
+グループに添付された document の JSON は親グループを `group_id` で示す。
 
 `nnx setup` は、起動時にデータベースファイルを新規作成したときだけサンプルデータを投入し、投入したときだけ標準出力へ実効言語で 1 行を出す。
 投入を止める `--no-sample-data` は `nnx setup` のローカルフラグで、環境変数 `NNX_NO_SAMPLE_DATA` は空でない値をすべて opt-out として扱う。

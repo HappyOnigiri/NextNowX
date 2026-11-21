@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TaskDisplayState, type Snapshot } from "../src/gen/nnx/v1/nnx_pb";
 import { readHideCompletedTasks } from "../src/i18n/settings";
 import { FeatureWorkspace } from "../src/views/FeatureWorkspace";
+import type { GroupAction } from "../src/views/GraphTaskGroups";
 import {
   makeDependency,
   makeDocument,
@@ -100,6 +101,8 @@ vi.mock("../src/hooks", () => ({
 vi.mock("../src/views/FeatureGraph", () => ({
   FeatureGraph: ({
     tasks,
+    groups,
+    onGroupAction,
     hiddenDependencies,
     hiddenTaskCount,
     searching,
@@ -110,6 +113,8 @@ vi.mock("../src/views/FeatureGraph", () => ({
     readOnly,
   }: {
     tasks: { id: string }[];
+    groups?: GroupAction["group"][];
+    onGroupAction?: (action: GroupAction) => void;
     hiddenDependencies: Map<string, { blockers: string[] }>;
     hiddenTaskCount: number;
     searching: boolean;
@@ -124,6 +129,16 @@ vi.mock("../src/views/FeatureGraph", () => ({
   }) => (
     <div data-testid="feature-graph">
       <span>{readOnly ? "Mock read-only graph" : "Mock active graph"}</span>
+      {groups?.map((group) => (
+        <div key={group.id}>
+          <button onClick={() => onGroupAction?.({ type: "rename", group })}>
+            Edit {group.name}
+          </button>
+          <button onClick={() => onGroupAction?.({ type: "delete", group })}>
+            Delete {group.name}
+          </button>
+        </div>
+      ))}
       <span data-testid="mock-graph-tasks">
         {tasks.map((task) => task.id).join(",")}
       </span>
@@ -577,7 +592,6 @@ describe("FeatureWorkspace", () => {
       "References",
       "Refresh",
       "Copy batch prompt",
-      "Task groups",
       "Add task",
       "Edit feature",
     ]);
@@ -826,7 +840,7 @@ describe("FeatureWorkspace", () => {
   });
 });
 
-it("opens the task groups dialog with the groups belonging to this feature", () => {
+it("opens rename and deletion from group cards belonging to this feature", () => {
   workspaceMocks.snapshot.data = makeSnapshot({
     features: [makeFeature()],
     taskGroups: [
@@ -839,12 +853,20 @@ it("opens the task groups dialog with the groups belonging to this feature", () 
     ],
   });
   render(<FeatureWorkspace />);
-  fireEvent.click(screen.getByRole("button", { name: "Task groups" }));
-  const dialog = screen.getByRole("dialog", { name: "Task groups" });
-  expect(within(dialog).getByText("Checkout")).toBeInTheDocument();
-  expect(within(dialog).queryByText("Other group")).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Task groups" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Edit Other group" }),
+  ).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Edit Checkout" }));
+  const rename = screen.getByRole("dialog", { name: "Rename Checkout" });
   fireEvent.keyDown(window, { key: "Escape" });
-  expect(dialog).not.toBeInTheDocument();
+  expect(rename).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Delete Checkout" }));
+  const deletion = screen.getByRole("dialog", { name: "Delete Checkout" });
+  fireEvent.click(within(deletion).getByRole("button", { name: "Cancel" }));
+  expect(deletion).not.toBeInTheDocument();
   cleanup();
 });
 
@@ -855,6 +877,9 @@ it("opens the selected group with a graph restricted to its tasks", () => {
     tasks: [makeTask({ groupId: "group-1" }), makeTask({ id: "task-2" })],
     taskGroups: [makeTaskGroup()],
     dependencies: [makeDependency()],
+    documents: [
+      makeDocument({ title: "Group notes", groupId: "group-1", taskId: "" }),
+    ],
   });
   render(<FeatureWorkspace />);
   expect(screen.getByRole("heading", { name: "Checkout" })).toBeInTheDocument();
@@ -862,6 +887,10 @@ it("opens the selected group with a graph restricted to its tasks", () => {
     screen.getByRole("link", { name: "Back to feature" }),
   ).toBeInTheDocument();
   expect(screen.getByTestId("mock-graph-tasks")).toHaveTextContent(/^task-1$/);
+  fireEvent.click(screen.getByRole("button", { name: "Group references" }));
+  expect(
+    screen.getByRole("region", { name: "Group references" }),
+  ).toHaveTextContent("Group notes");
   cleanup();
   workspaceMocks.groupId = undefined;
 });

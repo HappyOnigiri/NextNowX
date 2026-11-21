@@ -118,6 +118,9 @@ func (s *Service) guardDocument(ctx context.Context, document domain.Document) e
 			return err
 		}
 		return s.guardFeature(ctx, feature)
+	case document.GroupID != "":
+		_, err := s.writableTaskGroup(ctx, document.GroupID)
+		return err
 	case document.TaskID != "":
 		return s.guardTaskID(ctx, document.TaskID)
 	}

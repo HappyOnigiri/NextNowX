@@ -300,6 +300,7 @@ type GitHubSyncStatus struct {
 // それ以外の組み合わせは Count を使って呼び出し側が弾く。1 つの値にまとめることで、
 // 呼び出し箇所で 3 つの識別子を取り違えずに済む。
 type DocumentParent struct {
+	GroupID   string
 	ProjectID string
 	FeatureID string
 	TaskID    string
@@ -308,7 +309,7 @@ type DocumentParent struct {
 // Count は値が指し示す親の数を返す。
 func (p DocumentParent) Count() int {
 	count := 0
-	for _, value := range []string{p.ProjectID, p.FeatureID, p.TaskID} {
+	for _, value := range []string{p.ProjectID, p.FeatureID, p.TaskID, p.GroupID} {
 		if value != "" {
 			count++
 		}
@@ -317,6 +318,7 @@ func (p DocumentParent) Count() int {
 }
 
 type Document struct {
+	GroupID              string       `json:"group_id,omitempty"`
 	ID                   string       `json:"id"`
 	ProjectID            string       `json:"project_id,omitempty"`
 	FeatureID            string       `json:"feature_id,omitempty"`

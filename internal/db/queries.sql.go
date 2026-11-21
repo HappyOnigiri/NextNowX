@@ -125,9 +125,9 @@ func (q *Queries) CountProjectReferences(ctx context.Context, projectID string) 
 
 const createDocument = `-- name: CreateDocument :one
 INSERT INTO documents (
-  id, project_id, feature_id, task_id, kind, title, locator, content,
+  id, project_id, feature_id, task_id, group_id, kind, title, locator, content,
   is_implementation_plan, created_at, updated_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, project_id, feature_id, task_id, kind, title, locator, content, is_implementation_plan, created_at, updated_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, project_id, feature_id, task_id, group_id, kind, title, locator, content, is_implementation_plan, created_at, updated_at
 `
 
 type CreateDocumentParams struct {
@@ -135,6 +135,7 @@ type CreateDocumentParams struct {
 	ProjectID            sql.NullString `json:"project_id"`
 	FeatureID            sql.NullString `json:"feature_id"`
 	TaskID               sql.NullString `json:"task_id"`
+	GroupID              sql.NullString `json:"group_id"`
 	Kind                 string         `json:"kind"`
 	Title                string         `json:"title"`
 	Locator              sql.NullString `json:"locator"`
@@ -150,6 +151,7 @@ func (q *Queries) CreateDocument(ctx context.Context, arg CreateDocumentParams) 
 		arg.ProjectID,
 		arg.FeatureID,
 		arg.TaskID,
+		arg.GroupID,
 		arg.Kind,
 		arg.Title,
 		arg.Locator,
@@ -164,6 +166,7 @@ func (q *Queries) CreateDocument(ctx context.Context, arg CreateDocumentParams) 
 		&i.ProjectID,
 		&i.FeatureID,
 		&i.TaskID,
+		&i.GroupID,
 		&i.Kind,
 		&i.Title,
 		&i.Locator,
@@ -531,7 +534,7 @@ func (q *Queries) FeatureHasTaskGroups(ctx context.Context, featureID string) (b
 }
 
 const getDocument = `-- name: GetDocument :one
-SELECT id, project_id, feature_id, task_id, kind, title, locator, content, is_implementation_plan, created_at, updated_at FROM documents WHERE id=?
+SELECT id, project_id, feature_id, task_id, group_id, kind, title, locator, content, is_implementation_plan, created_at, updated_at FROM documents WHERE id=?
 `
 
 func (q *Queries) GetDocument(ctx context.Context, id string) (Document, error) {
@@ -542,6 +545,7 @@ func (q *Queries) GetDocument(ctx context.Context, id string) (Document, error) 
 		&i.ProjectID,
 		&i.FeatureID,
 		&i.TaskID,
+		&i.GroupID,
 		&i.Kind,
 		&i.Title,
 		&i.Locator,
@@ -650,7 +654,7 @@ func (q *Queries) GetGitHubSyncState(ctx context.Context) (GithubSyncState, erro
 }
 
 const getImplementationPlanDocument = `-- name: GetImplementationPlanDocument :one
-SELECT id, project_id, feature_id, task_id, kind, title, locator, content, is_implementation_plan, created_at, updated_at FROM documents WHERE task_id=? AND is_implementation_plan=1
+SELECT id, project_id, feature_id, task_id, group_id, kind, title, locator, content, is_implementation_plan, created_at, updated_at FROM documents WHERE task_id=? AND is_implementation_plan=1
 `
 
 func (q *Queries) GetImplementationPlanDocument(ctx context.Context, taskID sql.NullString) (Document, error) {
@@ -661,6 +665,7 @@ func (q *Queries) GetImplementationPlanDocument(ctx context.Context, taskID sql.
 		&i.ProjectID,
 		&i.FeatureID,
 		&i.TaskID,
+		&i.GroupID,
 		&i.Kind,
 		&i.Title,
 		&i.Locator,
@@ -891,7 +896,7 @@ func (q *Queries) ListDependenciesByFeature(ctx context.Context, featureID strin
 }
 
 const listDocuments = `-- name: ListDocuments :many
-SELECT id, project_id, feature_id, task_id, kind, title, locator, NULL AS content,
+SELECT id, project_id, feature_id, task_id, group_id, kind, title, locator, NULL AS content,
   is_implementation_plan, created_at, updated_at
 FROM documents ORDER BY is_implementation_plan DESC, created_at, id
 `
@@ -901,6 +906,7 @@ type ListDocumentsRow struct {
 	ProjectID            sql.NullString `json:"project_id"`
 	FeatureID            sql.NullString `json:"feature_id"`
 	TaskID               sql.NullString `json:"task_id"`
+	GroupID              sql.NullString `json:"group_id"`
 	Kind                 string         `json:"kind"`
 	Title                string         `json:"title"`
 	Locator              sql.NullString `json:"locator"`
@@ -924,6 +930,7 @@ func (q *Queries) ListDocuments(ctx context.Context) ([]ListDocumentsRow, error)
 			&i.ProjectID,
 			&i.FeatureID,
 			&i.TaskID,
+			&i.GroupID,
 			&i.Kind,
 			&i.Title,
 			&i.Locator,
@@ -1340,7 +1347,7 @@ UPDATE documents SET
     WHEN CAST(?7 AS INTEGER) = 1 THEN ?8
     ELSE is_implementation_plan END,
   updated_at = ?9
-WHERE id = ?10 RETURNING id, project_id, feature_id, task_id, kind, title, locator, content, is_implementation_plan, created_at, updated_at
+WHERE id = ?10 RETURNING id, project_id, feature_id, task_id, group_id, kind, title, locator, content, is_implementation_plan, created_at, updated_at
 `
 
 type UpdateDocumentParams struct {
@@ -1375,6 +1382,7 @@ func (q *Queries) UpdateDocument(ctx context.Context, arg UpdateDocumentParams) 
 		&i.ProjectID,
 		&i.FeatureID,
 		&i.TaskID,
+		&i.GroupID,
 		&i.Kind,
 		&i.Title,
 		&i.Locator,
@@ -1573,7 +1581,7 @@ INSERT INTO documents (
 ON CONFLICT(task_id) WHERE is_implementation_plan=1 DO UPDATE SET
   kind=excluded.kind, locator=excluded.locator,
   content=excluded.content, updated_at=excluded.updated_at
-RETURNING id, project_id, feature_id, task_id, kind, title, locator, content, is_implementation_plan, created_at, updated_at
+RETURNING id, project_id, feature_id, task_id, group_id, kind, title, locator, content, is_implementation_plan, created_at, updated_at
 `
 
 type UpsertImplementationPlanDocumentParams struct {
@@ -1604,6 +1612,7 @@ func (q *Queries) UpsertImplementationPlanDocument(ctx context.Context, arg Upse
 		&i.ProjectID,
 		&i.FeatureID,
 		&i.TaskID,
+		&i.GroupID,
 		&i.Kind,
 		&i.Title,
 		&i.Locator,

@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
 
 	"github.com/HappyOnigiri/NextNowX/internal/db"
 	"github.com/HappyOnigiri/NextNowX/internal/domain"
@@ -901,6 +903,7 @@ func (s *Store) CreateDocument(
 		ProjectID:            nullString(stored.ProjectID),
 		FeatureID:            nullString(stored.FeatureID),
 		TaskID:               nullString(stored.TaskID),
+		GroupID:              nullString(parent.GroupID),
 		Kind:                 string(kind),
 		Title:                title,
 		Locator:              nullString(locator),
@@ -911,6 +914,11 @@ func (s *Store) CreateDocument(
 	}
 	row, err := q.CreateDocument(ctx, params)
 	if err != nil {
+		var sqliteErr *sqlite.Error
+		if parent.GroupID != "" && errors.As(err, &sqliteErr) &&
+			sqliteErr.Code() == sqlite3.SQLITE_CONSTRAINT_FOREIGNKEY {
+			return domain.Document{}, mapNotFound(sql.ErrNoRows, "task group", parent.GroupID)
+		}
 		return domain.Document{}, mapDocumentConstraint(err)
 	}
 	return domainDocument(row, projectIDs, featureIDs, taskIDs), nil

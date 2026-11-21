@@ -67,6 +67,7 @@ export function TaskInspectorTaskForm({
         }}
       />
       <TaskGroupSelect
+        createInFeature={task.featureId}
         groups={groups}
         value={draft.groupId ?? task.groupId}
         onChange={(groupId) => {
