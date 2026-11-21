@@ -280,7 +280,7 @@ async function assertGroupedList(
   }
 }
 
-test("combines external dependencies at each group card and shows individual edges inside", async ({
+test("switches between aggregated group edges and individual task edges", async ({
   page,
 }) => {
   await createFeature(page, `Grouped graph ${crypto.randomUUID()}`);
@@ -305,7 +305,7 @@ test("combines external dependencies at each group card and shows individual edg
   const prepare = await graphTaskId(stage, "Prepare inputs");
 
   // タスク単位では DAG でも、グループ単位では往復になる依存を作る。
-  for (const [blockerTaskId, blockedTaskId] of [
+  const taskDependencies = [
     [collect, deliver],
     [deliver, publish],
     [collect, publish],
@@ -313,7 +313,8 @@ test("combines external dependencies at each group card and shows individual edg
     [publish, ungrouped],
     [prepare, collect],
     [prepare, publish],
-  ]) {
+  ];
+  for (const [blockerTaskId, blockedTaskId] of taskDependencies) {
     const response = await page.request.post(
       "/nnx.v1.NNXService/AddDependency",
       {
@@ -351,7 +352,31 @@ test("combines external dependencies at each group card and shows individual edg
       ),
     ).toHaveAttribute("d", /^M[\d.]+ [\d.]+ L/);
   }
+  const groupToggle = page.getByRole("switch", { name: "Show groups" });
+  await expect(groupToggle).toBeChecked();
+  await groupToggle.click();
+  await settleGraph(page);
+  await expect(cards).toHaveCount(5);
+  await expect(rows).toHaveCount(0);
+  await expect(stage.locator(".graph-task-group")).toHaveCount(0);
+  await expect(stage.locator(".react-flow__edge")).toHaveCount(
+    taskDependencies.length,
+  );
+  for (const [source, target] of taskDependencies) {
+    await expect(
+      stage.locator(
+        `.react-flow__edge[data-id="${source}-${target}"] .react-flow__edge-path`,
+      ),
+    ).toHaveAttribute("d", /^M[\d.]+ [\d.]+ L/);
+  }
+  await page.reload();
+  await expect(groupToggle).not.toBeChecked();
+  await expect(cards).toHaveCount(5);
+  await groupToggle.click();
+  await settleGraph(page);
+  await expect(stage.locator(".react-flow__edge")).toHaveCount(4);
   await checkout.click();
+  await expect(groupToggle).toHaveCount(0);
   await expect(
     page.getByRole("heading", { name: "Checkout flow" }),
   ).toBeVisible();

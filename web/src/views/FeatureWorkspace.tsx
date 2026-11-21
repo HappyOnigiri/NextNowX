@@ -7,10 +7,12 @@ import {
 import {
   ArrowLeft,
   ClipboardList,
+  Group,
   Pencil,
   Plus,
   RefreshCw,
   Search,
+  Ungroup,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -30,7 +32,9 @@ import { useDomainMutation, useSnapshot } from "../hooks";
 import { featureStatusLabel, featureStatusToken } from "../i18n/domain";
 import {
   readHideCompletedTasks,
+  readShowTaskGroups,
   writeHideCompletedTasks,
+  writeShowTaskGroups,
 } from "../i18n/settings";
 import { BatchPromptDialog } from "./BatchPromptDialog";
 import { CopyableIdentifier } from "./CopyableIdentifier";
@@ -474,6 +478,11 @@ interface WorkspaceContentProps {
 }
 
 function WorkspaceContent(props: WorkspaceContentProps) {
+  const [showGroups, setShowGroups] = useState(readShowTaskGroups);
+  function toggleGroups() {
+    setShowGroups(!showGroups);
+    writeShowTaskGroups(!showGroups);
+  }
   // 読み取り専用かはサーバーが決めるので、ワークスペースは feature 自身の
   // アーカイブフラグとプロジェクトの状態を組み合わせない。
   const readOnly = props.feature.readOnly;
@@ -487,7 +496,12 @@ function WorkspaceContent(props: WorkspaceContentProps) {
   );
   return (
     <div className={readOnly ? "workspace is-archived" : "workspace"}>
-      <FeatureWorkspaceHead props={props} readOnly={readOnly} />
+      <FeatureWorkspaceHead
+        props={props}
+        readOnly={readOnly}
+        showGroups={showGroups}
+        onToggleGroups={toggleGroups}
+      />
       {readOnly && <ArchivedNotice project={props.project} />}
       <div
         className={
@@ -505,7 +519,7 @@ function WorkspaceContent(props: WorkspaceContentProps) {
         )}
         <FeatureGraph
           {...props.visible}
-          {...(props.openGroup ? {} : { groups: graphGroups })}
+          {...(showGroups && !props.openGroup ? { groups: graphGroups } : {})}
           onGroupAction={props.onGroupAction}
           hiddenTaskCount={hiddenTaskCount}
           searching={searching}
@@ -603,9 +617,13 @@ function GroupNavigation({
 function FeatureWorkspaceHead({
   props,
   readOnly,
+  showGroups,
+  onToggleGroups,
 }: {
   props: WorkspaceContentProps;
   readOnly: boolean;
+  showGroups: boolean;
+  onToggleGroups: () => void;
 }) {
   const { t } = useTranslation();
   return (
@@ -647,6 +665,17 @@ function FeatureWorkspaceHead({
           checked={props.hideCompleted}
           onChange={props.onHideCompletedChange}
         />
+        {!props.openGroup && (
+          <IconButton
+            icon={showGroups ? Group : Ungroup}
+            label={t("workspace.showGroups")}
+            role="switch"
+            aria-checked={showGroups}
+            className="workspace-group-toggle"
+            iconOnly
+            onClick={onToggleGroups}
+          />
+        )}
         <DocumentReferences
           parent={{ featureId: props.featureId }}
           documents={props.featureDocuments}

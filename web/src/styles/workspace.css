@@ -79,6 +79,11 @@
   gap: 8px;
 }
 
+.workspace-group-toggle[aria-checked="true"] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 .document-references {
   position: relative;
 }
@@ -172,6 +177,7 @@
     display: none;
   }
 
+  .workspace-actions > .workspace-group-toggle,
   .document-references-trigger {
     display: inline-flex;
   }

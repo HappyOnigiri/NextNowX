@@ -27,6 +27,7 @@ interface WebUISettings {
   theme?: ThemePreference;
   collapsedProjects?: string[];
   hideCompletedTasks?: boolean;
+  showTaskGroups?: boolean;
   railWidth?: number;
   railCollapsed?: boolean;
 }
@@ -60,12 +61,15 @@ export function readWebUISettings(): WebUISettings {
       theme?: unknown;
       collapsedProjects?: unknown;
       hideCompletedTasks?: unknown;
+      showTaskGroups?: unknown;
       railWidth?: unknown;
       railCollapsed?: unknown;
     };
     const settings: WebUISettings = {};
     if (typeof candidate.hideCompletedTasks === "boolean")
       settings.hideCompletedTasks = candidate.hideCompletedTasks;
+    if (typeof candidate.showTaskGroups === "boolean")
+      settings.showTaskGroups = candidate.showTaskGroups;
     if (typeof candidate.railCollapsed === "boolean")
       settings.railCollapsed = candidate.railCollapsed;
     if (
@@ -149,6 +153,22 @@ export function writeHideCompletedTasks(hideCompletedTasks: boolean) {
     );
   } catch {
     // ストレージが使えなくても、このセッション中は絞り込みが効く。
+  }
+}
+
+export function readShowTaskGroups(): boolean {
+  return readWebUISettings().showTaskGroups ?? true;
+}
+
+export function writeShowTaskGroups(showTaskGroups: boolean) {
+  try {
+    const settings = readWebUISettings();
+    localStorage.setItem(
+      webUISettingsKey,
+      JSON.stringify({ ...settings, showTaskGroups }),
+    );
+  } catch {
+    // ストレージが使えなくても、このセッション中は表示を切り替えられる。
   }
 }
 

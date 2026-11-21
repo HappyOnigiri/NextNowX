@@ -131,11 +131,15 @@ test("keeps controls usable at a narrow viewport", async ({ page }) => {
   await expect(
     workspaceActions.getByRole("button", { name: "Task groups", exact: true }),
   ).toHaveCount(0);
-  const bounds = await addTaskButton.boundingBox();
-  expect(bounds).not.toBeNull();
-  if (bounds) {
-    expect(bounds.x).toBeGreaterThanOrEqual(0);
-    expect(bounds.x + bounds.width).toBeLessThanOrEqual(320);
+  const groups = workspaceActions.getByRole("switch", { name: "Show groups" });
+  await expect(groups).toBeChecked();
+  for (const button of [groups, addTaskButton]) {
+    const bounds = await button.boundingBox();
+    expect(bounds).not.toBeNull();
+    if (bounds) {
+      expect(bounds.x).toBeGreaterThanOrEqual(0);
+      expect(bounds.x + bounds.width).toBeLessThanOrEqual(320);
+    }
   }
 });
 

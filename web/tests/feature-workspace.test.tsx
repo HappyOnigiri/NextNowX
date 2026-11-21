@@ -868,6 +868,11 @@ it("opens rename and deletion from group cards belonging to this feature", () =>
   expect(
     screen.queryByRole("button", { name: "Edit Other group" }),
   ).not.toBeInTheDocument();
+  const groupToggle = screen.getByRole("switch", { name: "Show groups" });
+  fireEvent.click(groupToggle);
+  expect(groupToggle).not.toBeChecked();
+  expect(screen.queryByText("Edit Checkout")).not.toBeInTheDocument();
+  fireEvent.click(groupToggle);
   fireEvent.click(screen.getByRole("button", { name: "Edit Checkout" }));
   const rename = screen.getByRole("dialog", { name: "Rename Checkout" });
   fireEvent.keyDown(window, { key: "Escape" });
