@@ -27,6 +27,7 @@ const workspaceMocks = vi.hoisted(() => ({
   snapshot: { data: undefined as Snapshot | undefined, isPending: false },
   hookIndex: 0,
   groupId: undefined as string | undefined,
+  taskId: undefined as string | undefined,
   mutations: Array.from({ length: 5 }, () => ({
     mutate: vi.fn(),
     mutateAsync: vi.fn().mockResolvedValue({}),
@@ -60,7 +61,10 @@ vi.mock("@tanstack/react-router", () => ({
   ),
   useNavigate: () => workspaceMocks.navigate,
   useParams: () => ({ featureId: "feature-1" }),
-  useSearch: () => ({ group: workspaceMocks.groupId }),
+  useSearch: () => ({
+    group: workspaceMocks.groupId,
+    task: workspaceMocks.taskId,
+  }),
 }));
 vi.mock("../src/api", () => ({
   mutations: workspaceMocks.api,
@@ -860,4 +864,29 @@ it("opens the selected group with a graph restricted to its tasks", () => {
   expect(screen.getByTestId("mock-graph-tasks")).toHaveTextContent(/^task-1$/);
   cleanup();
   workspaceMocks.groupId = undefined;
+});
+
+it("opens a task linked from a grouped list and clears the link on close", () => {
+  workspaceMocks.taskId = "task-1";
+  workspaceMocks.snapshot.data = makeSnapshot({
+    features: [makeFeature()],
+    tasks: [makeTask({ groupId: "group-1" })],
+    taskGroups: [makeTaskGroup()],
+  });
+  render(<FeatureWorkspace />);
+  const inspector = screen.getByRole("complementary", {
+    name: "Mock task inspector",
+  });
+  fireEvent.click(
+    within(inspector).getByRole("button", { name: "Mock close inspector" }),
+  );
+  expect(inspector).not.toBeInTheDocument();
+  expect(workspaceMocks.navigate).toHaveBeenCalledWith({
+    to: "/features/$featureId",
+    params: { featureId: "feature-1" },
+    search: {},
+    replace: true,
+  });
+  cleanup();
+  workspaceMocks.taskId = undefined;
 });

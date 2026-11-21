@@ -179,6 +179,10 @@ describe("TaskNode", () => {
       container.querySelector(".graph-group-row .status-badge"),
     ).toBeInTheDocument();
     expect(container.querySelectorAll(".task-edge-port")).toHaveLength(0);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Merge billing schema" }),
+    );
+    expect(onEdit).toHaveBeenCalledTimes(2);
     expect(screen.queryByText("Carol")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Copy Task ID" }),

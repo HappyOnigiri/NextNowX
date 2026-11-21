@@ -196,6 +196,7 @@ export function TaskNode({
           kind={data.kind}
           appearances={data.taskLabelAppearances}
           title={data.title}
+          onOpen={data.onEdit}
         />
       </div>
     );

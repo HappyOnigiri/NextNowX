@@ -69,10 +69,11 @@ interface TaskDraft {
 
 export function FeatureWorkspace() {
   const { featureId } = useParams({ from: "/features/$featureId" });
-  const { group: groupId } = useSearch({ from: "/features/$featureId" });
+  const { group: groupId, task: taskId } = useSearch({
+    from: "/features/$featureId",
+  });
   const navigate = useNavigate();
   const snapshot = useSnapshot();
-  const [selected, setSelected] = useState<string>();
   const [taskDraft, setTaskDraft] = useState<TaskDraft>();
   const [showTaskGroups, setShowTaskGroups] = useState(false);
   const [showFeatureEdit, setShowFeatureEdit] = useState(false);
@@ -94,11 +95,11 @@ export function FeatureWorkspace() {
   const { groups, tasks, dependencies, pullRequests } = workspaceData;
   const openGroup = groups.find((group) => group.id === groupId);
   const scope = openGroup?.id;
-  const [selectionScope, setSelectionScope] = useState(scope);
-  if (selectionScope !== scope) {
-    setSelectionScope(scope);
-    setSelected(undefined);
-  }
+  const { selected, openInspector, closeInspector } = useTaskInspectorSelection(
+    featureId,
+    scope,
+    taskId,
+  );
   const visible = useVisibleGraph(
     tasks,
     dependencies,
@@ -135,9 +136,10 @@ export function FeatureWorkspace() {
   if (snapshot.isPending) return <WorkspaceLoading />;
   if (!feature || !data) return <WorkspaceMissing />;
 
-  // インスペクタはキャンバスに従う。読み手が隠したタスクは、隣のパネルに
-  // 開いたまま残らずノードと一緒に画面から消える。
-  const selectedTask = visible.tasks.find((task) => task.id === selected);
+  // 一覧から直接開くタスクは、グラフの絞り込みで隠れていても詳細を表示する。
+  const selectable =
+    taskId && selected === taskId && !scope ? tasks : visible.tasks;
+  const selectedTask = selectable.find((task) => task.id === selected);
   return (
     <WorkspaceContent
       {...workspaceData}
@@ -163,7 +165,7 @@ export function FeatureWorkspace() {
         sync.mutate(featureId);
       }}
       onCreateTask={openTaskDialog}
-      onEditTask={setSelected}
+      onEditTask={openInspector}
       onPreviewDocument={setPreviewDocument}
       onAddDocument={openDocumentDialog}
       onEditFeature={() => {
@@ -175,9 +177,7 @@ export function FeatureWorkspace() {
       onCloseBatchPrompt={() => {
         setShowBatchPrompt(false);
       }}
-      onCloseInspector={() => {
-        setSelected(undefined);
-      }}
+      onCloseInspector={closeInspector}
       onClosePreview={() => {
         setPreviewDocument(undefined);
       }}
@@ -294,6 +294,34 @@ function useFeatureWorkspaceData(
 // レイアウトは渡されたものの同一性を見るので、フィルタを使わないときは複製では
 // なくスナップショットが作った配列そのものを返す必要がある。
 // 完了済みと検索の不一致は 1 つの述語に束ね、隠す処理は 1 度だけ通す。
+function useTaskInspectorSelection(
+  featureId: string,
+  groupId: string | undefined,
+  taskId: string | undefined,
+) {
+  const navigate = useNavigate();
+  const [selected, openInspector] = useState(taskId);
+  const scope = JSON.stringify([featureId, groupId, taskId]);
+  const [previousScope, setPreviousScope] = useState(scope);
+  if (previousScope !== scope) {
+    setPreviousScope(scope);
+    openInspector(taskId);
+  }
+
+  function closeInspector() {
+    openInspector(undefined);
+    if (taskId) {
+      void navigate({
+        to: "/features/$featureId",
+        params: { featureId },
+        search: groupId ? { group: groupId } : {},
+        replace: true,
+      });
+    }
+  }
+  return { selected, openInspector, closeInspector };
+}
+
 function useVisibleGraph(
   tasks: Task[],
   dependencies: Dependency[],
@@ -475,6 +503,9 @@ function WorkspaceContent(props: WorkspaceContentProps) {
             appearances={props.feature.taskLabelAppearances}
             readOnly={readOnly}
             onPreview={props.onPreviewDocument}
+            {...(props.selectedTask.groupId
+              ? { onAddReference: props.onAddDocument }
+              : {})}
             onClose={props.onCloseInspector}
           />
         )}

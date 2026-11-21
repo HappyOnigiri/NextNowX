@@ -38,6 +38,12 @@
   overflow-wrap: anywhere;
 }
 
+.inspector-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .inspector-heading {
   min-width: 0;
   display: grid;

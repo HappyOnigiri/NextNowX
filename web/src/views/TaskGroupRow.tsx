@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import type {
   TaskDisplayState,
   TaskKind,
@@ -10,18 +11,36 @@ export function TaskGroupRow({
   kind,
   appearances,
   title,
+  ...action
 }: {
   state: TaskDisplayState;
   kind: TaskKind | undefined;
   appearances: TaskLabelAppearances | undefined;
   title: string;
-}) {
+} & ({ onOpen: () => void } | { featureId: string; taskId: string })) {
   return (
     <div className="task-group-row">
       <TaskStatusBadge state={state} kind={kind} appearances={appearances} />
-      <span className="task-group-row-title" title={title}>
-        {title}
-      </span>
+      {"onOpen" in action ? (
+        <button
+          type="button"
+          className="task-group-row-title nodrag nopan"
+          title={title}
+          onClick={action.onOpen}
+        >
+          {title}
+        </button>
+      ) : (
+        <Link
+          to="/features/$featureId"
+          params={{ featureId: action.featureId }}
+          search={{ task: action.taskId }}
+          className="task-group-row-title"
+          title={title}
+        >
+          {title}
+        </Link>
+      )}
     </div>
   );
 }

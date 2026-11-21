@@ -114,6 +114,17 @@ test("manages membership and shows the same ordered group frames in search and r
     [looseSecond],
     [other],
   ]);
+  await results.getByRole("link", { name: groupedFirst, exact: true }).click();
+  inspector = page.getByRole("complementary", { name: "Task inspector" });
+  await expect(
+    inspector.getByRole("heading", { name: groupedFirst, exact: true }),
+  ).toBeVisible();
+  await page.reload();
+  await expect(inspector).toBeVisible();
+  await inspector.getByRole("button", { name: "Close inspector" }).click();
+  await expect(page).not.toHaveURL(/task=/);
+  await page.goBack();
+  await expect(results).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   const groupHeading = results
     .getByRole("heading", { name, exact: true })
@@ -328,3 +339,59 @@ async function graphTaskId(stage: Locator, title: string) {
   if (!id) throw new Error(`Task ID missing for ${title}`);
   return id;
 }
+
+test("opens a group task from the overview and uses its references and prompt", async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await createFeature(page, `Grouped task details ${crypto.randomUUID()}`);
+  const manager = await openGroups(page);
+  await addGroup(manager, "Checkout flow");
+  await manager.getByRole("button", { name: "Close", exact: true }).click();
+  await addTask(page, "Collect inputs", "Checkout flow");
+  const row = page.locator(".graph-group-row").getByRole("button", {
+    name: "Collect inputs",
+  });
+  const overview = page.url();
+  await row.click();
+  await expect(page).toHaveURL(overview);
+  const inspector = page.getByRole("complementary", { name: "Task inspector" });
+  await expect(
+    inspector.getByRole("heading", { name: "Collect inputs" }),
+  ).toBeVisible();
+  await inspector
+    .getByRole("button", { name: "Add reference", exact: true })
+    .click();
+  const attachment = page.getByRole("dialog", { name: "Add task reference" });
+  await attachment.getByRole("tab", { name: "Local file" }).click();
+  await attachment
+    .getByLabel("Reference title (optional)")
+    .fill("Checkout notes");
+  await attachment.getByLabel("File path").fill("README.md");
+  await attachment
+    .getByRole("button", { name: "Add reference", exact: true })
+    .click();
+  await inspector
+    .getByRole("button", { name: /Checkout notes/ })
+    .first()
+    .click();
+  const preview = page.getByRole("dialog", { name: "Checkout notes" });
+  await expect(preview).toBeVisible();
+  await preview.getByRole("button", { name: "Copy file path" }).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+    "README.md",
+  );
+  await preview.getByRole("button", { name: "Close" }).click();
+
+  await inspector.getByRole("button", { name: "Copy task prompt" }).click();
+  const prompt = page.getByRole("dialog", { name: "Copy task prompt" });
+  const text = prompt.getByLabel("Prompt preview");
+  await expect(text).not.toHaveValue("");
+  const value = await text.inputValue();
+  await prompt
+    .getByRole("button", { name: "Copy prompt", exact: true })
+    .click();
+  await expect(prompt.getByText("Design prompt copied.")).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(value);
+});

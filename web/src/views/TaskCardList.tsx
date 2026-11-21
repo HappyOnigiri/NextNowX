@@ -51,6 +51,8 @@ export function TaskCardList({
                     kind={task.kind}
                     appearances={feature?.taskLabelAppearances}
                     title={task.title}
+                    featureId={task.featureId}
+                    taskId={task.id}
                   />
                 </li>
               ))}

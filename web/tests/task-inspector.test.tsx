@@ -618,6 +618,7 @@ describe("TaskInspector", () => {
 it("explicitly clears a task group and follows the refreshed membership", async () => {
   const group = makeTaskGroup();
   const task = makeTask({ groupId: group.id });
+  const onAddReference = vi.fn();
   const props = {
     task,
     tasks: [task],
@@ -625,9 +626,16 @@ it("explicitly clears a task group and follows the refreshed membership", async 
     pullRequest: undefined,
     documents: [],
     onPreview: vi.fn(),
+    onAddReference,
     onClose: vi.fn(),
   };
   const view = render(<TaskInspector {...props} />);
+  const add = screen.getByRole("button", { name: "Add reference" });
+  fireEvent.click(add);
+  expect(onAddReference).toHaveBeenCalledWith(task.id, add);
+  expect(
+    screen.getByRole("button", { name: "Copy task prompt" }),
+  ).toBeInTheDocument();
   const select = screen.getByRole("combobox", { name: "Task group" });
   expect(select).toHaveValue(group.id);
   fireEvent.change(select, { target: { value: "" } });
