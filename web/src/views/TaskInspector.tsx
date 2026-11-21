@@ -74,17 +74,13 @@ function TaskInspectorHeader({
   const { t } = useTranslation();
   return (
     <header>
-      <div className="inspector-heading">
-        {/* どのカードや行とも同じく、状態が見出しの先頭に来る。 */}
-        <div className="inspector-heading-line">
-          <TaskStatusBadge
-            state={task.displayState}
-            kind={task.kind}
-            appearances={appearances}
-          />
-          <TaskKindLabel kind={task.kind} />
-          <h2>{task.title}</h2>
-        </div>
+      <div className="inspector-header-metadata">
+        <TaskStatusBadge
+          state={task.displayState}
+          kind={task.kind}
+          appearances={appearances}
+        />
+        <TaskKindLabel kind={task.kind} />
         <CopyableIdentifier
           label={t("common.taskId")}
           value={task.id}
@@ -106,6 +102,7 @@ function TaskInspectorHeader({
           onClick={onClose}
         />
       </div>
+      <h2>{task.title}</h2>
     </header>
   );
 }

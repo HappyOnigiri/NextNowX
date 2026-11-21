@@ -15,47 +15,39 @@
   position: sticky;
   top: 0;
   z-index: 2;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px 12px;
   padding: 16px;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
 }
 
-/* The title shrinks inside the heading line instead of pushing the state
-   badge out of the header. */
-.inspector-heading-line > h2 {
-  min-width: 0;
-}
-
 .inspector > header h2 {
+  grid-column: 1 / -1;
   margin: 0;
   font-size: var(--text-lg);
   font-weight: 600;
-  text-wrap: balance;
   overflow-wrap: anywhere;
 }
 
+.inspector-header-metadata,
 .inspector-header-actions {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.inspector-heading {
-  min-width: 0;
-  display: grid;
-  gap: 4px;
+.inspector-header-metadata {
+  align-self: center;
+  flex-wrap: wrap;
 }
 
-/* 状態・種類・タイトルの順に並べ、一覧やグラフと同じ読み順にする。 */
-.inspector-heading-line {
-  min-width: 0;
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
+.inspector-header-metadata .status-badge {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .inspector-blocks {

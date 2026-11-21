@@ -349,17 +349,39 @@ test("opens a group task from the overview and uses its references and prompt", 
   const manager = await openGroups(page);
   await addGroup(manager, "Checkout flow");
   await manager.getByRole("button", { name: "Close", exact: true }).click();
-  await addTask(page, "Collect inputs", "Checkout flow");
+  const title = "Collect and validate the inputs for the checkout flow";
+  await addTask(page, title, "Checkout flow");
   const row = page.locator(".graph-group-row").getByRole("button", {
-    name: "Collect inputs",
+    name: title,
   });
   const overview = page.url();
   await row.click();
   await expect(page).toHaveURL(overview);
   const inspector = page.getByRole("complementary", { name: "Task inspector" });
-  await expect(
-    inspector.getByRole("heading", { name: "Collect inputs" }),
-  ).toBeVisible();
+  const heading = inspector.getByRole("heading", { name: title });
+  await expect(heading).toBeVisible();
+  const viewport = page.viewportSize();
+  for (const width of [1280, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    const layout = await heading.evaluate((element) => {
+      const header = element.closest("header");
+      if (!header) throw new Error("Task title header missing");
+      const style = getComputedStyle(header);
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      return {
+        available:
+          header.clientWidth -
+          parseFloat(style.paddingLeft) -
+          parseFloat(style.paddingRight),
+        width: element.getBoundingClientRect().width,
+        lines: range.getClientRects().length,
+      };
+    });
+    expect(layout.width).toBeCloseTo(layout.available, 0);
+    expect(layout.lines).toBeLessThanOrEqual(2);
+  }
+  if (viewport) await page.setViewportSize(viewport);
   await inspector
     .getByRole("button", { name: "Add reference", exact: true })
     .click();
