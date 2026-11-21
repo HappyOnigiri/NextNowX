@@ -17,6 +17,7 @@ nnx document [flags]
 ```
 nnx document
 nnx document --task T-1
+nnx document --group G-1
 nnx document --project P-1
 nnx doc
 ```
@@ -25,6 +26,7 @@ nnx doc
 
 ```
       --feature string   filter by feature ID
+      --group string     filter by task group ID
   -h, --help             help for document
       --project string   filter by project ID
       --task string      filter by task ID
@@ -42,7 +44,7 @@ nnx doc
 ### SEE ALSO
 
 * [nnx](nnx.md)	 - Manage pull-request dependency roadmaps
-* [nnx document add](nnx_document_add.md)	 - Add a document to a project, a feature, or a task
+* [nnx document add](nnx_document_add.md)	 - Add a document to a project, feature, task, or task group
 * [nnx document delete](nnx_document_delete.md)	 - Delete a document; missing documents return not_found
 * [nnx document get](nnx_document_get.md)	 - Get one document
 * [nnx document update](nnx_document_update.md)	 - Update a document

@@ -48,11 +48,14 @@ feature や task への cascade が行うのは、内部の作業の削除であ
 
 project、feature、task は、ストレージ上の識別子とは別の公開識別子を持つ。
 それぞれ `P-<number>`、`F-<number>`、`T-<number>` であり、ストレージの UUID は CLI・RPC・WebUI の境界を越えてはならない。
-`show` や `document add` のように 3 種類のいずれも受け付ける operand は公開 ID の接頭辞で解決するので、operand が曖昧になることはなく、既知の接頭辞を持たない値は not found として報告する。
+`show` や `document add` のように複数種類を受け付ける operand は、公開 ID の接頭辞で解決する。
+既知の接頭辞を持たない値は not found として報告する。
 種類の名前が付いたコマンドはその種類だけを解決する。`project`、`feature`、`graph` はそれぞれ自分のリソースの公開 ID だけを受け付け、それ以外は operand を not found として報告する。
 document は意図的な例外で、独立した公開識別子を持たない。
 そのため `document get`、`document update`、`document delete` に渡す識別子はストレージの識別子そのものである。
 この識別子は不透明であり、移行された document は UUID の形式ではない値を持つことがある。
+`document add` は添付先に project・feature・task・タスクグループの公開 ID を受け付ける。
+`document --group GROUP_ID` は、指定したグループに直接添付された資料を一覧する。
 グループに添付された document の JSON は親グループを `group_id` で示す。
 
 `nnx setup` は、起動時にデータベースファイルを新規作成したときだけサンプルデータを投入し、投入したときだけ標準出力へ実効言語で 1 行を出す。
