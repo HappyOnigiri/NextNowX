@@ -1,4 +1,4 @@
-import { Trash2, X } from "lucide-react";
+import { Check, Trash2, X } from "lucide-react";
 import {
   useEffect,
   useId,
@@ -20,8 +20,19 @@ import { MutationError } from "./MutationError";
 import { DocumentRow } from "./TaskInspectorReferences";
 import type { TaskNodeDocument } from "./TaskNode";
 import { DiscardChangesDialog, SaveButton } from "./UnsavedChanges";
+import { taskGroupColors } from "./taskGroupColors";
 import { useCloseOnEscape } from "./useCloseOnEscape";
 import { useDialogFocusTrap } from "./useDialogFocusTrap";
+
+const cardColorPalette = [
+  { name: "slate", value: "#64748b" },
+  { name: "blue", value: "#3b82f6" },
+  { name: "teal", value: "#14b8a6" },
+  { name: "lime", value: "#65a30d" },
+  { name: "amber", value: "#d97706" },
+  { name: "purple", value: "#8b5cf6" },
+  { name: "pink", value: "#db2777" },
+] as const;
 
 export function TaskGroupDialog({
   featureId,
@@ -39,18 +50,8 @@ export function TaskGroupDialog({
   const { t } = useTranslation();
   const titleId = useId();
   const input = useRef<HTMLInputElement>(null);
-  const {
-    name,
-    setName,
-    color,
-    setColor,
-    normalizedColor,
-    invalidColor,
-    duplicate,
-    canSave,
-    dirty,
-    save,
-  } = useTaskGroupDraft(featureId, groups, group);
+  const { name, setName, color, setColor, duplicate, canSave, dirty, save } =
+    useTaskGroupDraft(featureId, groups, group);
   const [confirmation, setConfirmation] = useState<"discard" | "delete">();
   const covered = confirmation !== undefined;
 
@@ -93,12 +94,16 @@ export function TaskGroupDialog({
               name={name}
               onNameChange={setName}
               duplicate={duplicate}
-              color={group ? color : undefined}
-              pickerValue={invalidColor ? "" : normalizedColor}
-              invalidColor={invalidColor}
-              onColorChange={setColor}
               disabled={save.isPending}
             />
+            {group && (
+              <TaskGroupColorPalette
+                color={color}
+                savedColor={group.color}
+                onChange={setColor}
+                disabled={save.isPending}
+              />
+            )}
             <MutationError error={save.error} />
             <TaskGroupActions
               canSave={canSave}
@@ -146,26 +151,19 @@ function useTaskGroupDraft(
   const [name, setName] = useState(baseline);
   const savedColor = group?.color ?? "";
   const [color, setColor] = useState(savedColor);
-  const normalizedColor = color.trim().toLowerCase();
-  const invalidColor =
-    normalizedColor !== "" && !/^#[0-9a-f]{6}$/u.test(normalizedColor);
-  const colorChanged = normalizedColor !== savedColor;
+  const colorChanged = color !== savedColor;
   const trimmed = name.trim();
   const duplicate = groups.some(
     (other) => other.id !== group?.id && other.name === trimmed,
   );
   const nameChanged = trimmed !== baseline;
-  const canSave =
-    trimmed !== "" &&
-    !duplicate &&
-    !invalidColor &&
-    (nameChanged || colorChanged);
+  const canSave = trimmed !== "" && !duplicate && (nameChanged || colorChanged);
   const save = useDomainMutation(async () =>
     group
       ? mutations.updateTaskGroup({
           id: group.id,
           ...(nameChanged ? { name: trimmed } : {}),
-          ...(colorChanged ? { color: normalizedColor } : {}),
+          ...(colorChanged ? { color } : {}),
         })
       : mutations.createTaskGroup({ featureId, name: trimmed }),
   );
@@ -175,12 +173,10 @@ function useTaskGroupDraft(
     setName,
     color,
     setColor,
-    normalizedColor,
-    invalidColor,
     duplicate,
     canSave,
     save,
-    dirty: name !== baseline || color !== savedColor,
+    dirty: name !== baseline || colorChanged,
   };
 }
 
@@ -189,24 +185,15 @@ function TaskGroupFields({
   name,
   onNameChange,
   duplicate,
-  color,
-  pickerValue,
-  invalidColor,
-  onColorChange,
   disabled,
 }: {
   input: Ref<HTMLInputElement>;
   name: string;
   onNameChange: (name: string) => void;
   duplicate: boolean;
-  color: string | undefined;
-  pickerValue: string;
-  invalidColor: boolean;
-  onColorChange: (color: string) => void;
   disabled: boolean;
 }) {
   const { t } = useTranslation();
-  const colorId = useId();
   return (
     <>
       <label>
@@ -226,50 +213,64 @@ function TaskGroupFields({
           {t("taskGroups.duplicateName")}
         </p>
       )}
-      {color !== undefined && (
-        <>
-          <label htmlFor={colorId}>{t("taskGroups.cardColor")}</label>
-          <div className="task-group-color-fields">
-            <input
-              type="color"
-              aria-label={t("taskGroups.pickColor")}
-              value={pickerValue || "#6366f1"}
-              disabled={disabled}
-              onChange={(event) => {
-                onColorChange(event.target.value);
-              }}
-            />
-            <input
-              id={colorId}
-              type="text"
-              value={color}
-              placeholder={t("taskGroups.defaultColor")}
-              aria-invalid={invalidColor}
-              aria-describedby={invalidColor ? colorId + "-error" : undefined}
-              disabled={disabled}
-              onChange={(event) => {
-                onColorChange(event.target.value);
-              }}
-            />
-            <button
-              type="button"
-              className="button secondary"
-              disabled={!color || disabled}
-              onClick={() => {
-                onColorChange("");
-              }}
-            >
-              {t("taskGroups.resetColor")}
-            </button>
-          </div>
-          {invalidColor && (
-            <p id={colorId + "-error"} className="form-error" role="alert">
-              {t("taskGroups.invalidColor")}
-            </p>
-          )}
-        </>
-      )}
     </>
+  );
+}
+
+function TaskGroupColorPalette({
+  color,
+  savedColor,
+  onChange,
+  disabled,
+}: {
+  color: string;
+  savedColor: string;
+  onChange: (color: string) => void;
+  disabled: boolean;
+}) {
+  const { t } = useTranslation();
+  const name = useId();
+  const options: { label: string; value: string }[] = [
+    { label: t("taskGroups.defaultColor"), value: "" },
+    ...cardColorPalette.map(({ name, value }) => ({
+      label: t(`taskGroups.paletteColors.${name}`),
+      value,
+    })),
+  ];
+  if (savedColor && !options.some(({ value }) => value === savedColor)) {
+    options.push({
+      label: t("taskGroups.savedColor", { color: savedColor }),
+      value: savedColor,
+    });
+  }
+
+  return (
+    <fieldset className="task-group-color-palette" disabled={disabled}>
+      <legend>{t("taskGroups.cardColor")}</legend>
+      <div className="task-group-color-options">
+        {options.map(({ label, value }) => (
+          <label key={value} title={label}>
+            <input
+              type="radio"
+              name={name}
+              aria-label={label}
+              value={value}
+              checked={color === value}
+              onChange={() => {
+                onChange(value);
+              }}
+            />
+            <span
+              className="task-group-color-swatch"
+              style={taskGroupColors(value)}
+            >
+              <Check size={14} aria-hidden="true" />
+              {value === "" && label}
+            </span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
   );
 }
 

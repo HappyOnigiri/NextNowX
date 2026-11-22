@@ -83,7 +83,7 @@ it("adds a group from the select menu and selects the trimmed result", async () 
 });
 
 it("renames a group and rejects duplicate names", async () => {
-  const group = makeTaskGroup();
+  const group = makeTaskGroup({ color: "#a1b2c3" });
   const other = makeTaskGroup({ id: "group-2", name: "Delivery" });
   const onSaved = vi.fn();
   const renamed = { ...group, name: "Launch" };
@@ -123,7 +123,7 @@ it("renames a group and rejects duplicate names", async () => {
   });
 });
 
-it("validates color-only edits and saves a reset to the default color", async () => {
+it("keeps a saved custom color available and allows resetting to the default", async () => {
   const group = makeTaskGroup({ color: "#a1b2c3" });
   const onSaved = vi.fn();
   mocks.updateTaskGroup.mockResolvedValue({
@@ -138,25 +138,28 @@ it("validates color-only edits and saves a reset to the default color", async ()
       onClose={vi.fn()}
     />,
   );
-  const color = screen.getByRole("textbox", { name: "Card color" });
+  const palette = screen.getByRole("group", { name: "Card color" });
+  const saved = within(palette).getByRole("radio", {
+    name: "Saved color (#a1b2c3)",
+  });
+  const blue = within(palette).getByRole("radio", { name: "Blue" });
+  const defaultColor = within(palette).getByRole("radio", { name: "Default" });
   const save = screen.getByRole("button", { name: "Save group" });
-  expect(color).toHaveValue(group.color);
+  expect(saved).toBeChecked();
   expect(save).toBeDisabled();
-  fireEvent.change(color, { target: { value: "#1" } });
-  expect(screen.getByRole("alert")).toHaveTextContent("#RRGGBB");
-  expect(save).toBeDisabled();
+  fireEvent.click(blue);
+  expect(blue).toBeChecked();
+  expect(save).toBeEnabled();
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   const discard = screen.getByRole("dialog", {
     name: "Discard unsaved changes?",
   });
   fireEvent.click(within(discard).getByRole("button", { name: "Cancel" }));
-  expect(color).toHaveValue("#1");
-  fireEvent.change(screen.getByLabelText("Choose a card color"), {
-    target: { value: "#a13fd9" },
-  });
-  expect(color).toHaveValue("#a13fd9");
-  expect(save).toBeEnabled();
-  fireEvent.click(screen.getByRole("button", { name: "Reset" }));
+  expect(blue).toBeChecked();
+  fireEvent.click(saved);
+  expect(save).toBeDisabled();
+  fireEvent.click(defaultColor);
+  expect(defaultColor).toBeChecked();
   fireEvent.click(save);
   await waitFor(() => {
     expect(mocks.updateTaskGroup).toHaveBeenCalledExactlyOnceWith({

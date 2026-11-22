@@ -22,20 +22,73 @@
   overflow-wrap: anywhere;
 }
 
-.task-group-color-fields {
+.task-group-color-palette {
+  min-inline-size: 0;
+  margin: 0 0 12px;
+  padding: 0;
+  border: 0;
+}
+
+.task-group-color-palette legend {
+  margin-bottom: 6px;
+  padding: 0;
+  color: var(--text-2);
+  font-size: var(--text-xs);
+  font-weight: 500;
+}
+
+.task-group-color-options {
   display: flex;
   flex-wrap: wrap;
+  gap: 6px;
+}
+
+.task-group-color-options label {
+  position: relative;
+  margin: 0;
+  cursor: pointer;
+}
+
+.task-group-color-options input {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+
+.task-group-color-swatch {
+  display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 4px;
+  min-width: 32px;
+  min-height: 36px;
+  padding-inline: 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
 }
 
-.task-group-color-fields input[type="color"] {
-  width: 44px;
-  height: 36px;
-  padding: 3px;
+.task-group-color-swatch svg {
+  visibility: hidden;
 }
 
-.task-group-color-fields input[type="text"] {
-  flex: 1 1 8ch;
-  min-width: 0;
+.task-group-color-options input:checked + .task-group-color-swatch svg {
+  visibility: visible;
+}
+
+.task-group-color-options input:focus-visible + .task-group-color-swatch {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.task-group-color-palette:disabled .task-group-color-options {
+  opacity: 0.6;
+}
+
+.task-group-color-palette:disabled label {
+  cursor: default;
 }
