@@ -81,7 +81,7 @@ type TaskLabelAppearance struct {
 
 type TaskLabelAppearances map[TaskLabelKey]TaskLabelAppearance
 
-var taskLabelColorPattern = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
+var hexColorPattern = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
 
 // NormalizeTaskLabelOverride は設定値を検証・正規化する。空文字列は解除として扱う。
 func NormalizeTaskLabelOverride(value TaskLabelOverride) (TaskLabelOverride, error) {
@@ -89,7 +89,7 @@ func NormalizeTaskLabelOverride(value TaskLabelOverride) (TaskLabelOverride, err
 	if err != nil {
 		return TaskLabelOverride{}, err
 	}
-	color, err := NormalizeTaskLabelColor(value.Color)
+	color, err := NormalizeHexColor(value.Color)
 	if err != nil {
 		return TaskLabelOverride{}, err
 	}
@@ -115,12 +115,12 @@ func NormalizeTaskLabelText(value string) (string, error) {
 	return value, nil
 }
 
-func NormalizeTaskLabelColor(value string) (string, error) {
+func NormalizeHexColor(value string) (string, error) {
 	value = strings.TrimSpace(value)
 	if value == "" {
 		return "", nil
 	}
-	if !taskLabelColorPattern.MatchString(value) {
+	if !hexColorPattern.MatchString(value) {
 		return "", fmt.Errorf("color must be a #RRGGBB value")
 	}
 	return strings.ToLower(value), nil

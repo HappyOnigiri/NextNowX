@@ -1,5 +1,6 @@
 import type { TaskGroup } from "../gen/nnx/v1/nnx_pb";
 import { TaskCard, type TaskCardProps } from "./TaskCard";
+import { taskGroupColors } from "./taskGroupColors";
 import { TaskGroupLink } from "./TaskGroupLink";
 import { TaskGroupRow } from "./TaskGroupRow";
 
@@ -39,7 +40,11 @@ export function TaskCardList({
     <ol className={`task-card-list ${className}`} aria-label={label}>
       {entries.map((entry) =>
         "group" in entry ? (
-          <li key={entry.group.id} className="task-card-group">
+          <li
+            key={entry.group.id}
+            className="task-card-group"
+            style={taskGroupColors(entry.group.color)}
+          >
             <h2>
               <TaskGroupLink group={entry.group} />
             </h2>

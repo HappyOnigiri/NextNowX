@@ -20,15 +20,15 @@ func (h *Handler) CreateTaskGroup(
 	return connect.NewResponse(&nnxv1.CreateTaskGroupResponse{TaskGroup: protoTaskGroup(group)}), nil
 }
 
-func (h *Handler) RenameTaskGroup(
+func (h *Handler) UpdateTaskGroup(
 	ctx context.Context,
-	req *connect.Request[nnxv1.RenameTaskGroupRequest],
-) (*connect.Response[nnxv1.RenameTaskGroupResponse], error) {
-	group, err := h.service.RenameTaskGroup(ctx, req.Msg.GetId(), req.Msg.GetName())
+	req *connect.Request[nnxv1.UpdateTaskGroupRequest],
+) (*connect.Response[nnxv1.UpdateTaskGroupResponse], error) {
+	group, err := h.service.UpdateTaskGroup(ctx, req.Msg.GetId(), req.Msg.Name, req.Msg.Color)
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&nnxv1.RenameTaskGroupResponse{TaskGroup: protoTaskGroup(group)}), nil
+	return connect.NewResponse(&nnxv1.UpdateTaskGroupResponse{TaskGroup: protoTaskGroup(group)}), nil
 }
 
 func (h *Handler) DeleteTaskGroup(
@@ -42,5 +42,5 @@ func (h *Handler) DeleteTaskGroup(
 }
 
 func protoTaskGroup(group domain.TaskGroup) *nnxv1.TaskGroup {
-	return &nnxv1.TaskGroup{Id: group.ID, FeatureId: group.FeatureID, Name: group.Name}
+	return &nnxv1.TaskGroup{Id: group.ID, FeatureId: group.FeatureID, Name: group.Name, Color: group.Color}
 }

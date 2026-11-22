@@ -10,13 +10,13 @@ import {
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { GraphTaskGroups } from "../src/views/GraphTaskGroups";
-import { TaskGroupNameDialog } from "../src/views/TaskGroupDialogs";
+import { TaskGroupDialog } from "../src/views/TaskGroupDialogs";
 import { TaskGroupSelect } from "../src/views/TaskGroupSelect";
 import { makeTaskGroup } from "./factories";
 
 const mocks = vi.hoisted(() => ({
   createTaskGroup: vi.fn(),
-  renameTaskGroup: vi.fn(),
+  updateTaskGroup: vi.fn(),
   deleteTaskGroup: vi.fn(),
 }));
 vi.mock("../src/api", () => ({ mutations: mocks }));
@@ -87,11 +87,11 @@ it("renames a group and rejects duplicate names", async () => {
   const other = makeTaskGroup({ id: "group-2", name: "Delivery" });
   const onSaved = vi.fn();
   const renamed = { ...group, name: "Launch" };
-  mocks.renameTaskGroup
+  mocks.updateTaskGroup
     .mockRejectedValueOnce(new Error("Could not rename the group"))
     .mockResolvedValue({ taskGroup: renamed });
   renderWithMutations(
-    <TaskGroupNameDialog
+    <TaskGroupDialog
       featureId={group.featureId}
       group={group}
       groups={[group, other]}
@@ -100,26 +100,70 @@ it("renames a group and rejects duplicate names", async () => {
     />,
   );
   const name = screen.getByRole("textbox", { name: "Group name" });
-  const rename = screen.getByRole("button", { name: "Rename group" });
+  const save = screen.getByRole("button", { name: "Save group" });
   expect(name).toHaveValue(group.name);
   fireEvent.change(name, { target: { value: other.name } });
-  expect(rename).toBeDisabled();
+  expect(save).toBeDisabled();
   expect(screen.getByRole("alert")).toHaveTextContent("already exists");
   fireEvent.change(name, { target: { value: "Launch" } });
-  fireEvent.click(rename);
+  fireEvent.click(save);
   await waitFor(() => {
     expect(screen.getByRole("alert")).toBeInTheDocument();
-    expect(rename).toBeEnabled();
+    expect(save).toBeEnabled();
   });
   expect(name).toHaveValue("Launch");
   expect(onSaved).not.toHaveBeenCalled();
-  fireEvent.click(rename);
+  fireEvent.click(save);
   await waitFor(() => {
-    expect(mocks.renameTaskGroup).toHaveBeenCalledWith({
+    expect(mocks.updateTaskGroup).toHaveBeenCalledWith({
       id: group.id,
       name: "Launch",
     });
     expect(onSaved).toHaveBeenCalledExactlyOnceWith(renamed);
+  });
+});
+
+it("validates color-only edits and saves a reset to the default color", async () => {
+  const group = makeTaskGroup({ color: "#a1b2c3" });
+  const onSaved = vi.fn();
+  mocks.updateTaskGroup.mockResolvedValue({
+    taskGroup: { ...group, color: "" },
+  });
+  renderWithMutations(
+    <TaskGroupDialog
+      featureId={group.featureId}
+      group={group}
+      groups={[group]}
+      onSaved={onSaved}
+      onClose={vi.fn()}
+    />,
+  );
+  const color = screen.getByRole("textbox", { name: "Card color" });
+  const save = screen.getByRole("button", { name: "Save group" });
+  expect(color).toHaveValue(group.color);
+  expect(save).toBeDisabled();
+  fireEvent.change(color, { target: { value: "#1" } });
+  expect(screen.getByRole("alert")).toHaveTextContent("#RRGGBB");
+  expect(save).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  const discard = screen.getByRole("dialog", {
+    name: "Discard unsaved changes?",
+  });
+  fireEvent.click(within(discard).getByRole("button", { name: "Cancel" }));
+  expect(color).toHaveValue("#1");
+  fireEvent.change(screen.getByLabelText("Choose a card color"), {
+    target: { value: "#a13fd9" },
+  });
+  expect(color).toHaveValue("#a13fd9");
+  expect(save).toBeEnabled();
+  fireEvent.click(screen.getByRole("button", { name: "Reset" }));
+  fireEvent.click(save);
+  await waitFor(() => {
+    expect(mocks.updateTaskGroup).toHaveBeenCalledExactlyOnceWith({
+      id: group.id,
+      color: "",
+    });
+    expect(onSaved).toHaveBeenCalledOnce();
   });
 });
 
@@ -128,7 +172,7 @@ it("deletes from the edit dialog only after confirmation", async () => {
   const onClose = vi.fn();
   mocks.deleteTaskGroup.mockResolvedValue({});
   renderWithMutations(
-    <TaskGroupNameDialog
+    <TaskGroupDialog
       featureId={group.featureId}
       group={group}
       groups={[group]}
@@ -157,7 +201,7 @@ it("deletes from the edit dialog only after confirmation", async () => {
     expect(mocks.deleteTaskGroup.mock.calls[0]?.[0]).toBe(group.id);
     expect(onClose).toHaveBeenCalledOnce();
   });
-  expect(mocks.renameTaskGroup).not.toHaveBeenCalled();
+  expect(mocks.updateTaskGroup).not.toHaveBeenCalled();
 });
 
 it("offers references and editing on the group card without a delete button", () => {

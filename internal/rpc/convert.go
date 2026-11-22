@@ -549,6 +549,8 @@ func protoDomainErrorCode(value domain.DomainErrorCode) nnxv1.DomainErrorCode {
 		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_PULL_REQUEST_ON_WORK_TASK
 	case domain.DomainErrorCodeInvalidStatus:
 		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_STATUS
+	case domain.DomainErrorCodeInvalidTaskGroupColor:
+		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_TASK_GROUP_COLOR
 	case domain.DomainErrorCodeDuplicateTaskGroupName:
 		return nnxv1.DomainErrorCode_DOMAIN_ERROR_CODE_DUPLICATE_TASK_GROUP_NAME
 	case domain.DomainErrorCodeInvalidTitle:

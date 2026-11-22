@@ -4,6 +4,7 @@ import type { Ref } from "react";
 import { useTranslation } from "react-i18next";
 import type { TaskGroup } from "../gen/nnx/v1/nnx_pb";
 import { IconButton } from "./IconButton";
+import { taskGroupColors } from "./taskGroupColors";
 import { taskGroupWidth, type TaskGroupFrame } from "./taskGroupGraphLayout";
 import { TaskGroupLink } from "./TaskGroupLink";
 
@@ -28,7 +29,13 @@ export function GraphTaskGroups({
         <div
           key={group.id}
           className="graph-task-group"
-          style={{ left: x, top: y, width, height }}
+          style={{
+            left: x,
+            top: y,
+            width,
+            height,
+            ...taskGroupColors(group.color),
+          }}
         >
           <GraphTaskGroupHeader
             group={group}

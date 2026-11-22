@@ -71,8 +71,11 @@ SELECT * FROM task_groups ORDER BY name, public_id;
 -- name: FeatureHasTaskGroups :one
 SELECT EXISTS(SELECT 1 FROM task_groups WHERE feature_id = ?);
 
--- name: RenameTaskGroup :one
-UPDATE task_groups SET name = ? WHERE public_id = ? RETURNING *;
+-- name: UpdateTaskGroup :one
+UPDATE task_groups
+SET name = COALESCE(sqlc.narg(name), name),
+    color = COALESCE(sqlc.narg(color), color)
+WHERE public_id = sqlc.arg(public_id) RETURNING *;
 
 -- name: DeleteTaskGroup :execrows
 DELETE FROM task_groups WHERE public_id = ?;

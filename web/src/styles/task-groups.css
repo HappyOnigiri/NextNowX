@@ -21,3 +21,21 @@
 .task-group-references-header h2 {
   overflow-wrap: anywhere;
 }
+
+.task-group-color-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.task-group-color-fields input[type="color"] {
+  width: 44px;
+  height: 36px;
+  padding: 3px;
+}
+
+.task-group-color-fields input[type="text"] {
+  flex: 1 1 8ch;
+  min-width: 0;
+}

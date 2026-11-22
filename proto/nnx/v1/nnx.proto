@@ -289,6 +289,8 @@ enum DomainErrorCode {
   DOMAIN_ERROR_CODE_PULL_REQUEST_ON_WORK_TASK = 36;
   // DOMAIN_ERROR_CODE_DUPLICATE_TASK_GROUP_NAME は同じ feature 内に同名のグループがあることを表す。
   DOMAIN_ERROR_CODE_DUPLICATE_TASK_GROUP_NAME = 37;
+  // DOMAIN_ERROR_CODE_INVALID_TASK_GROUP_COLOR はグループの色の書式が不正なことを表す。
+  DOMAIN_ERROR_CODE_INVALID_TASK_GROUP_COLOR = 38;
 }
 
 // GitHubAuthMethodType は GitHub のトークンの取得方法を表す。
@@ -873,6 +875,8 @@ message TaskGroup {
   string feature_id = 2;
   // name は同じ feature 内で一意の表示名。
   string name = 3;
+  // color はカードの色。空文字列は既定色を表す。
+  string color = 4;
 }
 
 // CreateTaskGroupRequest はグループの所属先と名前を指定する。
@@ -889,17 +893,19 @@ message CreateTaskGroupResponse {
   TaskGroup task_group = 1;
 }
 
-// RenameTaskGroupRequest は既存のグループの名前を更新する。
-message RenameTaskGroupRequest {
+// UpdateTaskGroupRequest は既存のグループの名前と色を個別に更新する。
+message UpdateTaskGroupRequest {
   // id は更新するグループの公開 ID。
   string id = 1;
-  // name は前後の空白を除いた上で保存する。
-  string name = 2;
+  // name は前後の空白を除いた上で保存する。未指定なら維持する。
+  optional string name = 2;
+  // color は #RRGGBB 形式。空文字列は既定色へ戻し、未指定なら維持する。
+  optional string color = 3;
 }
 
-// RenameTaskGroupResponse は改名したグループを返す。
-message RenameTaskGroupResponse {
-  // task_group は新しい名前を持つグループ。
+// UpdateTaskGroupResponse は更新済みのグループを返す。
+message UpdateTaskGroupResponse {
+  // task_group は更新後のグループ。
   TaskGroup task_group = 1;
 }
 
@@ -1929,8 +1935,8 @@ service NNXService {
   rpc DeleteTask(DeleteTaskRequest) returns (DeleteTaskResponse);
   // CreateTaskGroup は feature 内にグループを作成する。
   rpc CreateTaskGroup(CreateTaskGroupRequest) returns (CreateTaskGroupResponse);
-  // RenameTaskGroup はグループの名前を更新する。
-  rpc RenameTaskGroup(RenameTaskGroupRequest) returns (RenameTaskGroupResponse);
+  // UpdateTaskGroup はグループの名前と色を更新する。
+  rpc UpdateTaskGroup(UpdateTaskGroupRequest) returns (UpdateTaskGroupResponse);
   // DeleteTaskGroup はグループを削除し、所属タスクを未所属にする。
   rpc DeleteTaskGroup(DeleteTaskGroupRequest) returns (DeleteTaskGroupResponse);
   // AddDependency は循環を作らない場合に、同じ feature 内の依存を追加する。

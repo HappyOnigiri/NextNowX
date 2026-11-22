@@ -21,6 +21,7 @@ const (
 	DomainErrorCodeInvalidStatus               DomainErrorCode = "invalid_status"
 	DomainErrorCodeInvalidTaskKind             DomainErrorCode = "invalid_task_kind"
 	DomainErrorCodePullRequestOnWorkTask       DomainErrorCode = "pull_request_on_work_task"
+	DomainErrorCodeInvalidTaskGroupColor       DomainErrorCode = "invalid_task_group_color"
 	DomainErrorCodeDuplicateTaskGroupName      DomainErrorCode = "duplicate_task_group_name"
 	DomainErrorCodeInvalidTitle                DomainErrorCode = "invalid_title"
 	DomainErrorCodeNotFound                    DomainErrorCode = "not_found"

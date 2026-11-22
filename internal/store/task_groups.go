@@ -48,8 +48,20 @@ func (s *Store) GetTaskGroup(ctx context.Context, id string) (domain.TaskGroup, 
 	return domainTaskGroup(group, publicFeatureID(ctx, q, group.FeatureID)), nil
 }
 
-func (s *Store) RenameTaskGroup(ctx context.Context, group domain.TaskGroup) (domain.TaskGroup, error) {
-	row, err := db.New(s.db).RenameTaskGroup(ctx, db.RenameTaskGroupParams{PublicID: group.ID, Name: group.Name})
+func (s *Store) UpdateTaskGroup(
+	ctx context.Context,
+	group domain.TaskGroup,
+	name, color *string,
+) (domain.TaskGroup, error) {
+	params := db.UpdateTaskGroupParams{PublicID: group.ID}
+	if name != nil {
+		params.Name = sql.NullString{String: *name, Valid: true}
+		group.Name = *name
+	}
+	if color != nil {
+		params.Color = sql.NullString{String: *color, Valid: true}
+	}
+	row, err := db.New(s.db).UpdateTaskGroup(ctx, params)
 	if err != nil {
 		return domain.TaskGroup{}, mapTaskGroupNameError(mapNotFound(err, "task group", group.ID), group.Name)
 	}
@@ -97,7 +109,7 @@ func validateTaskGroupAssignment(ctx context.Context, q *db.Queries, featureID, 
 }
 
 func domainTaskGroup(row db.TaskGroup, featureID string) domain.TaskGroup {
-	return domain.TaskGroup{ID: row.PublicID, FeatureID: featureID, Name: row.Name}
+	return domain.TaskGroup{ID: row.PublicID, FeatureID: featureID, Name: row.Name, Color: row.Color}
 }
 
 func mapTaskGroupNameError(err error, name string) error {

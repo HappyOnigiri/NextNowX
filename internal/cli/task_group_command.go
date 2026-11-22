@@ -32,7 +32,7 @@ func (s *state) taskGroupCommand() *cobra.Command {
 			Use: "rename GROUP_ID NAME", Short: "Rename a task group", Args: cobra.ExactArgs(2),
 			Example: "nnx task group rename G-1 Payments",
 			RunE: func(cmd *cobra.Command, args []string) error {
-				group, err := s.service.RenameTaskGroup(cmd.Context(), args[0], args[1])
+				group, err := s.service.UpdateTaskGroup(cmd.Context(), args[0], &args[1], nil)
 				if err != nil {
 					return err
 				}

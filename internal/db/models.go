@@ -126,6 +126,7 @@ type TaskGroup struct {
 	PublicID  string `json:"public_id"`
 	FeatureID string `json:"feature_id"`
 	Name      string `json:"name"`
+	Color     string `json:"color"`
 }
 
 type UpdateCheckState struct {

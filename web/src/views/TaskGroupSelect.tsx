@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TaskGroup } from "../gen/nnx/v1/nnx_pb";
-import { TaskGroupNameDialog } from "./TaskGroupDialogs";
+import { TaskGroupDialog } from "./TaskGroupDialogs";
 
 const createOption = "new";
 
@@ -55,7 +55,7 @@ export function TaskGroupSelect({
         </select>
       </label>
       {createInFeature && creating && (
-        <TaskGroupNameDialog
+        <TaskGroupDialog
           featureId={createInFeature}
           groups={groups}
           onSaved={(group) => {

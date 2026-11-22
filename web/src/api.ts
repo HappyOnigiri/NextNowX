@@ -34,7 +34,6 @@ import {
   NNXService,
   ReadDocumentContentRequestSchema,
   RemoveDependencyRequestSchema,
-  RenameTaskGroupRequestSchema,
   ReorderGitHubAuthMethodsRequestSchema,
   SelectLocalFileRequestSchema,
   SkipUpdateVersionRequestSchema,
@@ -49,6 +48,7 @@ import {
   UpdateLanguageConfigRequestSchema,
   UpdateProjectRequestSchema,
   UpdatePromptTemplatesRequestSchema,
+  UpdateTaskGroupRequestSchema,
   UpdateTaskLabelConfigRequestSchema,
   UpdateTaskRequestSchema,
   ValidateConfigRequestSchema,
@@ -193,8 +193,8 @@ export const mutations = {
     ),
   createTaskGroup: (input: { featureId: string; name: string }) =>
     client.createTaskGroup(create(CreateTaskGroupRequestSchema, input)),
-  renameTaskGroup: (input: { id: string; name: string }) =>
-    client.renameTaskGroup(create(RenameTaskGroupRequestSchema, input)),
+  updateTaskGroup: (input: { id: string; name?: string; color?: string }) =>
+    client.updateTaskGroup(create(UpdateTaskGroupRequestSchema, input)),
   deleteTaskGroup: (id: string) =>
     client.deleteTaskGroup(
       create(DeleteTaskGroupRequestSchema, { id, cascade: true }),

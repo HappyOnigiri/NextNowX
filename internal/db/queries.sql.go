@@ -345,7 +345,7 @@ func (q *Queries) CreateTask(ctx context.Context, arg CreateTaskParams) (Task, e
 }
 
 const createTaskGroup = `-- name: CreateTaskGroup :one
-INSERT INTO task_groups (public_id, feature_id, name) VALUES (?, ?, ?) RETURNING public_id, feature_id, name
+INSERT INTO task_groups (public_id, feature_id, name) VALUES (?, ?, ?) RETURNING public_id, feature_id, name, color
 `
 
 type CreateTaskGroupParams struct {
@@ -357,7 +357,12 @@ type CreateTaskGroupParams struct {
 func (q *Queries) CreateTaskGroup(ctx context.Context, arg CreateTaskGroupParams) (TaskGroup, error) {
 	row := q.db.QueryRowContext(ctx, createTaskGroup, arg.PublicID, arg.FeatureID, arg.Name)
 	var i TaskGroup
-	err := row.Scan(&i.PublicID, &i.FeatureID, &i.Name)
+	err := row.Scan(
+		&i.PublicID,
+		&i.FeatureID,
+		&i.Name,
+		&i.Color,
+	)
 	return i, err
 }
 
@@ -803,13 +808,18 @@ func (q *Queries) GetTaskByPublicID(ctx context.Context, publicID string) (Task,
 }
 
 const getTaskGroup = `-- name: GetTaskGroup :one
-SELECT public_id, feature_id, name FROM task_groups WHERE public_id = ?
+SELECT public_id, feature_id, name, color FROM task_groups WHERE public_id = ?
 `
 
 func (q *Queries) GetTaskGroup(ctx context.Context, publicID string) (TaskGroup, error) {
 	row := q.db.QueryRowContext(ctx, getTaskGroup, publicID)
 	var i TaskGroup
-	err := row.Scan(&i.PublicID, &i.FeatureID, &i.Name)
+	err := row.Scan(
+		&i.PublicID,
+		&i.FeatureID,
+		&i.Name,
+		&i.Color,
+	)
 	return i, err
 }
 
@@ -1188,7 +1198,7 @@ func (q *Queries) ListPullRequests(ctx context.Context) ([]PullRequest, error) {
 }
 
 const listTaskGroups = `-- name: ListTaskGroups :many
-SELECT public_id, feature_id, name FROM task_groups ORDER BY name, public_id
+SELECT public_id, feature_id, name, color FROM task_groups ORDER BY name, public_id
 `
 
 func (q *Queries) ListTaskGroups(ctx context.Context) ([]TaskGroup, error) {
@@ -1200,7 +1210,12 @@ func (q *Queries) ListTaskGroups(ctx context.Context) ([]TaskGroup, error) {
 	items := []TaskGroup{}
 	for rows.Next() {
 		var i TaskGroup
-		if err := rows.Scan(&i.PublicID, &i.FeatureID, &i.Name); err != nil {
+		if err := rows.Scan(
+			&i.PublicID,
+			&i.FeatureID,
+			&i.Name,
+			&i.Color,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -1305,22 +1320,6 @@ func (q *Queries) RemoveDependency(ctx context.Context, arg RemoveDependencyPara
 		return 0, err
 	}
 	return result.RowsAffected()
-}
-
-const renameTaskGroup = `-- name: RenameTaskGroup :one
-UPDATE task_groups SET name = ? WHERE public_id = ? RETURNING public_id, feature_id, name
-`
-
-type RenameTaskGroupParams struct {
-	Name     string `json:"name"`
-	PublicID string `json:"public_id"`
-}
-
-func (q *Queries) RenameTaskGroup(ctx context.Context, arg RenameTaskGroupParams) (TaskGroup, error) {
-	row := q.db.QueryRowContext(ctx, renameTaskGroup, arg.Name, arg.PublicID)
-	var i TaskGroup
-	err := row.Scan(&i.PublicID, &i.FeatureID, &i.Name)
-	return i, err
 }
 
 const startGitHubSync = `-- name: StartGitHubSync :exec
@@ -1554,6 +1553,31 @@ func (q *Queries) UpdateTask(ctx context.Context, arg UpdateTaskParams) (Task, e
 		&i.PublicID,
 		&i.Kind,
 		&i.GroupID,
+	)
+	return i, err
+}
+
+const updateTaskGroup = `-- name: UpdateTaskGroup :one
+UPDATE task_groups
+SET name = COALESCE(?1, name),
+    color = COALESCE(?2, color)
+WHERE public_id = ?3 RETURNING public_id, feature_id, name, color
+`
+
+type UpdateTaskGroupParams struct {
+	Name     sql.NullString `json:"name"`
+	Color    sql.NullString `json:"color"`
+	PublicID string         `json:"public_id"`
+}
+
+func (q *Queries) UpdateTaskGroup(ctx context.Context, arg UpdateTaskGroupParams) (TaskGroup, error) {
+	row := q.db.QueryRowContext(ctx, updateTaskGroup, arg.Name, arg.Color, arg.PublicID)
+	var i TaskGroup
+	err := row.Scan(
+		&i.PublicID,
+		&i.FeatureID,
+		&i.Name,
+		&i.Color,
 	)
 	return i, err
 }
