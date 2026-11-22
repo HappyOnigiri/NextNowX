@@ -22,16 +22,32 @@ func (s *Service) CreateTaskGroup(ctx context.Context, featureID, name string) (
 	return s.repository.CreateTaskGroup(ctx, feature.ID, name)
 }
 
-func (s *Service) RenameTaskGroup(ctx context.Context, id, name string) (domain.TaskGroup, error) {
+func (s *Service) UpdateTaskGroup(ctx context.Context, id string, name, color *string) (domain.TaskGroup, error) {
 	group, err := s.writableTaskGroup(ctx, id)
 	if err != nil {
 		return domain.TaskGroup{}, err
 	}
-	group.Name = strings.TrimSpace(name)
-	if group.Name == "" {
-		return domain.TaskGroup{}, domain.NewError(domain.DomainErrorCodeInvalidTitle, "task group name is required")
+	if name != nil {
+		trimmed := strings.TrimSpace(*name)
+		if trimmed == "" {
+			return domain.TaskGroup{}, domain.NewError(
+				domain.DomainErrorCodeInvalidTitle,
+				"task group name is required",
+			)
+		}
+		name = &trimmed
 	}
-	return s.repository.RenameTaskGroup(ctx, group)
+	if color != nil {
+		normalized, err := domain.NormalizeHexColor(*color)
+		if err != nil {
+			return domain.TaskGroup{}, domain.NewError(domain.DomainErrorCodeInvalidTaskGroupColor, "%v", err)
+		}
+		color = &normalized
+	}
+	if name == nil && color == nil {
+		return group, nil
+	}
+	return s.repository.UpdateTaskGroup(ctx, group, name, color)
 }
 
 func (s *Service) DeleteTaskGroup(ctx context.Context, id string, cascade bool) error {

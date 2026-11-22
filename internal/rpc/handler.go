@@ -118,6 +118,7 @@ func rpcError(err error) error {
 		domain.DomainErrorCodeImplementationPlanTooLarge,
 		domain.DomainErrorCodeInvalidConfig,
 		domain.DomainErrorCodeInvalidPromptTemplate,
+		domain.DomainErrorCodeInvalidTaskGroupColor,
 		domain.DomainErrorCodeInvalidTaskLabel:
 		code = connect.CodeInvalidArgument
 	case domain.DomainErrorCodeNotFound:

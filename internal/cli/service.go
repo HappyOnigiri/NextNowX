@@ -49,7 +49,7 @@ type Service interface {
 	DeleteFeature(ctx context.Context, id string, cascade bool) error
 
 	CreateTaskGroup(ctx context.Context, featureID, name string) (domain.TaskGroup, error)
-	RenameTaskGroup(ctx context.Context, id, name string) (domain.TaskGroup, error)
+	UpdateTaskGroup(ctx context.Context, id string, name, color *string) (domain.TaskGroup, error)
 	DeleteTaskGroup(ctx context.Context, id string, cascade bool) error
 
 	CreateTask(

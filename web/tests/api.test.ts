@@ -38,7 +38,7 @@ const apiMocks = vi.hoisted(() => {
     updateFeature: vi.fn(),
     deleteFeature: vi.fn(),
     createTaskGroup: vi.fn(),
-    renameTaskGroup: vi.fn(),
+    updateTaskGroup: vi.fn(),
     deleteTaskGroup: vi.fn(),
     createTask: vi.fn(),
     updateTask: vi.fn(),
@@ -109,15 +109,15 @@ describe("RPC API wrappers", () => {
 
   it("wraps task group mutations and sends an explicit empty member update", async () => {
     await mutations.createTaskGroup({ featureId: "F-1", name: "Checkout" });
-    await mutations.renameTaskGroup({ id: "G-1", name: "Delivery" });
+    await mutations.updateTaskGroup({ id: "G-1", name: "Delivery", color: "" });
     await mutations.deleteTaskGroup("G-1");
     await mutations.updateTask({ id: "T-1", groupId: "" });
 
     expect(apiMocks.client.createTaskGroup).toHaveBeenCalledWith(
       expect.objectContaining({ featureId: "F-1", name: "Checkout" }),
     );
-    expect(apiMocks.client.renameTaskGroup).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "G-1", name: "Delivery" }),
+    expect(apiMocks.client.updateTaskGroup).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "G-1", name: "Delivery", color: "" }),
     );
     expect(apiMocks.client.deleteTaskGroup).toHaveBeenCalledWith(
       expect.objectContaining({ id: "G-1", cascade: true }),

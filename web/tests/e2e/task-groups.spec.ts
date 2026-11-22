@@ -191,11 +191,26 @@ test("manages membership and shows the same ordered group frames in search and r
     exact: true,
   });
   await edit.getByLabel("Group name", { exact: true }).fill(renamed);
-  await edit.getByRole("button", { name: "Rename group", exact: true }).click();
+  const palette = edit.getByRole("group", { name: "Card color" });
+  const defaultColor = palette.getByRole("radio", { name: "Default" });
+  await expect(defaultColor).toBeChecked();
+  await page.keyboard.press("Tab");
+  await expect(defaultColor).toBeFocused();
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowRight");
+  await expect(palette.getByRole("radio", { name: "Blue" })).toBeChecked();
+  await edit.getByRole("button", { name: "Save group", exact: true }).click();
   await expect(
     page.getByRole("link", { name: renamed, exact: true }),
   ).toBeVisible();
+  const coloredFrame = page
+    .locator(".graph-task-group")
+    .filter({ hasText: renamed });
+  await expect(coloredFrame).toHaveAttribute("style", /#3b82f6/);
   await page.goto(search);
+  await expect(
+    results.locator(".task-card-group").filter({ hasText: renamed }),
+  ).toHaveAttribute("style", /#3b82f6/);
   const renamedGroup = results.getByRole("list", {
     name: renamed,
     exact: true,
@@ -215,6 +230,7 @@ test("manages membership and shows the same ordered group frames in search and r
   ).toHaveCount(0);
   const editRenamed = page.getByRole("dialog", { name: `Edit ${renamed}` });
   await page.getByRole("button", { name: `Edit ${renamed}` }).click();
+  await expect(editRenamed.getByRole("radio", { name: "Blue" })).toBeChecked();
   const deleteGroup = editRenamed.getByRole("button", { name: "Delete group" });
   await deleteGroup.click();
   const deletion = page.getByRole("dialog", { name: `Delete ${renamed}` });

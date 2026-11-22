@@ -240,6 +240,7 @@ export const errorKeys = {
   [DomainErrorCode.DUPLICATE_PULL_REQUEST]: "error.duplicatePullRequest",
   [DomainErrorCode.DUPLICATE_IMPLEMENTATION_PLAN]:
     "error.duplicateImplementationPlan",
+  [DomainErrorCode.INVALID_TASK_GROUP_COLOR]: "taskGroups.invalidColor",
   [DomainErrorCode.DUPLICATE_TASK_GROUP_NAME]: "taskGroups.duplicateName",
   [DomainErrorCode.GITHUB_AUTH]: "error.githubAuth",
   [DomainErrorCode.INVALID_CONFIG]: "error.invalidConfig",

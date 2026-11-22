@@ -65,9 +65,9 @@ const (
 	// NNXServiceCreateTaskGroupProcedure is the fully-qualified name of the NNXService's
 	// CreateTaskGroup RPC.
 	NNXServiceCreateTaskGroupProcedure = "/nnx.v1.NNXService/CreateTaskGroup"
-	// NNXServiceRenameTaskGroupProcedure is the fully-qualified name of the NNXService's
-	// RenameTaskGroup RPC.
-	NNXServiceRenameTaskGroupProcedure = "/nnx.v1.NNXService/RenameTaskGroup"
+	// NNXServiceUpdateTaskGroupProcedure is the fully-qualified name of the NNXService's
+	// UpdateTaskGroup RPC.
+	NNXServiceUpdateTaskGroupProcedure = "/nnx.v1.NNXService/UpdateTaskGroup"
 	// NNXServiceDeleteTaskGroupProcedure is the fully-qualified name of the NNXService's
 	// DeleteTaskGroup RPC.
 	NNXServiceDeleteTaskGroupProcedure = "/nnx.v1.NNXService/DeleteTaskGroup"
@@ -199,8 +199,8 @@ type NNXServiceClient interface {
 	DeleteTask(context.Context, *connect.Request[v1.DeleteTaskRequest]) (*connect.Response[v1.DeleteTaskResponse], error)
 	// CreateTaskGroup は feature 内にグループを作成する。
 	CreateTaskGroup(context.Context, *connect.Request[v1.CreateTaskGroupRequest]) (*connect.Response[v1.CreateTaskGroupResponse], error)
-	// RenameTaskGroup はグループの名前を更新する。
-	RenameTaskGroup(context.Context, *connect.Request[v1.RenameTaskGroupRequest]) (*connect.Response[v1.RenameTaskGroupResponse], error)
+	// UpdateTaskGroup はグループの名前と色を更新する。
+	UpdateTaskGroup(context.Context, *connect.Request[v1.UpdateTaskGroupRequest]) (*connect.Response[v1.UpdateTaskGroupResponse], error)
 	// DeleteTaskGroup はグループを削除し、所属タスクを未所属にする。
 	DeleteTaskGroup(context.Context, *connect.Request[v1.DeleteTaskGroupRequest]) (*connect.Response[v1.DeleteTaskGroupResponse], error)
 	// AddDependency は循環を作らない場合に、同じ feature 内の依存を追加する。
@@ -358,10 +358,10 @@ func NewNNXServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(nNXServiceMethods.ByName("CreateTaskGroup")),
 			connect.WithClientOptions(opts...),
 		),
-		renameTaskGroup: connect.NewClient[v1.RenameTaskGroupRequest, v1.RenameTaskGroupResponse](
+		updateTaskGroup: connect.NewClient[v1.UpdateTaskGroupRequest, v1.UpdateTaskGroupResponse](
 			httpClient,
-			baseURL+NNXServiceRenameTaskGroupProcedure,
-			connect.WithSchema(nNXServiceMethods.ByName("RenameTaskGroup")),
+			baseURL+NNXServiceUpdateTaskGroupProcedure,
+			connect.WithSchema(nNXServiceMethods.ByName("UpdateTaskGroup")),
 			connect.WithClientOptions(opts...),
 		),
 		deleteTaskGroup: connect.NewClient[v1.DeleteTaskGroupRequest, v1.DeleteTaskGroupResponse](
@@ -597,7 +597,7 @@ type nNXServiceClient struct {
 	updateTask               *connect.Client[v1.UpdateTaskRequest, v1.UpdateTaskResponse]
 	deleteTask               *connect.Client[v1.DeleteTaskRequest, v1.DeleteTaskResponse]
 	createTaskGroup          *connect.Client[v1.CreateTaskGroupRequest, v1.CreateTaskGroupResponse]
-	renameTaskGroup          *connect.Client[v1.RenameTaskGroupRequest, v1.RenameTaskGroupResponse]
+	updateTaskGroup          *connect.Client[v1.UpdateTaskGroupRequest, v1.UpdateTaskGroupResponse]
 	deleteTaskGroup          *connect.Client[v1.DeleteTaskGroupRequest, v1.DeleteTaskGroupResponse]
 	addDependency            *connect.Client[v1.AddDependencyRequest, v1.AddDependencyResponse]
 	removeDependency         *connect.Client[v1.RemoveDependencyRequest, v1.RemoveDependencyResponse]
@@ -696,9 +696,9 @@ func (c *nNXServiceClient) CreateTaskGroup(ctx context.Context, req *connect.Req
 	return c.createTaskGroup.CallUnary(ctx, req)
 }
 
-// RenameTaskGroup calls nnx.v1.NNXService.RenameTaskGroup.
-func (c *nNXServiceClient) RenameTaskGroup(ctx context.Context, req *connect.Request[v1.RenameTaskGroupRequest]) (*connect.Response[v1.RenameTaskGroupResponse], error) {
-	return c.renameTaskGroup.CallUnary(ctx, req)
+// UpdateTaskGroup calls nnx.v1.NNXService.UpdateTaskGroup.
+func (c *nNXServiceClient) UpdateTaskGroup(ctx context.Context, req *connect.Request[v1.UpdateTaskGroupRequest]) (*connect.Response[v1.UpdateTaskGroupResponse], error) {
+	return c.updateTaskGroup.CallUnary(ctx, req)
 }
 
 // DeleteTaskGroup calls nnx.v1.NNXService.DeleteTaskGroup.
@@ -908,8 +908,8 @@ type NNXServiceHandler interface {
 	DeleteTask(context.Context, *connect.Request[v1.DeleteTaskRequest]) (*connect.Response[v1.DeleteTaskResponse], error)
 	// CreateTaskGroup は feature 内にグループを作成する。
 	CreateTaskGroup(context.Context, *connect.Request[v1.CreateTaskGroupRequest]) (*connect.Response[v1.CreateTaskGroupResponse], error)
-	// RenameTaskGroup はグループの名前を更新する。
-	RenameTaskGroup(context.Context, *connect.Request[v1.RenameTaskGroupRequest]) (*connect.Response[v1.RenameTaskGroupResponse], error)
+	// UpdateTaskGroup はグループの名前と色を更新する。
+	UpdateTaskGroup(context.Context, *connect.Request[v1.UpdateTaskGroupRequest]) (*connect.Response[v1.UpdateTaskGroupResponse], error)
 	// DeleteTaskGroup はグループを削除し、所属タスクを未所属にする。
 	DeleteTaskGroup(context.Context, *connect.Request[v1.DeleteTaskGroupRequest]) (*connect.Response[v1.DeleteTaskGroupResponse], error)
 	// AddDependency は循環を作らない場合に、同じ feature 内の依存を追加する。
@@ -1063,10 +1063,10 @@ func NewNNXServiceHandler(svc NNXServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(nNXServiceMethods.ByName("CreateTaskGroup")),
 		connect.WithHandlerOptions(opts...),
 	)
-	nNXServiceRenameTaskGroupHandler := connect.NewUnaryHandler(
-		NNXServiceRenameTaskGroupProcedure,
-		svc.RenameTaskGroup,
-		connect.WithSchema(nNXServiceMethods.ByName("RenameTaskGroup")),
+	nNXServiceUpdateTaskGroupHandler := connect.NewUnaryHandler(
+		NNXServiceUpdateTaskGroupProcedure,
+		svc.UpdateTaskGroup,
+		connect.WithSchema(nNXServiceMethods.ByName("UpdateTaskGroup")),
 		connect.WithHandlerOptions(opts...),
 	)
 	nNXServiceDeleteTaskGroupHandler := connect.NewUnaryHandler(
@@ -1311,8 +1311,8 @@ func NewNNXServiceHandler(svc NNXServiceHandler, opts ...connect.HandlerOption) 
 			nNXServiceDeleteTaskHandler.ServeHTTP(w, r)
 		case NNXServiceCreateTaskGroupProcedure:
 			nNXServiceCreateTaskGroupHandler.ServeHTTP(w, r)
-		case NNXServiceRenameTaskGroupProcedure:
-			nNXServiceRenameTaskGroupHandler.ServeHTTP(w, r)
+		case NNXServiceUpdateTaskGroupProcedure:
+			nNXServiceUpdateTaskGroupHandler.ServeHTTP(w, r)
 		case NNXServiceDeleteTaskGroupProcedure:
 			nNXServiceDeleteTaskGroupHandler.ServeHTTP(w, r)
 		case NNXServiceAddDependencyProcedure:
@@ -1442,8 +1442,8 @@ func (UnimplementedNNXServiceHandler) CreateTaskGroup(context.Context, *connect.
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("nnx.v1.NNXService.CreateTaskGroup is not implemented"))
 }
 
-func (UnimplementedNNXServiceHandler) RenameTaskGroup(context.Context, *connect.Request[v1.RenameTaskGroupRequest]) (*connect.Response[v1.RenameTaskGroupResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("nnx.v1.NNXService.RenameTaskGroup is not implemented"))
+func (UnimplementedNNXServiceHandler) UpdateTaskGroup(context.Context, *connect.Request[v1.UpdateTaskGroupRequest]) (*connect.Response[v1.UpdateTaskGroupResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("nnx.v1.NNXService.UpdateTaskGroup is not implemented"))
 }
 
 func (UnimplementedNNXServiceHandler) DeleteTaskGroup(context.Context, *connect.Request[v1.DeleteTaskGroupRequest]) (*connect.Response[v1.DeleteTaskGroupResponse], error) {

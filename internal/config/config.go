@@ -946,7 +946,7 @@ func (c *Config) SetTaskLabelOverrides(update domain.TaskLabelOverridesUpdate) e
 			current.Text = text
 		}
 		if item.Color != nil {
-			color, err := domain.NormalizeTaskLabelColor(*item.Color)
+			color, err := domain.NormalizeHexColor(*item.Color)
 			if err != nil {
 				c.TaskLabels = previous
 				return domain.NewError(

@@ -870,6 +870,8 @@ const (
 	DomainErrorCode_DOMAIN_ERROR_CODE_PULL_REQUEST_ON_WORK_TASK DomainErrorCode = 36
 	// DOMAIN_ERROR_CODE_DUPLICATE_TASK_GROUP_NAME は同じ feature 内に同名のグループがあることを表す。
 	DomainErrorCode_DOMAIN_ERROR_CODE_DUPLICATE_TASK_GROUP_NAME DomainErrorCode = 37
+	// DOMAIN_ERROR_CODE_INVALID_TASK_GROUP_COLOR はグループの色の書式が不正なことを表す。
+	DomainErrorCode_DOMAIN_ERROR_CODE_INVALID_TASK_GROUP_COLOR DomainErrorCode = 38
 )
 
 // Enum value maps for DomainErrorCode.
@@ -907,6 +909,7 @@ var (
 		35: "DOMAIN_ERROR_CODE_INVALID_TASK_KIND",
 		36: "DOMAIN_ERROR_CODE_PULL_REQUEST_ON_WORK_TASK",
 		37: "DOMAIN_ERROR_CODE_DUPLICATE_TASK_GROUP_NAME",
+		38: "DOMAIN_ERROR_CODE_INVALID_TASK_GROUP_COLOR",
 	}
 	DomainErrorCode_value = map[string]int32{
 		"DOMAIN_ERROR_CODE_UNSPECIFIED":                   0,
@@ -941,6 +944,7 @@ var (
 		"DOMAIN_ERROR_CODE_INVALID_TASK_KIND":             35,
 		"DOMAIN_ERROR_CODE_PULL_REQUEST_ON_WORK_TASK":     36,
 		"DOMAIN_ERROR_CODE_DUPLICATE_TASK_GROUP_NAME":     37,
+		"DOMAIN_ERROR_CODE_INVALID_TASK_GROUP_COLOR":      38,
 	}
 )
 
@@ -4138,7 +4142,9 @@ type TaskGroup struct {
 	// feature_id は所属先の feature の公開 ID。
 	FeatureId string `protobuf:"bytes,2,opt,name=feature_id,json=featureId,proto3" json:"feature_id,omitempty"`
 	// name は同じ feature 内で一意の表示名。
-	Name          string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	// color はカードの色。空文字列は既定色を表す。
+	Color         string `protobuf:"bytes,4,opt,name=color,proto3" json:"color,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4190,6 +4196,13 @@ func (x *TaskGroup) GetFeatureId() string {
 func (x *TaskGroup) GetName() string {
 	if x != nil {
 		return x.Name
+	}
+	return ""
+}
+
+func (x *TaskGroup) GetColor() string {
+	if x != nil {
+		return x.Color
 	}
 	return ""
 }
@@ -4295,31 +4308,33 @@ func (x *CreateTaskGroupResponse) GetTaskGroup() *TaskGroup {
 	return nil
 }
 
-// RenameTaskGroupRequest は既存のグループの名前を更新する。
-type RenameTaskGroupRequest struct {
+// UpdateTaskGroupRequest は既存のグループの名前と色を個別に更新する。
+type UpdateTaskGroupRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// id は更新するグループの公開 ID。
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	// name は前後の空白を除いた上で保存する。
-	Name          string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// name は前後の空白を除いた上で保存する。未指定なら維持する。
+	Name *string `protobuf:"bytes,2,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	// color は #RRGGBB 形式。空文字列は既定色へ戻し、未指定なら維持する。
+	Color         *string `protobuf:"bytes,3,opt,name=color,proto3,oneof" json:"color,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RenameTaskGroupRequest) Reset() {
-	*x = RenameTaskGroupRequest{}
+func (x *UpdateTaskGroupRequest) Reset() {
+	*x = UpdateTaskGroupRequest{}
 	mi := &file_nnx_v1_nnx_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RenameTaskGroupRequest) String() string {
+func (x *UpdateTaskGroupRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RenameTaskGroupRequest) ProtoMessage() {}
+func (*UpdateTaskGroupRequest) ProtoMessage() {}
 
-func (x *RenameTaskGroupRequest) ProtoReflect() protoreflect.Message {
+func (x *UpdateTaskGroupRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_nnx_v1_nnx_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -4331,48 +4346,55 @@ func (x *RenameTaskGroupRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RenameTaskGroupRequest.ProtoReflect.Descriptor instead.
-func (*RenameTaskGroupRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use UpdateTaskGroupRequest.ProtoReflect.Descriptor instead.
+func (*UpdateTaskGroupRequest) Descriptor() ([]byte, []int) {
 	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{42}
 }
 
-func (x *RenameTaskGroupRequest) GetId() string {
+func (x *UpdateTaskGroupRequest) GetId() string {
 	if x != nil {
 		return x.Id
 	}
 	return ""
 }
 
-func (x *RenameTaskGroupRequest) GetName() string {
-	if x != nil {
-		return x.Name
+func (x *UpdateTaskGroupRequest) GetName() string {
+	if x != nil && x.Name != nil {
+		return *x.Name
 	}
 	return ""
 }
 
-// RenameTaskGroupResponse は改名したグループを返す。
-type RenameTaskGroupResponse struct {
+func (x *UpdateTaskGroupRequest) GetColor() string {
+	if x != nil && x.Color != nil {
+		return *x.Color
+	}
+	return ""
+}
+
+// UpdateTaskGroupResponse は更新済みのグループを返す。
+type UpdateTaskGroupResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// task_group は新しい名前を持つグループ。
+	// task_group は更新後のグループ。
 	TaskGroup     *TaskGroup `protobuf:"bytes,1,opt,name=task_group,json=taskGroup,proto3" json:"task_group,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RenameTaskGroupResponse) Reset() {
-	*x = RenameTaskGroupResponse{}
+func (x *UpdateTaskGroupResponse) Reset() {
+	*x = UpdateTaskGroupResponse{}
 	mi := &file_nnx_v1_nnx_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RenameTaskGroupResponse) String() string {
+func (x *UpdateTaskGroupResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RenameTaskGroupResponse) ProtoMessage() {}
+func (*UpdateTaskGroupResponse) ProtoMessage() {}
 
-func (x *RenameTaskGroupResponse) ProtoReflect() protoreflect.Message {
+func (x *UpdateTaskGroupResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_nnx_v1_nnx_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -4384,12 +4406,12 @@ func (x *RenameTaskGroupResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RenameTaskGroupResponse.ProtoReflect.Descriptor instead.
-func (*RenameTaskGroupResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use UpdateTaskGroupResponse.ProtoReflect.Descriptor instead.
+func (*UpdateTaskGroupResponse) Descriptor() ([]byte, []int) {
 	return file_nnx_v1_nnx_proto_rawDescGZIP(), []int{43}
 }
 
-func (x *RenameTaskGroupResponse) GetTaskGroup() *TaskGroup {
+func (x *UpdateTaskGroupResponse) GetTaskGroup() *TaskGroup {
 	if x != nil {
 		return x.TaskGroup
 	}
@@ -11002,23 +11024,27 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"\x11DeleteTaskRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\acascade\x18\x02 \x01(\bR\acascade\"\x14\n" +
-	"\x12DeleteTaskResponse\"N\n" +
+	"\x12DeleteTaskResponse\"d\n" +
 	"\tTaskGroup\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
 	"feature_id\x18\x02 \x01(\tR\tfeatureId\x12\x12\n" +
-	"\x04name\x18\x03 \x01(\tR\x04name\"K\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12\x14\n" +
+	"\x05color\x18\x04 \x01(\tR\x05color\"K\n" +
 	"\x16CreateTaskGroupRequest\x12\x1d\n" +
 	"\n" +
 	"feature_id\x18\x01 \x01(\tR\tfeatureId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\"K\n" +
 	"\x17CreateTaskGroupResponse\x120\n" +
 	"\n" +
-	"task_group\x18\x01 \x01(\v2\x11.nnx.v1.TaskGroupR\ttaskGroup\"<\n" +
-	"\x16RenameTaskGroupRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\"K\n" +
-	"\x17RenameTaskGroupResponse\x120\n" +
+	"task_group\x18\x01 \x01(\v2\x11.nnx.v1.TaskGroupR\ttaskGroup\"o\n" +
+	"\x16UpdateTaskGroupRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
+	"\x04name\x18\x02 \x01(\tH\x00R\x04name\x88\x01\x01\x12\x19\n" +
+	"\x05color\x18\x03 \x01(\tH\x01R\x05color\x88\x01\x01B\a\n" +
+	"\x05_nameB\b\n" +
+	"\x06_color\"K\n" +
+	"\x17UpdateTaskGroupResponse\x120\n" +
 	"\n" +
 	"task_group\x18\x01 \x01(\v2\x11.nnx.v1.TaskGroupR\ttaskGroup\"B\n" +
 	"\x16DeleteTaskGroupRequest\x12\x0e\n" +
@@ -11563,7 +11589,7 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"\x11BlockedReasonCode\x12#\n" +
 	"\x1fBLOCKED_REASON_CODE_UNSPECIFIED\x10\x00\x122\n" +
 	".BLOCKED_REASON_CODE_DEPENDENCY_DATA_INCOMPLETE\x10\x01\x12+\n" +
-	"'BLOCKED_REASON_CODE_WAITING_FOR_BLOCKER\x10\x03\"\x04\b\x02\x10\x02*\x88\f\n" +
+	"'BLOCKED_REASON_CODE_WAITING_FOR_BLOCKER\x10\x03\"\x04\b\x02\x10\x02*\xb8\f\n" +
 	"\x0fDomainErrorCode\x12!\n" +
 	"\x1dDOMAIN_ERROR_CODE_UNSPECIFIED\x10\x00\x12.\n" +
 	"*DOMAIN_ERROR_CODE_CROSS_FEATURE_DEPENDENCY\x10\x02\x12\x1b\n" +
@@ -11596,7 +11622,8 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"$DOMAIN_ERROR_CODE_INVALID_TASK_LABEL\x10\"\x12'\n" +
 	"#DOMAIN_ERROR_CODE_INVALID_TASK_KIND\x10#\x12/\n" +
 	"+DOMAIN_ERROR_CODE_PULL_REQUEST_ON_WORK_TASK\x10$\x12/\n" +
-	"+DOMAIN_ERROR_CODE_DUPLICATE_TASK_GROUP_NAME\x10%\"\x04\b\n" +
+	"+DOMAIN_ERROR_CODE_DUPLICATE_TASK_GROUP_NAME\x10%\x12.\n" +
+	"*DOMAIN_ERROR_CODE_INVALID_TASK_GROUP_COLOR\x10&\"\x04\b\n" +
 	"\x10\n" +
 	"\"\x04\b\r\x10\r\"\x04\b\x0e\x10\x0e\"\x04\b\x13\x10\x13\"\x04\b\x14\x10\x14*\x1eDOMAIN_ERROR_CODE_INVALID_KIND*\x1eDOMAIN_ERROR_CODE_INVALID_SEED*\x1eDOMAIN_ERROR_CODE_INVALID_SLUG*-DOMAIN_ERROR_CODE_PULL_REQUEST_ON_MANUAL_TASK*\xd6\x01\n" +
 	"\x14GithubAuthMethodType\x12'\n" +
@@ -11649,7 +11676,7 @@ const file_nnx_v1_nnx_proto_rawDesc = "" +
 	"\n" +
 	"DeleteTask\x12\x19.nnx.v1.DeleteTaskRequest\x1a\x1a.nnx.v1.DeleteTaskResponse\x12R\n" +
 	"\x0fCreateTaskGroup\x12\x1e.nnx.v1.CreateTaskGroupRequest\x1a\x1f.nnx.v1.CreateTaskGroupResponse\x12R\n" +
-	"\x0fRenameTaskGroup\x12\x1e.nnx.v1.RenameTaskGroupRequest\x1a\x1f.nnx.v1.RenameTaskGroupResponse\x12R\n" +
+	"\x0fUpdateTaskGroup\x12\x1e.nnx.v1.UpdateTaskGroupRequest\x1a\x1f.nnx.v1.UpdateTaskGroupResponse\x12R\n" +
 	"\x0fDeleteTaskGroup\x12\x1e.nnx.v1.DeleteTaskGroupRequest\x1a\x1f.nnx.v1.DeleteTaskGroupResponse\x12L\n" +
 	"\rAddDependency\x12\x1c.nnx.v1.AddDependencyRequest\x1a\x1d.nnx.v1.AddDependencyResponse\x12U\n" +
 	"\x10RemoveDependency\x12\x1f.nnx.v1.RemoveDependencyRequest\x1a .nnx.v1.RemoveDependencyResponse\x12X\n" +
@@ -11761,8 +11788,8 @@ var file_nnx_v1_nnx_proto_goTypes = []any{
 	(*TaskGroup)(nil),                        // 56: nnx.v1.TaskGroup
 	(*CreateTaskGroupRequest)(nil),           // 57: nnx.v1.CreateTaskGroupRequest
 	(*CreateTaskGroupResponse)(nil),          // 58: nnx.v1.CreateTaskGroupResponse
-	(*RenameTaskGroupRequest)(nil),           // 59: nnx.v1.RenameTaskGroupRequest
-	(*RenameTaskGroupResponse)(nil),          // 60: nnx.v1.RenameTaskGroupResponse
+	(*UpdateTaskGroupRequest)(nil),           // 59: nnx.v1.UpdateTaskGroupRequest
+	(*UpdateTaskGroupResponse)(nil),          // 60: nnx.v1.UpdateTaskGroupResponse
 	(*DeleteTaskGroupRequest)(nil),           // 61: nnx.v1.DeleteTaskGroupRequest
 	(*DeleteTaskGroupResponse)(nil),          // 62: nnx.v1.DeleteTaskGroupResponse
 	(*AddDependencyRequest)(nil),             // 63: nnx.v1.AddDependencyRequest
@@ -11915,7 +11942,7 @@ var file_nnx_v1_nnx_proto_depIdxs = []int32{
 	1,   // 47: nnx.v1.UpdateTaskRequest.kind:type_name -> nnx.v1.TaskKind
 	29,  // 48: nnx.v1.UpdateTaskResponse.task:type_name -> nnx.v1.Task
 	56,  // 49: nnx.v1.CreateTaskGroupResponse.task_group:type_name -> nnx.v1.TaskGroup
-	56,  // 50: nnx.v1.RenameTaskGroupResponse.task_group:type_name -> nnx.v1.TaskGroup
+	56,  // 50: nnx.v1.UpdateTaskGroupResponse.task_group:type_name -> nnx.v1.TaskGroup
 	30,  // 51: nnx.v1.AddDependencyResponse.dependency:type_name -> nnx.v1.Dependency
 	31,  // 52: nnx.v1.AttachPullRequestResponse.pull_request:type_name -> nnx.v1.PullRequest
 	32,  // 53: nnx.v1.AddDocumentResponse.document:type_name -> nnx.v1.Document
@@ -11994,7 +12021,7 @@ var file_nnx_v1_nnx_proto_depIdxs = []int32{
 	52,  // 126: nnx.v1.NNXService.UpdateTask:input_type -> nnx.v1.UpdateTaskRequest
 	54,  // 127: nnx.v1.NNXService.DeleteTask:input_type -> nnx.v1.DeleteTaskRequest
 	57,  // 128: nnx.v1.NNXService.CreateTaskGroup:input_type -> nnx.v1.CreateTaskGroupRequest
-	59,  // 129: nnx.v1.NNXService.RenameTaskGroup:input_type -> nnx.v1.RenameTaskGroupRequest
+	59,  // 129: nnx.v1.NNXService.UpdateTaskGroup:input_type -> nnx.v1.UpdateTaskGroupRequest
 	61,  // 130: nnx.v1.NNXService.DeleteTaskGroup:input_type -> nnx.v1.DeleteTaskGroupRequest
 	63,  // 131: nnx.v1.NNXService.AddDependency:input_type -> nnx.v1.AddDependencyRequest
 	65,  // 132: nnx.v1.NNXService.RemoveDependency:input_type -> nnx.v1.RemoveDependencyRequest
@@ -12043,7 +12070,7 @@ var file_nnx_v1_nnx_proto_depIdxs = []int32{
 	53,  // 175: nnx.v1.NNXService.UpdateTask:output_type -> nnx.v1.UpdateTaskResponse
 	55,  // 176: nnx.v1.NNXService.DeleteTask:output_type -> nnx.v1.DeleteTaskResponse
 	58,  // 177: nnx.v1.NNXService.CreateTaskGroup:output_type -> nnx.v1.CreateTaskGroupResponse
-	60,  // 178: nnx.v1.NNXService.RenameTaskGroup:output_type -> nnx.v1.RenameTaskGroupResponse
+	60,  // 178: nnx.v1.NNXService.UpdateTaskGroup:output_type -> nnx.v1.UpdateTaskGroupResponse
 	62,  // 179: nnx.v1.NNXService.DeleteTaskGroup:output_type -> nnx.v1.DeleteTaskGroupResponse
 	64,  // 180: nnx.v1.NNXService.AddDependency:output_type -> nnx.v1.AddDependencyResponse
 	66,  // 181: nnx.v1.NNXService.RemoveDependency:output_type -> nnx.v1.RemoveDependencyResponse
@@ -12097,6 +12124,7 @@ func file_nnx_v1_nnx_proto_init() {
 	file_nnx_v1_nnx_proto_msgTypes[23].OneofWrappers = []any{}
 	file_nnx_v1_nnx_proto_msgTypes[29].OneofWrappers = []any{}
 	file_nnx_v1_nnx_proto_msgTypes[35].OneofWrappers = []any{}
+	file_nnx_v1_nnx_proto_msgTypes[42].OneofWrappers = []any{}
 	file_nnx_v1_nnx_proto_msgTypes[54].OneofWrappers = []any{
 		(*AddDocumentRequest_Url)(nil),
 		(*AddDocumentRequest_LocalFile)(nil),

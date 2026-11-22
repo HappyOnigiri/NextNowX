@@ -44,7 +44,7 @@ func applyTaskLabelOverrides(
 			value.Text = text
 		}
 		if item.Color != nil {
-			color, err := domain.NormalizeTaskLabelColor(*item.Color)
+			color, err := domain.NormalizeHexColor(*item.Color)
 			if err != nil {
 				return domain.NewError(
 					domain.DomainErrorCodeInvalidTaskLabel,

@@ -301,7 +301,7 @@ func (noopRepository) GetTaskGroup(context.Context, string) (domain.TaskGroup, e
 	return domain.TaskGroup{}, errors.New("not implemented")
 }
 
-func (noopRepository) RenameTaskGroup(context.Context, domain.TaskGroup) (domain.TaskGroup, error) {
+func (noopRepository) UpdateTaskGroup(context.Context, domain.TaskGroup, *string, *string) (domain.TaskGroup, error) {
 	return domain.TaskGroup{}, errors.New("not implemented")
 }
 

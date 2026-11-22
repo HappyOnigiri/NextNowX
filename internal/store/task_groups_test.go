@@ -54,6 +54,38 @@ func TestTaskGroupsMigrationPreservesExistingTasksAndSequences(t *testing.T) {
 	}
 }
 
+func TestTaskGroupColorMigrationPreservesExistingGroup(t *testing.T) {
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "before-task-group-color.db")
+	legacy := openLegacyDatabase(t, ctx, path, "025_")
+	if _, err := legacy.ExecContext(ctx, `
+		INSERT INTO projects(id, public_id, title, created_at, updated_at)
+		VALUES ('p', 'P-1', 'Project', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z');
+		INSERT INTO features(id, public_id, project_id, title, created_at, updated_at)
+		VALUES ('f', 'F-1', 'p', 'Feature', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z');
+		INSERT INTO task_groups(public_id, feature_id, name) VALUES ('G-1', 'f', 'Existing group');
+		INSERT INTO tasks(id, public_id, feature_id, title, created_at, updated_at, group_id)
+		VALUES ('t', 'T-1', 'f', 'Existing task', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z', 'G-1');
+	`); err != nil {
+		t.Fatal(err)
+	}
+	if err := legacy.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	database, err := store.Open(ctx, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = database.Close() }()
+	snapshot, err := database.Snapshot(ctx)
+	want := domain.TaskGroup{ID: "G-1", FeatureID: "F-1", Name: "Existing group"}
+	if err != nil || len(snapshot.TaskGroups) != 1 || snapshot.TaskGroups[0] != want ||
+		len(snapshot.Tasks) != 1 || snapshot.Tasks[0].GroupID != want.ID {
+		t.Fatalf("snapshot=%+v err=%v", snapshot, err)
+	}
+}
+
 func TestTaskGroupsFollowFeatureAndProjectCascade(t *testing.T) {
 	_, service := openTestService(t)
 	ctx := context.Background()

@@ -214,6 +214,7 @@ type TaskGroup struct {
 	ID        string `json:"id"`
 	FeatureID string `json:"feature_id"`
 	Name      string `json:"name"`
+	Color     string `json:"color"`
 }
 
 type Task struct {

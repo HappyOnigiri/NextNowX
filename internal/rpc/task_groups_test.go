@@ -81,24 +81,45 @@ func TestRPCTaskGroups(t *testing.T) {
 		name string
 		code connect.Code
 	}{{" ", connect.CodeInvalidArgument}, {"Delivery", connect.CodeFailedPrecondition}, {"  Launch  ", 0}} {
-		result, err := client.RenameTaskGroup(ctx, connect.NewRequest(&nnxv1.RenameTaskGroupRequest{
-			Id: group, Name: rename.name,
+		result, err := client.UpdateTaskGroup(ctx, connect.NewRequest(&nnxv1.UpdateTaskGroupRequest{
+			Id: group, Name: &rename.name,
 		}))
 		if codeOfTaskGroupError(err) != rename.code ||
 			(err == nil && (result.Msg.GetTaskGroup().GetName() != "Launch" || result.Msg.GetTaskGroup().GetId() != group)) {
 			t.Fatalf("rename result=%v err=%v", result, err)
 		}
 	}
+	update := func(name, color *string, wantName, wantColor string, code connect.Code) {
+		t.Helper()
+		result, err := client.UpdateTaskGroup(ctx, connect.NewRequest(&nnxv1.UpdateTaskGroupRequest{
+			Id: group, Name: name, Color: color,
+		}))
+		if codeOfTaskGroupError(err) != code {
+			t.Fatalf("update task group: err=%v, want code %v", err, code)
+		}
+		if err == nil {
+			actual := result.Msg.GetTaskGroup()
+			if actual.GetName() != wantName || actual.GetColor() != wantColor {
+				t.Fatalf("update task group: got %v, want name %q and color %q", actual, wantName, wantColor)
+			}
+		}
+	}
+	update(nil, new("  #A1B2C3  "), "Launch", "#a1b2c3", 0)
+	update(new("New name"), new("red"), "", "", connect.CodeInvalidArgument)
+	update(new("Delivery"), new("#112233"), "", "", connect.CodeFailedPrecondition)
+	update(nil, nil, "Launch", "#a1b2c3", 0)
+	update(new("Rollout"), nil, "Rollout", "#a1b2c3", 0)
+	update(nil, &empty, "Rollout", "", 0)
 	archived := true
 	assertReadOnly := func() {
 		t.Helper()
 		createGroup(feature, "Forbidden", connect.CodeFailedPrecondition)
 		updateGroup(&empty, "", connect.CodeFailedPrecondition)
-		_, err := client.RenameTaskGroup(ctx, connect.NewRequest(&nnxv1.RenameTaskGroupRequest{
-			Id: group, Name: "Forbidden",
+		_, err := client.UpdateTaskGroup(ctx, connect.NewRequest(&nnxv1.UpdateTaskGroupRequest{
+			Id: group, Color: new("#114477"),
 		}))
 		if connect.CodeOf(err) != connect.CodeFailedPrecondition {
-			t.Fatalf("archived rename error=%v", err)
+			t.Fatalf("archived group update error=%v", err)
 		}
 		_, err = client.DeleteTaskGroup(ctx, connect.NewRequest(&nnxv1.DeleteTaskGroupRequest{Id: group}))
 		if connect.CodeOf(err) != connect.CodeFailedPrecondition {

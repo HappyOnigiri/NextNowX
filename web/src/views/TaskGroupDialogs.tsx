@@ -1,5 +1,12 @@
-import { Trash2, X } from "lucide-react";
-import { useEffect, useId, useRef, useState, type SyntheticEvent } from "react";
+import { Check, Trash2, X } from "lucide-react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type Ref,
+  type SyntheticEvent,
+} from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { mutations } from "../api";
@@ -13,10 +20,21 @@ import { MutationError } from "./MutationError";
 import { DocumentRow } from "./TaskInspectorReferences";
 import type { TaskNodeDocument } from "./TaskNode";
 import { DiscardChangesDialog, SaveButton } from "./UnsavedChanges";
+import { taskGroupColors } from "./taskGroupColors";
 import { useCloseOnEscape } from "./useCloseOnEscape";
 import { useDialogFocusTrap } from "./useDialogFocusTrap";
 
-export function TaskGroupNameDialog({
+const cardColorPalette = [
+  { name: "slate", value: "#64748b" },
+  { name: "blue", value: "#3b82f6" },
+  { name: "teal", value: "#14b8a6" },
+  { name: "lime", value: "#65a30d" },
+  { name: "amber", value: "#d97706" },
+  { name: "purple", value: "#8b5cf6" },
+  { name: "pink", value: "#db2777" },
+] as const;
+
+export function TaskGroupDialog({
   featureId,
   groups,
   group,
@@ -32,24 +50,13 @@ export function TaskGroupNameDialog({
   const { t } = useTranslation();
   const titleId = useId();
   const input = useRef<HTMLInputElement>(null);
-  const baseline = group?.name ?? "";
-  const [name, setName] = useState(baseline);
-  const [discarding, setDiscarding] = useState(false);
-  const [confirmingDeletion, setConfirmingDeletion] = useState(false);
-  const covered = discarding || confirmingDeletion;
-  const trimmed = name.trim();
-  const duplicate = groups.some(
-    (other) => other.id !== group?.id && other.name === trimmed,
-  );
-  const canSave = trimmed !== "" && trimmed !== baseline && !duplicate;
-  const save = useDomainMutation(async (value: string) =>
-    group
-      ? mutations.renameTaskGroup({ id: group.id, name: value })
-      : mutations.createTaskGroup({ featureId, name: value }),
-  );
+  const { name, setName, color, setColor, duplicate, canSave, dirty, save } =
+    useTaskGroupDraft(featureId, groups, group);
+  const [confirmation, setConfirmation] = useState<"discard" | "delete">();
+  const covered = confirmation !== undefined;
 
   function requestClose() {
-    if (name !== baseline) setDiscarding(true);
+    if (dirty) setConfirmation("discard");
     else onClose();
   }
   useCloseOnEscape(requestClose, !save.isPending);
@@ -58,7 +65,7 @@ export function TaskGroupNameDialog({
   async function submit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!canSave || save.isPending) return;
-    const result = await save.mutateAsync(trimmed).catch(() => undefined);
+    const result = await save.mutateAsync().catch(() => undefined);
     if (result?.taskGroup) onSaved(result.taskGroup);
   }
 
@@ -82,32 +89,30 @@ export function TaskGroupNameDialog({
             </h2>
           </header>
           <form onSubmit={submit}>
-            <label>
-              {t("taskGroups.newName")}
-              <input
-                ref={input}
-                value={name}
+            <TaskGroupFields
+              input={input}
+              name={name}
+              onNameChange={setName}
+              duplicate={duplicate}
+              disabled={save.isPending}
+            />
+            {group && (
+              <TaskGroupColorPalette
+                color={color}
+                savedColor={group.color}
+                onChange={setColor}
                 disabled={save.isPending}
-                aria-invalid={duplicate}
-                onChange={(event) => {
-                  setName(event.target.value);
-                }}
               />
-            </label>
-            {duplicate && (
-              <p className="form-error" role="alert">
-                {t("taskGroups.duplicateName")}
-              </p>
             )}
             <MutationError error={save.error} />
-            <TaskGroupNameActions
+            <TaskGroupActions
               canSave={canSave}
               pending={save.isPending}
               onCancel={requestClose}
               onDelete={
                 group
                   ? () => {
-                      setConfirmingDeletion(true);
+                      setConfirmation("delete");
                     }
                   : undefined
               }
@@ -115,19 +120,19 @@ export function TaskGroupNameDialog({
           </form>
         </section>
       </div>
-      {discarding && (
+      {confirmation === "discard" && (
         <DiscardChangesDialog
           onCancel={() => {
-            setDiscarding(false);
+            setConfirmation(undefined);
           }}
           onConfirm={onClose}
         />
       )}
-      {group && confirmingDeletion && (
+      {group && confirmation === "delete" && (
         <DeleteTaskGroupDialog
           group={group}
           onCancel={() => {
-            setConfirmingDeletion(false);
+            setConfirmation(undefined);
           }}
           onDeleted={onClose}
         />
@@ -137,7 +142,139 @@ export function TaskGroupNameDialog({
   );
 }
 
-function TaskGroupNameActions({
+function useTaskGroupDraft(
+  featureId: string,
+  groups: TaskGroup[],
+  group: TaskGroup | undefined,
+) {
+  const baseline = group?.name ?? "";
+  const [name, setName] = useState(baseline);
+  const savedColor = group?.color ?? "";
+  const [color, setColor] = useState(savedColor);
+  const colorChanged = color !== savedColor;
+  const trimmed = name.trim();
+  const duplicate = groups.some(
+    (other) => other.id !== group?.id && other.name === trimmed,
+  );
+  const nameChanged = trimmed !== baseline;
+  const canSave = trimmed !== "" && !duplicate && (nameChanged || colorChanged);
+  const save = useDomainMutation(async () =>
+    group
+      ? mutations.updateTaskGroup({
+          id: group.id,
+          ...(nameChanged ? { name: trimmed } : {}),
+          ...(colorChanged ? { color } : {}),
+        })
+      : mutations.createTaskGroup({ featureId, name: trimmed }),
+  );
+
+  return {
+    name,
+    setName,
+    color,
+    setColor,
+    duplicate,
+    canSave,
+    save,
+    dirty: name !== baseline || colorChanged,
+  };
+}
+
+function TaskGroupFields({
+  input,
+  name,
+  onNameChange,
+  duplicate,
+  disabled,
+}: {
+  input: Ref<HTMLInputElement>;
+  name: string;
+  onNameChange: (name: string) => void;
+  duplicate: boolean;
+  disabled: boolean;
+}) {
+  const { t } = useTranslation();
+  return (
+    <>
+      <label>
+        {t("taskGroups.newName")}
+        <input
+          ref={input}
+          value={name}
+          disabled={disabled}
+          aria-invalid={duplicate}
+          onChange={(event) => {
+            onNameChange(event.target.value);
+          }}
+        />
+      </label>
+      {duplicate && (
+        <p className="form-error" role="alert">
+          {t("taskGroups.duplicateName")}
+        </p>
+      )}
+    </>
+  );
+}
+
+function TaskGroupColorPalette({
+  color,
+  savedColor,
+  onChange,
+  disabled,
+}: {
+  color: string;
+  savedColor: string;
+  onChange: (color: string) => void;
+  disabled: boolean;
+}) {
+  const { t } = useTranslation();
+  const name = useId();
+  const options: { label: string; value: string }[] = [
+    { label: t("taskGroups.defaultColor"), value: "" },
+    ...cardColorPalette.map(({ name, value }) => ({
+      label: t(`taskGroups.paletteColors.${name}`),
+      value,
+    })),
+  ];
+  if (savedColor && !options.some(({ value }) => value === savedColor)) {
+    options.push({
+      label: t("taskGroups.savedColor", { color: savedColor }),
+      value: savedColor,
+    });
+  }
+
+  return (
+    <fieldset className="task-group-color-palette" disabled={disabled}>
+      <legend>{t("taskGroups.cardColor")}</legend>
+      <div className="task-group-color-options">
+        {options.map(({ label, value }) => (
+          <label key={value} title={label}>
+            <input
+              type="radio"
+              name={name}
+              aria-label={label}
+              value={value}
+              checked={color === value}
+              onChange={() => {
+                onChange(value);
+              }}
+            />
+            <span
+              className="task-group-color-swatch"
+              style={taskGroupColors(value)}
+            >
+              <Check size={14} aria-hidden="true" />
+              {value === "" && label}
+            </span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+function TaskGroupActions({
   canSave,
   pending,
   onCancel,
@@ -170,7 +307,7 @@ function TaskGroupNameActions({
       />
       <SaveButton
         type="submit"
-        label={t(onDelete ? "taskGroups.rename" : "taskGroups.create")}
+        label={t(onDelete ? "taskGroups.save" : "taskGroups.create")}
         dirty={canSave}
         pending={pending}
         busy={pending}
@@ -230,7 +367,7 @@ export function TaskGroupOverlay({
     );
   if (readOnly) return null;
   return (
-    <TaskGroupNameDialog
+    <TaskGroupDialog
       featureId={group.featureId}
       group={group}
       groups={groups}
