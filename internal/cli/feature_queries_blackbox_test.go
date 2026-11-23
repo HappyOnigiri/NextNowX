@@ -105,6 +105,7 @@ func TestBlackBoxFeatureScopedLists(t *testing.T) {
 				}
 			}
 			assertQueryNotFound(t, binary, path, list.command, "--feature", "F-999")
+			assertQueryNotFound(t, binary, path, list.command, "--feature", "")
 		})
 	}
 }

@@ -21,7 +21,7 @@ func (s *state) dependencyCommand() *cobra.Command {
 				return err
 			}
 			dependencies := nonNilSlice(snapshot.Dependencies)
-			if filterFeature != "" {
+			if cmd.Flags().Changed("feature") {
 				taskIDs, err := featureTaskIDs(snapshot, filterFeature)
 				if err != nil {
 					return err

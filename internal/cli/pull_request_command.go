@@ -19,7 +19,7 @@ func (s *state) pullRequestCommand() *cobra.Command {
 				return err
 			}
 			pullRequests := nonNilSlice(snapshot.PullRequests)
-			if filterFeature != "" {
+			if cmd.Flags().Changed("feature") {
 				taskIDs, err := featureTaskIDs(snapshot, filterFeature)
 				if err != nil {
 					return err
