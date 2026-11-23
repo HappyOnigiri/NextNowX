@@ -16,9 +16,12 @@ import (
 func TestBlackBoxFeatureScopedLists(t *testing.T) {
 	binary := buildCLI(t)
 	path := filepath.Join(t.TempDir(), "feature-lists.db")
+	withFixture := func(args ...string) []string {
+		return append([]string{"--github-fixture", "demo"}, args...)
+	}
 	run := func(args ...string) json.RawMessage {
 		t.Helper()
-		return runCLIData(t, binary, path, args...)
+		return runCLIData(t, binary, path, withFixture(args...)...)
 	}
 	project := decodeID(t, run("project", "create", "Payments"))
 	first := decodeID(t, run("feature", "create", "Checkout", "--project", project))
@@ -80,7 +83,7 @@ func TestBlackBoxFeatureScopedLists(t *testing.T) {
 					t.Fatalf("%v JSON IDs = %v, want %v", args, actual, want)
 				}
 
-				out := executeCLI(t, binary, "", append([]string{"--db", path}, args...)...)
+				out := executeCLI(t, binary, "", withFixture(append([]string{"--db", path}, args...)...)...)
 				if out.exit != 0 || out.stderr != "" {
 					t.Fatalf("%v text = %+v", args, out)
 				}
@@ -104,8 +107,8 @@ func TestBlackBoxFeatureScopedLists(t *testing.T) {
 					t.Fatalf("%v text IDs = %v, want %v", args, actual, want)
 				}
 			}
-			assertQueryNotFound(t, binary, path, list.command, "--feature", "F-999")
-			assertQueryNotFound(t, binary, path, list.command, "--feature", "")
+			assertQueryNotFound(t, binary, path, withFixture(list.command, "--feature", "F-999")...)
+			assertQueryNotFound(t, binary, path, withFixture(list.command, "--feature", "")...)
 		})
 	}
 }
