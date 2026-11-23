@@ -1,14 +1,19 @@
 package cli
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/spf13/cobra"
+
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+)
 
 func (s *state) dependencyCommand() *cobra.Command {
+	var filterFeature string
 	command := &cobra.Command{
 		Use:     "dependency",
 		Aliases: []string{"dep"},
 		Short:   "List or manage directed blocker edges",
 		Long:    "List or manage directed blocker edges.\n\nAlias: dep.",
-		Example: "nnx dependency\nnnx dep",
+		Example: "nnx dependency\nnnx dep\nnnx dependency --feature F-1",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			snapshot, err := s.service.Snapshot(cmd.Context())
@@ -16,9 +21,22 @@ func (s *state) dependencyCommand() *cobra.Command {
 				return err
 			}
 			dependencies := nonNilSlice(snapshot.Dependencies)
+			if cmd.Flags().Changed("feature") {
+				taskIDs, err := featureTaskIDs(snapshot, filterFeature)
+				if err != nil {
+					return err
+				}
+				dependencies = make([]domain.Dependency, 0)
+				for _, dependency := range snapshot.Dependencies {
+					if taskIDs[dependency.BlockerTaskID] {
+						dependencies = append(dependencies, dependency)
+					}
+				}
+			}
 			return s.write(map[string]any{"dependencies": dependencies}, renderDependencyList(dependencies))
 		},
 	}
+	command.Flags().StringVar(&filterFeature, "feature", "", "filter by feature ID")
 	add := &cobra.Command{
 		Use:     "add BLOCKER_TASK_ID BLOCKED_TASK_ID",
 		Short:   "Add a blocker-to-blocked dependency",

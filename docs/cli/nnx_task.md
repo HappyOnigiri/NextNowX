@@ -6,6 +6,8 @@ List tasks or show one by ID
 
 List tasks or show one by ID.
 
+The task list table shows whether each task has an implementation plan.
+
 Alias: t.
 
 ```
@@ -16,7 +18,7 @@ nnx task [TASK_ID] [flags]
 
 ```
 nnx task
-nnx task --feature checkout
+nnx task --feature F-1
 nnx task T-1
 nnx t T-1
 ```

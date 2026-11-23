@@ -10,11 +10,9 @@ import (
 
 func (s *state) showCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "show PROJECT_OR_FEATURE_OR_TASK",
-		Short: "Show a project, a feature, or a task by public identifier",
-		Long: "Show a project, a feature, or a task by public identifier.\n\n" +
-			"The operand is a public project, feature, or task ID.",
-		Example: "nnx show F-1\nnnx show T-1\nnnx show P-1",
+		Use:     "show ID",
+		Short:   "Show a project, feature, task, or task group by public ID",
+		Example: "nnx show F-1\nnnx show T-1\nnnx show P-1\nnnx show G-1",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 1 && strings.HasPrefix(args[0], "T-") {

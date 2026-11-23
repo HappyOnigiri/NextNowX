@@ -10,12 +10,14 @@ nnx pr [flags]
 
 ```
 nnx pr
+nnx pr --feature F-1
 ```
 
 ### Options
 
 ```
-  -h, --help   help for pr
+      --feature string   filter by feature ID
+  -h, --help             help for pr
 ```
 
 ### Options inherited from parent commands

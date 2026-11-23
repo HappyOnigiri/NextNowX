@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -123,7 +124,7 @@ func renderQueueWithAppearances(
 			_, err := fmt.Fprintf(out, "No %s tasks found.\n", name)
 			return err
 		}
-		return writeTaskTableWithAppearances(out, tasks, appearances)
+		return writeTaskTable(out, tasks, appearances, false)
 	}
 }
 
@@ -223,4 +224,17 @@ func filterTasks(tasks []domain.Task, keep func(domain.Task) bool) []domain.Task
 		}
 	}
 	return result
+}
+
+func featureTaskIDs(snapshot domain.Snapshot, featureID string) (map[string]bool, error) {
+	if !slices.ContainsFunc(snapshot.Features, func(feature domain.Feature) bool { return feature.ID == featureID }) {
+		return nil, domain.NewError(domain.DomainErrorCodeNotFound, "feature %q was not found", featureID)
+	}
+	ids := make(map[string]bool)
+	for _, task := range snapshot.Tasks {
+		if task.FeatureID == featureID {
+			ids[task.ID] = true
+		}
+	}
+	return ids, nil
 }

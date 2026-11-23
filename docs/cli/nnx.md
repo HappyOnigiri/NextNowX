@@ -33,7 +33,7 @@ Manage pull-request dependency roadmaps
 * [nnx schema-version](nnx_schema-version.md)	 - Show the CLI response schema version
 * [nnx serve](nnx_serve.md)	 - Start the local WebUI and ConnectRPC server
 * [nnx setup](nnx_setup.md)	 - Choose how Next Now X should start
-* [nnx show](nnx_show.md)	 - Show a project, a feature, or a task by public identifier
+* [nnx show](nnx_show.md)	 - Show a project, feature, task, or task group by public ID
 * [nnx snapshot](nnx_snapshot.md)	 - Show the complete current snapshot
 * [nnx stale](nnx_stale.md)	 - List tasks with stale GitHub state
 * [nnx sync](nnx_sync.md)	 - Refresh GitHub state for pull-request tasks

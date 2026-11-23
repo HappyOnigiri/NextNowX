@@ -3,9 +3,11 @@ package cli
 import (
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
+	"unicode"
 
 	"github.com/HappyOnigiri/NextNowX/internal/config"
 	"github.com/HappyOnigiri/NextNowX/internal/domain"
@@ -171,34 +173,33 @@ func renderTaskListWithAppearances(
 	tasks []domain.Task,
 	appearances map[string]domain.TaskLabelAppearances,
 ) humanRenderer {
-	return func(out io.Writer) error { return writeTaskTableWithAppearances(out, tasks, appearances) }
+	return func(out io.Writer) error { return writeTaskTable(out, tasks, appearances, true) }
 }
 
-func writeTaskTableWithAppearances(
+func writeTaskTable(
 	out io.Writer,
 	tasks []domain.Task,
 	appearances map[string]domain.TaskLabelAppearances,
+	showPlan bool,
 ) error {
 	if len(tasks) == 0 {
 		_, err := fmt.Fprintln(out, "No tasks found.")
 		return err
 	}
-	return writeTable(
-		out,
-		[]string{"ID", "STATUS", "READY", "ASSIGNEE", "TITLE"},
-		func(table *tabwriter.Writer) {
-			for _, task := range tasks {
-				writeRow(
-					table,
-					task.ID,
-					taskDisplayLabel(task, appearances),
-					yesNo(task.Ready),
-					displayValue(task.Assignee),
-					task.Title,
-				)
+	columns := []string{"ID", "STATUS", "READY", "ASSIGNEE"}
+	if showPlan {
+		columns = append(columns, "IMPLEMENTATION PLAN")
+	}
+	columns = append(columns, "TITLE")
+	return writeTable(out, columns, func(table *tabwriter.Writer) {
+		for _, task := range tasks {
+			row := []any{task.ID, taskDisplayLabel(task, appearances), yesNo(task.Ready), displayValue(task.Assignee)}
+			if showPlan {
+				row = append(row, yesNo(task.HasImplementationPlan))
 			}
-		},
-	)
+			writeRow(table, append(row, task.Title)...)
+		}
+	})
 }
 
 func renderTaskDetail(task domain.Task) humanRenderer {
@@ -260,6 +261,19 @@ func renderNode(value any) humanRenderer {
 		return renderFeatureDetail(typed)
 	case domain.Task:
 		return renderTaskDetail(typed)
+	case domain.TaskGroup:
+		name := typed.Name
+		if strings.ContainsFunc(name, unicode.IsControl) {
+			name = strconv.Quote(name)
+		}
+		return func(out io.Writer) error {
+			return writeFields(out, [][2]string{
+				{"ID", typed.ID},
+				{"Feature", typed.FeatureID},
+				{"Name", name},
+				{"Color", displayValue(typed.Color)},
+			})
+		}
 	default:
 		return renderMessage("Node: %v", value)
 	}
@@ -406,7 +420,7 @@ func renderGraphWithAppearances(
 		); err != nil {
 			return err
 		}
-		if err := writeTaskTableWithAppearances(out, tasks, appearances); err != nil {
+		if err := writeTaskTable(out, tasks, appearances, false); err != nil {
 			return err
 		}
 		if _, err := fmt.Fprintln(out, "\nDependencies"); err != nil {
@@ -450,7 +464,7 @@ func renderSnapshot(prefix string, snapshot domain.Snapshot) humanRenderer {
 		if _, err := fmt.Fprintln(out, "\nTasks"); err != nil {
 			return err
 		}
-		if err := writeTaskTableWithAppearances(out, snapshot.Tasks, featureAppearances(snapshot)); err != nil {
+		if err := writeTaskTable(out, snapshot.Tasks, featureAppearances(snapshot), false); err != nil {
 			return err
 		}
 		if _, err := fmt.Fprintln(out, "\nDependencies"); err != nil {

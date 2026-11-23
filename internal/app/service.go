@@ -259,9 +259,7 @@ func (s *Service) ResolveFeature(ctx context.Context, id string) (domain.Feature
 	return s.withReadOnly(ctx, feature)
 }
 
-// GetNode は導出済み snapshot から project・feature・task の公開 ID を解決し、
-// ストレージの UUID を晒さず、呼び出し側に種別を先に選ばせることもない。
-// 公開 ID の接頭辞が種別を示すので、オペランドが曖昧になることはない。
+// GetNode は公開 ID の接頭辞で種別を判定し、導出済みの snapshot から解決する。
 func (s *Service) GetNode(ctx context.Context, id string) (any, error) {
 	var kind string
 	switch {
@@ -271,6 +269,8 @@ func (s *Service) GetNode(ctx context.Context, id string) (any, error) {
 		kind = "project"
 	case strings.HasPrefix(id, "F-"):
 		kind = "feature"
+	case strings.HasPrefix(id, "G-"):
+		kind = "task group"
 	default:
 		return nil, domain.NewError(domain.DomainErrorCodeNotFound, "project, feature, or task %q was not found", id)
 	}
@@ -285,23 +285,26 @@ func (s *Service) GetNode(ctx context.Context, id string) (any, error) {
 				return task, nil
 			}
 		}
-		return nil, domain.NewError(domain.DomainErrorCodeNotFound, "task %q was not found", id)
 	case "project":
 		for _, project := range snapshot.Projects {
 			if project.ID == id {
 				return project, nil
 			}
 		}
-		return nil, domain.NewError(domain.DomainErrorCodeNotFound, "project %q was not found", id)
 	case "feature":
 		for _, feature := range snapshot.Features {
 			if feature.ID == id {
 				return feature, nil
 			}
 		}
-		return nil, domain.NewError(domain.DomainErrorCodeNotFound, "feature %q was not found", id)
+	case "task group":
+		for _, group := range snapshot.TaskGroups {
+			if group.ID == id {
+				return group, nil
+			}
+		}
 	}
-	return nil, domain.NewError(domain.DomainErrorCodeNotFound, "project, feature, or task %q was not found", id)
+	return nil, domain.NewError(domain.DomainErrorCodeNotFound, "%s %q was not found", kind, id)
 }
 
 // DeleteFeature は意図的にガードしていない。アーカイブ済みの作業を捨てる操作は、
