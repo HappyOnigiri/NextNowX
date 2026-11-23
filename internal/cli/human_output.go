@@ -3,9 +3,11 @@ package cli
 import (
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
+	"unicode"
 
 	"github.com/HappyOnigiri/NextNowX/internal/config"
 	"github.com/HappyOnigiri/NextNowX/internal/domain"
@@ -260,11 +262,15 @@ func renderNode(value any) humanRenderer {
 	case domain.Task:
 		return renderTaskDetail(typed)
 	case domain.TaskGroup:
+		name := typed.Name
+		if strings.ContainsFunc(name, unicode.IsControl) {
+			name = strconv.Quote(name)
+		}
 		return func(out io.Writer) error {
 			return writeFields(out, [][2]string{
 				{"ID", typed.ID},
 				{"Feature", typed.FeatureID},
-				{"Name", typed.Name},
+				{"Name", name},
 				{"Color", displayValue(typed.Color)},
 			})
 		}

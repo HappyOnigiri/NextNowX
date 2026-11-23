@@ -147,6 +147,15 @@ func TestBlackBoxShowTaskGroup(t *testing.T) {
 	if out.exit != 0 || out.stderr != "" || strings.Join(strings.Fields(out.stdout), " ") != want {
 		t.Fatalf("show group text = %+v, want %q", out, want)
 	}
+	multiline := run("task", "group", "create", feature, "API delivery\nColor: red")
+	multilineID := decodeID(t, multiline)
+	out = executeCLI(t, binary, "", "--db", path, "show", multilineID)
+	lines := strings.Split(strings.TrimSuffix(out.stdout, "\n"), "\n")
+	if out.exit != 0 || out.stderr != "" || len(lines) != 4 ||
+		strings.Join(strings.Fields(lines[2]), " ") != `Name: "API delivery\nColor: red"` {
+		t.Fatalf("show group text with multiline name = %+v", out)
+	}
+	assertJSONEqual(t, run("show", multilineID), multiline, "show task group with multiline name")
 	assertJSONEqual(t, run("show", project), createdProject, "show project")
 	for _, existing := range []struct{ command, id string }{{"feature", feature}, {"task", task}} {
 		assertJSONEqual(t, run("show", existing.id), run(existing.command, existing.id), "show "+existing.command)
