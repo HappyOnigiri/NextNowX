@@ -165,7 +165,9 @@ func TestBlackBoxShowTaskGroup(t *testing.T) {
 
 func TestBlackBoxTaskListImplementationPlans(t *testing.T) {
 	binary := buildCLI(t)
-	path := filepath.Join(t.TempDir(), "plan-lists.db")
+	directory := t.TempDir()
+	path := filepath.Join(directory, "plan-lists.db")
+	t.Setenv("NNX_CONFIG", filepath.Join(directory, "config.yaml"))
 	run := func(args ...string) json.RawMessage {
 		t.Helper()
 		return runCLIData(t, binary, path, args...)
