@@ -1,15 +1,9 @@
 ## nnx show
 
-Show a project, a feature, or a task by public identifier
-
-### Synopsis
-
-Show a project, a feature, or a task by public identifier.
-
-The operand is a public project, feature, or task ID.
+Show a project, feature, task, or task group by public ID
 
 ```
-nnx show PROJECT_OR_FEATURE_OR_TASK [flags]
+nnx show ID [flags]
 ```
 
 ### Examples
@@ -18,6 +12,7 @@ nnx show PROJECT_OR_FEATURE_OR_TASK [flags]
 nnx show F-1
 nnx show T-1
 nnx show P-1
+nnx show G-1
 ```
 
 ### Options

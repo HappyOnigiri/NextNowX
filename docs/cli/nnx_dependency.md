@@ -17,12 +17,14 @@ nnx dependency [flags]
 ```
 nnx dependency
 nnx dep
+nnx dependency --feature F-1
 ```
 
 ### Options
 
 ```
-  -h, --help   help for dependency
+      --feature string   filter by feature ID
+  -h, --help             help for dependency
 ```
 
 ### Options inherited from parent commands

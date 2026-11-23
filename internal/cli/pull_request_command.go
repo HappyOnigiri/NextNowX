@@ -1,12 +1,17 @@
 package cli
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/spf13/cobra"
+
+	"github.com/HappyOnigiri/NextNowX/internal/domain"
+)
 
 func (s *state) pullRequestCommand() *cobra.Command {
+	var filterFeature string
 	command := &cobra.Command{
 		Use:     "pr",
 		Short:   "List or attach GitHub pull requests",
-		Example: "nnx pr",
+		Example: "nnx pr\nnnx pr --feature F-1",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			snapshot, err := s.service.Snapshot(cmd.Context())
@@ -14,9 +19,22 @@ func (s *state) pullRequestCommand() *cobra.Command {
 				return err
 			}
 			pullRequests := nonNilSlice(snapshot.PullRequests)
+			if filterFeature != "" {
+				taskIDs, err := featureTaskIDs(snapshot, filterFeature)
+				if err != nil {
+					return err
+				}
+				pullRequests = make([]domain.PullRequest, 0)
+				for _, pullRequest := range snapshot.PullRequests {
+					if taskIDs[pullRequest.TaskID] {
+						pullRequests = append(pullRequests, pullRequest)
+					}
+				}
+			}
 			return s.write(map[string]any{"pull_requests": pullRequests}, renderPullRequestList(pullRequests))
 		},
 	}
+	command.Flags().StringVar(&filterFeature, "feature", "", "filter by feature ID")
 	attach := &cobra.Command{
 		Use:     "attach TASK_ID URL",
 		Short:   "Attach a GitHub pull request to a task",

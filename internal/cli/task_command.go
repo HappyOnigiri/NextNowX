@@ -15,8 +15,9 @@ func (s *state) taskCommand() *cobra.Command {
 		Use:     "task [TASK_ID]",
 		Aliases: []string{"t"},
 		Short:   "List tasks or show one by ID",
-		Long:    "List tasks or show one by ID.\n\nAlias: t.",
-		Example: "nnx task\nnnx task --feature checkout\nnnx task T-1\nnnx t T-1",
+		Long: "List tasks or show one by ID.\n\n" +
+			"The task list table shows whether each task has an implementation plan.\n\nAlias: t.",
+		Example: "nnx task\nnnx task --feature F-1\nnnx task T-1\nnnx t T-1",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.MaximumNArgs(1)(cmd, args); err != nil {
 				return err
