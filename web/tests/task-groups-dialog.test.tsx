@@ -207,13 +207,22 @@ it("deletes from the edit dialog only after confirmation", async () => {
   expect(mocks.updateTaskGroup).not.toHaveBeenCalled();
 });
 
-it("offers references and editing on the group card without a delete button", () => {
+it("copies the group name and offers references and editing on the group card", async () => {
   const group = makeTaskGroup();
+  const writeText = vi.fn().mockResolvedValue(undefined);
+  vi.stubGlobal("navigator", { clipboard: { writeText } });
   const onGroupAction = vi.fn();
   const frames = [{ group, x: 0, y: 0, width: 336, height: 48 }];
   const { rerender } = render(
     <GraphTaskGroups frames={frames} onGroupAction={onGroupAction} />,
   );
+  try {
+    fireEvent.click(screen.getByRole("button", { name: "Copy group name" }));
+    await screen.findByRole("button", { name: "Copied" });
+    expect(writeText).toHaveBeenCalledExactlyOnceWith(group.name);
+  } finally {
+    vi.unstubAllGlobals();
+  }
   fireEvent.click(screen.getByRole("button", { name: `Edit ${group.name}` }));
   expect(onGroupAction).toHaveBeenLastCalledWith({ type: "edit", group });
   expect(

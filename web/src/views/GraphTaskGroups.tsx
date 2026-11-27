@@ -3,6 +3,7 @@ import { Paperclip, Pencil } from "lucide-react";
 import type { Ref } from "react";
 import { useTranslation } from "react-i18next";
 import type { TaskGroup } from "../gen/nnx/v1/nnx_pb";
+import { CopyTextButton } from "./CopyableIdentifier";
 import { IconButton } from "./IconButton";
 import { taskGroupColors } from "./taskGroupColors";
 import { taskGroupWidth, type TaskGroupFrame } from "./taskGroupGraphLayout";
@@ -91,6 +92,7 @@ function GraphTaskGroupHeader({
   return (
     <div className="graph-task-group-header nopan" data-group-id={group.id}>
       <TaskGroupLink group={group} className="graph-task-group-link" />
+      <CopyTextButton label={t("taskGroups.copyName")} value={group.name} />
       {onGroupAction && (
         <IconButton
           icon={Paperclip}
