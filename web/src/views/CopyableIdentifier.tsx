@@ -5,19 +5,10 @@ import { IconButton } from "./IconButton";
 
 type CopyStatus = "copied" | "failed";
 
-export function CopyableIdentifier({
-  label,
-  value,
-  valueOnly = false,
-}: {
-  label: string;
-  value: string;
-  valueOnly?: boolean;
-}) {
-  const { t } = useTranslation();
+function useCopyText(value: string) {
   const [status, setStatus] = useState<CopyStatus>();
 
-  async function copyIdentifier() {
+  async function copy() {
     try {
       await navigator.clipboard.writeText(value);
       setStatus("copied");
@@ -28,6 +19,52 @@ export function CopyableIdentifier({
       setStatus(undefined);
     }, 1600);
   }
+
+  return { status, copy };
+}
+
+export function CopyTextButton({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  const { t } = useTranslation();
+  const { status, copy } = useCopyText(value);
+  const isCopied = status === "copied";
+
+  return (
+    <>
+      <IconButton
+        icon={isCopied ? Check : Copy}
+        label={label}
+        size="compact"
+        iconOnly
+        aria-label={isCopied ? t("common.copied") : label}
+        onClick={() => void copy()}
+      />
+      <span
+        className="copyable-identifier-status is-visually-hidden"
+        aria-live="polite"
+      >
+        {status === "failed" && t("common.copyFailed")}
+      </span>
+    </>
+  );
+}
+
+export function CopyableIdentifier({
+  label,
+  value,
+  valueOnly = false,
+}: {
+  label: string;
+  value: string;
+  valueOnly?: boolean;
+}) {
+  const { t } = useTranslation();
+  const { status, copy } = useCopyText(value);
 
   const copyLabel = t("common.copyIdentifier", { label });
   const isCopied = status === "copied";
@@ -41,7 +78,7 @@ export function CopyableIdentifier({
           className={`copyable-identifier-value-button${isCopied ? " is-copied" : ""}`}
           aria-label={isCopied ? t("common.copied") : copyLabel}
           title={copyLabel}
-          onClick={() => void copyIdentifier()}
+          onClick={() => void copy()}
         >
           <code className="copyable-identifier-value" title={value}>
             {value}
@@ -72,7 +109,7 @@ export function CopyableIdentifier({
         className={`copyable-identifier-button${isCopied ? " is-copied" : ""}`}
         aria-label={isCopied ? t("common.copied") : copyLabel}
         title={copyLabel}
-        onClick={() => void copyIdentifier()}
+        onClick={() => void copy()}
         iconProps={{ "data-icon": isCopied ? "check" : "copy" }}
       />
       <span className="copyable-identifier-status" aria-live="polite">

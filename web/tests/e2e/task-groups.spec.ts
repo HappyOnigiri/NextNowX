@@ -54,7 +54,9 @@ async function openInspector(page: Page, title: string) {
 
 test("manages membership and shows the same ordered group frames in search and ready tasks", async ({
   page,
+  context,
 }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   const prefix = crypto.randomUUID().slice(0, 8);
   const name = `Checkout${prefix}${"LongGroupHeading".repeat(5)}`;
   const renamed = `Delivery ${prefix}`;
@@ -88,6 +90,12 @@ test("manages membership and shows the same ordered group frames in search and r
   expect(
     headerBox && rowBox && rowBox.y >= headerBox.y + headerBox.height - 1,
   ).toBe(true);
+
+  await cardHeader.getByRole("button", { name: "Copy group name" }).click();
+  await expect
+    .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+    .toBe(name);
+  await expect(page).toHaveURL(featureURL);
 
   await cardTitle.click();
   const wideViewport = page.viewportSize();
