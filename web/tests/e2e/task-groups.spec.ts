@@ -466,7 +466,9 @@ async function graphTaskId(stage: Locator, title: string) {
 
 test("keeps the detail graph visible beside a scrollable long group name", async ({
   page,
+  context,
 }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await createFeature(page, `Long group ${crypto.randomUUID()}`);
   await addTask(page, "Verify detail layout");
   const name = "LongGroupHeading".repeat(120);
@@ -477,6 +479,16 @@ test("keeps the detail graph visible beside a scrollable long group name", async
   if (!groupURL) throw new Error("Group detail URL missing");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(groupURL);
+
+  const groupId = new URL(page.url()).searchParams.get("group");
+  if (!groupId) throw new Error("Group ID missing from detail URL");
+  const copyGroupId = page.getByRole("button", { name: "Copy Group ID" });
+  await expect(copyGroupId).toHaveText(groupId);
+  await expect(copyGroupId).toBeInViewport();
+  await copyGroupId.click();
+  await expect
+    .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+    .toBe(groupId);
 
   const heading = page.getByRole("heading", { name, exact: true });
   await expect(heading).toBeVisible();

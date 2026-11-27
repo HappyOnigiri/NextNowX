@@ -603,8 +603,15 @@ function GroupNavigation({
         <ArrowLeft size={15} aria-hidden="true" />
         {t("taskGroups.backToFeature")}
       </Link>
-      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- 長いグループ名をキーボードでスクロールできるようにする。 */}
-      <h2 tabIndex={0}>{group.name}</h2>
+      <div className="workspace-group-title">
+        {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- 長いグループ名をキーボードでスクロールできるようにする。 */}
+        <h2 tabIndex={0}>{group.name}</h2>
+        <CopyableIdentifier
+          label={t("common.groupId")}
+          value={group.id}
+          valueOnly
+        />
+      </div>
       <DocumentReferences
         parent={{ groupId: group.id }}
         documents={documents}

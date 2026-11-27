@@ -356,10 +356,22 @@
   text-decoration: underline;
 }
 
-.workspace-group-navigation > h2 {
+.workspace-group-title {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+}
+
+.workspace-group-title > .copyable-identifier {
+  flex-shrink: 0;
+  max-width: 50%;
+}
+
+.workspace-group-title > h2 {
   min-width: 0;
   max-height: 25dvh;
-  flex: 1;
   margin: 0;
   overflow-y: auto;
   font-size: var(--text-md);
@@ -374,7 +386,7 @@
     gap: 8px 12px;
   }
 
-  .workspace-group-navigation > h2 {
+  .workspace-group-title {
     grid-column: 1 / -1;
     grid-row: 2;
   }
